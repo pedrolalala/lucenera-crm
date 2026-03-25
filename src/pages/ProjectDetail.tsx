@@ -57,7 +57,21 @@ export default function ProjectDetail() {
   const userRole = USERS.find((u) => u.name === currentUser)?.role
   const isEditable = project && (userRole === 'Admin' || project.responsible === currentUser)
 
-  const form = useForm<z.infer<typeof formSchema>>({ resolver: zodResolver(formSchema) })
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: project
+      ? {
+          name: project.name,
+          strategicLevel: project.strategicLevel,
+          responsible: project.responsible as any,
+          status: project.status,
+          architect: project.architect,
+          engineer: project.engineer,
+          city: project.city,
+          state: project.state,
+        }
+      : undefined,
+  })
 
   useEffect(() => {
     if (project) {
@@ -176,7 +190,7 @@ export default function ProjectDetail() {
                       >
                         <FormControl>
                           <SelectTrigger className="h-10">
-                            <SelectValue />
+                            <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -204,7 +218,7 @@ export default function ProjectDetail() {
                       >
                         <FormControl>
                           <SelectTrigger className="h-10">
-                            <SelectValue />
+                            <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -232,7 +246,7 @@ export default function ProjectDetail() {
                       >
                         <FormControl>
                           <SelectTrigger className="h-10">
-                            <SelectValue />
+                            <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
