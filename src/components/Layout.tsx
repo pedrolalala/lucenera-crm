@@ -33,17 +33,25 @@ export default function Layout() {
   return (
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
-        <SidebarHeader className="flex flex-row items-center justify-center p-4">
-          <div className="flex items-center gap-2 overflow-hidden w-full px-2 mt-1">
+        <SidebarHeader className="flex flex-row items-center p-4 h-16">
+          <div className="flex items-center gap-3 overflow-hidden w-full px-1">
             <img
-              src="/lucenera_logo.jpg"
+              src="/logo.png"
               alt="Lucenera"
-              className="h-7 w-auto object-contain shrink-0 group-data-[collapsible=icon]:h-5 transition-all"
+              className="h-8 w-auto object-contain shrink-0 group-data-[collapsible=icon]:h-6 transition-all"
               onError={(e) => {
-                e.currentTarget.style.display = 'none'
+                // Tenta algumas extensões comuns ou cai para um placeholder caso a logo não esteja na raiz
+                if (e.currentTarget.src.endsWith('/logo.png')) {
+                  e.currentTarget.src = '/lucenera_logo.jpg'
+                } else if (e.currentTarget.src.endsWith('/lucenera_logo.jpg')) {
+                  e.currentTarget.src = '/logo.jpg'
+                } else {
+                  e.currentTarget.src =
+                    'https://img.usecurling.com/i?q=lightbulb&shape=fill&color=black'
+                }
               }}
             />
-            <span className="font-bold text-xl tracking-tight text-sidebar-foreground truncate group-data-[collapsible=icon]:hidden mt-0.5">
+            <span className="font-extrabold text-2xl tracking-tight text-sidebar-foreground truncate group-data-[collapsible=icon]:hidden mt-0.5">
               CRM
             </span>
           </div>
@@ -86,9 +94,24 @@ export default function Layout() {
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-card/50 backdrop-blur-sm sticky top-0 z-20">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
-            <h1 className="font-semibold text-lg hidden sm:block text-muted-foreground">
-              Dashboard Geral
-            </h1>
+            <div className="flex items-center gap-2 md:hidden">
+              <img
+                src="/logo.png"
+                alt="Lucenera"
+                className="h-6 w-auto object-contain"
+                onError={(e) => {
+                  if (e.currentTarget.src.endsWith('/logo.png')) {
+                    e.currentTarget.src = '/lucenera_logo.jpg'
+                  } else if (e.currentTarget.src.endsWith('/lucenera_logo.jpg')) {
+                    e.currentTarget.src = '/logo.jpg'
+                  } else {
+                    e.currentTarget.src =
+                      'https://img.usecurling.com/i?q=lightbulb&shape=fill&color=black'
+                  }
+                }}
+              />
+              <span className="font-extrabold text-xl tracking-tight">CRM</span>
+            </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
