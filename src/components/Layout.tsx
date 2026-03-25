@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Home, Plus, Briefcase, UserCircle, LogOut } from 'lucide-react'
+import { Home, Plus, UserCircle, LogOut } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -34,10 +34,17 @@ export default function Layout() {
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader className="flex flex-row items-center justify-center p-4">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <Briefcase className="h-6 w-6 text-primary shrink-0" />
-            <span className="font-bold text-xl tracking-tight text-sidebar-foreground truncate group-data-[collapsible=icon]:hidden">
-              Lucenera<span className="text-primary">CRM</span>
+          <div className="flex items-center gap-2 overflow-hidden w-full px-2 mt-1">
+            <img
+              src="/lucenera_logo.jpg"
+              alt="Lucenera"
+              className="h-7 w-auto object-contain shrink-0 group-data-[collapsible=icon]:h-5 transition-all"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+              }}
+            />
+            <span className="font-bold text-xl tracking-tight text-sidebar-foreground truncate group-data-[collapsible=icon]:hidden mt-0.5">
+              CRM
             </span>
           </div>
         </SidebarHeader>
@@ -79,7 +86,9 @@ export default function Layout() {
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-card/50 backdrop-blur-sm sticky top-0 z-20">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
-            <h1 className="font-semibold text-lg hidden sm:block">Gestão de Projetos</h1>
+            <h1 className="font-semibold text-lg hidden sm:block text-muted-foreground">
+              Dashboard Geral
+            </h1>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

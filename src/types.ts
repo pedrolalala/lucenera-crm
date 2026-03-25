@@ -10,20 +10,20 @@ export const USERS: { name: UserName; role: UserRole }[] = [
 ]
 
 export type ProjectStatus =
-  | 'Estudo inicial'
-  | 'Anteprojeto'
-  | 'Projeto definitivo'
-  | 'Orçamento'
+  | 'Estudo Inicial'
+  | 'Proposta Sinal'
+  | 'Elaboração Orçamento'
+  | 'Informações necessárias'
   | 'Projeto executivo'
   | 'Entrega materiais'
   | 'Ajustes finais'
   | 'Finalizado'
 
 export const STATUS_OPTIONS: ProjectStatus[] = [
-  'Estudo inicial',
-  'Anteprojeto',
-  'Projeto definitivo',
-  'Orçamento',
+  'Estudo Inicial',
+  'Proposta Sinal',
+  'Elaboração Orçamento',
+  'Informações necessárias',
   'Projeto executivo',
   'Entrega materiais',
   'Ajustes finais',
@@ -37,11 +37,13 @@ export interface ProjectHistoryItem {
 
 export interface Project {
   id: string
+  strategicLevel: '1' | '2' | '3' | '4'
   name: string
   responsible: UserName
   status: ProjectStatus
   entryDate: string
   architect: string
+  engineer: string
   city: string
   state: string
   history: ProjectHistoryItem[]

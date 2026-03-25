@@ -13,11 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
 import { Plus, Search, FilterX } from 'lucide-react'
 import { STATUS_OPTIONS, USERS, ProjectStatus, UserName } from '@/types'
 import { Skeleton } from '@/components/ui/skeleton'
+import { format } from 'date-fns'
 
 export default function Index() {
   const { projects, currentUser } = useProjectStore()
@@ -28,83 +27,96 @@ export default function Index() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'ALL'>('ALL')
   const [responsibleFilter, setResponsibleFilter] = useState<UserName | 'ALL'>('ALL')
-  const [onlyBudget, setOnlyBudget] = useState(false)
+  const [nivelFilter, setNivelFilter] = useState<string>('ALL')
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 400)
     return () => clearTimeout(timer)
-  }, [currentUser]) // Simulate network loading when user switches
+  }, [currentUser])
 
   const userRole = USERS.find((u) => u.name === currentUser)?.role
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
-      // RBAC filtering
       if (userRole === 'User' && p.responsible !== currentUser) return false
-
-      // Toggle "Orçamento"
-      if (onlyBudget && p.status !== 'Orçamento') return false
-
-      // Standard filters
       if (statusFilter !== 'ALL' && p.status !== statusFilter) return false
       if (responsibleFilter !== 'ALL' && p.responsible !== responsibleFilter) return false
+      if (nivelFilter !== 'ALL' && p.strategicLevel !== nivelFilter) return false
 
-      // Global search
       if (search) {
         const q = search.toLowerCase()
         return (
-          p.name.toLowerCase().includes(q) ||
           p.id.toLowerCase().includes(q) ||
+          p.name.toLowerCase().includes(q) ||
           p.architect.toLowerCase().includes(q) ||
-          p.city.toLowerCase().includes(q)
+          p.engineer.toLowerCase().includes(q) ||
+          p.city.toLowerCase().includes(q) ||
+          p.state.toLowerCase().includes(q) ||
+          format(new Date(p.entryDate), 'dd/MM/yyyy').includes(q)
         )
       }
       return true
     })
-  }, [projects, currentUser, userRole, search, statusFilter, responsibleFilter, onlyBudget])
+  }, [projects, currentUser, userRole, search, statusFilter, responsibleFilter, nivelFilter])
 
   const clearFilters = () => {
     setSearch('')
     setStatusFilter('ALL')
     setResponsibleFilter('ALL')
-    setOnlyBudget(false)
+    setNivelFilter('ALL')
   }
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Projetos</h2>
-          <p className="text-muted-foreground text-sm">
-            {userRole === 'Admin'
-              ? 'Acompanhamento global de projetos.'
-              : 'Seus projetos atribuídos.'}
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+            Organização Projetos
+          </h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            Acompanhamento centralizado e estratégico de portfólio luminotécnico.
           </p>
         </div>
         <Button
           onClick={() => navigate('/novo')}
-          className="w-full sm:w-auto shadow-elevation"
+          className="w-full sm:w-auto shadow-elevation h-11"
           size="lg"
         >
-          <Plus className="mr-2 h-4 w-4" /> Novo Projeto
+          <Plus className="mr-2 h-5 w-5" /> Adicionar novo item
         </Button>
       </div>
 
-      <div className="bg-card p-4 rounded-lg border shadow-sm space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-          <div className="md:col-span-5 relative">
+      <div className="bg-card p-5 rounded-lg border shadow-sm space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
+          <div className="lg:col-span-4 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome, ID, arquiteto..."
+              placeholder="Buscar por código, projeto, cidade..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-background"
+              className="pl-9 h-10 bg-background"
             />
           </div>
 
-          <div className="md:col-span-3">
+          <div className="lg:col-span-2">
+            <Select value={nivelFilter} onValueChange={setNivelFilter}>
+              <SelectTrigger className="h-10 bg-background">
+                <SelectValue placeholder="Nível Estrat." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos Níveis</SelectItem>
+                {[1, 2, 3, 4].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    Nível {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="lg:col-span-3">
             <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-              <SelectTrigger className="bg-background">
+              <SelectTrigger className="h-10 bg-background">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -118,17 +130,17 @@ export default function Index() {
             </Select>
           </div>
 
-          <div className="md:col-span-3">
+          <div className="lg:col-span-2">
             <Select
               value={responsibleFilter}
               onValueChange={(v: any) => setResponsibleFilter(v)}
               disabled={userRole === 'User'}
             >
-              <SelectTrigger className="bg-background">
+              <SelectTrigger className="h-10 bg-background">
                 <SelectValue placeholder="Responsável" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">Todos os Responsáveis</SelectItem>
+                <SelectItem value="ALL">Todos os Resp.</SelectItem>
                 {USERS.filter((u) => u.role === 'User').map((u) => (
                   <SelectItem key={u.name} value={u.name}>
                     {u.name}
@@ -138,24 +150,17 @@ export default function Index() {
             </Select>
           </div>
 
-          <div className="md:col-span-1 flex justify-end md:justify-center h-10 items-center">
-            <Button variant="ghost" size="icon" onClick={clearFilters} title="Limpar Filtros">
+          <div className="lg:col-span-1 flex justify-end h-10 items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={clearFilters}
+              title="Limpar Filtros"
+              className="w-10 h-10 hover:bg-destructive/10 hover:text-destructive"
+            >
               <FilterX className="h-4 w-4" />
             </Button>
           </div>
-        </div>
-
-        <div className="flex items-center space-x-2 pt-2 border-t">
-          <Switch id="budget-mode" checked={onlyBudget} onCheckedChange={setOnlyBudget} />
-          <Label
-            htmlFor="budget-mode"
-            className="font-medium cursor-pointer flex items-center gap-2"
-          >
-            Modo Orçamento
-            {onlyBudget && (
-              <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-            )}
-          </Label>
         </div>
       </div>
 

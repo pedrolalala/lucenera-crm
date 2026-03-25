@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
+  CardDescription,
+  CardFooter,
 } from '@/components/ui/card'
 import {
   Form,
@@ -19,6 +19,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
@@ -29,70 +30,43 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { STATUS_OPTIONS, USERS } from '@/types'
-import { ArrowLeft } from 'lucide-react'
-
-const BRAZIL_STATES = [
-  'AC',
-  'AL',
-  'AP',
-  'AM',
-  'BA',
-  'CE',
-  'DF',
-  'ES',
-  'GO',
-  'MA',
-  'MT',
-  'MS',
-  'MG',
-  'PA',
-  'PB',
-  'PR',
-  'PE',
-  'PI',
-  'RJ',
-  'RN',
-  'RS',
-  'RO',
-  'RR',
-  'SC',
-  'SP',
-  'SE',
-  'TO',
-]
+import { ArrowLeft, Sparkles } from 'lucide-react'
 
 const formSchema = z.object({
-  name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-  responsible: z.enum(['Marina', 'Thairine', 'Thais'] as const, {
-    required_error: 'Selecione um responsável',
-  }),
+  name: z.string().min(2, 'Obrigatório'),
+  strategicLevel: z.enum(['1', '2', '3', '4']),
+  responsible: z.enum(['Marina', 'Thairine', 'Thais']),
   status: z.enum(STATUS_OPTIONS as [string, ...string[]]),
-  architect: z.string().min(2, 'Nome do arquiteto é obrigatório'),
-  city: z.string().min(2, 'Cidade é obrigatória'),
-  state: z.string().length(2, 'Estado inválido'),
+  architect: z.string().min(1, 'Obrigatório'),
+  engineer: z.string().min(1, 'Obrigatório'),
+  city: z.string().min(2, 'Obrigatório'),
+  state: z.string().length(2, 'Inválido'),
 })
 
 export default function ProjectNew() {
   const navigate = useNavigate()
-  const { addProject } = useProjectStore()
+  const { addProject, getCities, getArchitects, getEngineers, getStateForCity } = useProjectStore()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
+      strategicLevel: '3',
       architect: '',
+      engineer: '',
       city: '',
-      status: 'Estudo inicial',
+      state: 'SP',
+      status: 'Estudo Inicial',
     },
   })
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    addProject(values)
+  const onSubmit = (v: z.infer<typeof formSchema>) => {
+    addProject(v)
     navigate('/')
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 pb-12">
       <Button
         variant="ghost"
         className="pl-0 hover:bg-transparent hover:text-primary"
@@ -100,116 +74,135 @@ export default function ProjectNew() {
       >
         <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
       </Button>
-
-      <Card className="border-t-4 border-t-primary shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl">Registro de Novo Projeto</CardTitle>
+      <Card className="border-t-4 border-t-primary shadow-elevation overflow-hidden">
+        <CardHeader className="bg-muted/30 pb-8 border-b">
+          <CardTitle className="text-2xl flex items-center gap-2">
+            Registro de Novo Projeto <Sparkles className="h-5 w-5 text-primary" />
+          </CardTitle>
           <CardDescription>
-            Preencha os dados abaixo para cadastrar um novo projeto no sistema.
+            O código de controle (Codigo) será gerado automaticamente após salvar.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="space-y-6">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pt-8">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Nome do Projeto <span className="text-destructive">*</span>
+                  <FormItem className="md:col-span-2">
+                    <FormLabel className="text-base">
+                      Projeto <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Residência XYZ" {...field} />
+                      <Input
+                        placeholder="Nome completo do projeto"
+                        className="h-11 text-base"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="responsible"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        Responsável <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {USERS.filter((u) => u.role === 'User').map((user) => (
-                            <SelectItem key={user.name} value={user.name}>
-                              {user.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        Status Inicial <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {STATUS_OPTIONS.map((status) => (
-                            <SelectItem key={status} value={status}>
-                              {status}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
 
               <FormField
                 control={form.control}
-                name="architect"
+                name="strategicLevel"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Arquiteto Responsável <span className="text-destructive">*</span>
+                      Nível Estratégico <span className="text-destructive">*</span>
                     </FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nome do arquiteto ou escritório" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-11">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {[1, 2, 3, 4].map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            Nível {n}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Status <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-11">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {STATUS_OPTIONS.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {s}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="responsible"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Responsável <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {USERS.filter((u) => u.role === 'User').map((u) => (
+                          <SelectItem key={u.name} value={u.name}>
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 p-5 bg-muted/20 rounded-lg border">
                 <FormField
                   control={form.control}
-                  name="city"
+                  name="architect"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        Cidade <span className="text-destructive">*</span>
+                        Arquiteto Responsável <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: São Paulo" {...field} />
+                        <Input
+                          list="architects"
+                          placeholder="Selecione ou digite um novo"
+                          className="h-11"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -218,37 +211,104 @@ export default function ProjectNew() {
 
                 <FormField
                   control={form.control}
+                  name="engineer"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Engenheiro Responsável <span className="text-destructive">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          list="engineers"
+                          placeholder="Selecione ou digite um novo"
+                          className="h-11"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-6">
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>
+                        Cidade <span className="text-destructive">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          list="cities"
+                          placeholder="Selecione ou digite"
+                          className="h-11"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e)
+                            const s = getStateForCity(e.target.value)
+                            if (s) form.setValue('state', s)
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>Estado será preenchido automaticamente.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="state"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
                         Estado <span className="text-destructive">*</span>
                       </FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="UF" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {BRAZIL_STATES.map((state) => (
-                            <SelectItem key={state} value={state}>
-                              {state}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Input
+                          maxLength={2}
+                          placeholder="UF"
+                          className="h-11 uppercase"
+                          {...field}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end gap-3 bg-muted/20 py-4 border-t">
-              <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+
+            <datalist id="cities">
+              {getCities().map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+            <datalist id="architects">
+              {getArchitects().map((a) => (
+                <option key={a} value={a} />
+              ))}
+            </datalist>
+            <datalist id="engineers">
+              {getEngineers().map((e) => (
+                <option key={e} value={e} />
+              ))}
+            </datalist>
+
+            <CardFooter className="flex justify-end gap-4 bg-muted/30 py-6 px-8 border-t mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 px-6"
+                onClick={() => navigate(-1)}
+              >
                 Cancelar
               </Button>
-              <Button type="submit">Salvar Projeto</Button>
+              <Button type="submit" className="h-11 px-8 text-base">
+                Salvar e Gerar Código
+              </Button>
             </CardFooter>
           </form>
         </Form>

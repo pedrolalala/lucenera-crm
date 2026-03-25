@@ -1,47 +1,59 @@
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react'
-import { Project, UserName, USERS } from '@/types'
+import { Project, UserName } from '@/types'
 import { toast } from '@/hooks/use-toast'
 
 const MOCK_PROJECTS: Project[] = [
   {
-    id: 'LUC-001',
-    name: 'Residência Villa Lobos',
-    responsible: 'Marina',
-    status: 'Orçamento',
-    entryDate: '2023-09-15T10:00:00Z',
-    architect: 'Studio Arthur Casas',
-    city: 'São Paulo',
-    state: 'SP',
-    history: [
-      { status: 'Estudo inicial', date: '2023-09-15T10:00:00Z' },
-      { status: 'Orçamento', date: '2023-10-01T14:30:00Z' },
-    ],
-  },
-  {
-    id: 'LUC-002',
-    name: 'Corporate Faria Lima',
+    id: '26.082',
+    strategicLevel: '3',
+    name: 'GRAÇA E MOACIR QUIRINO',
     responsible: 'Thairine',
-    status: 'Finalizado',
-    entryDate: '2023-08-01T09:15:00Z',
-    architect: 'Aflalo/Gasperini',
-    city: 'São Paulo',
+    entryDate: '2026-03-24T10:00:00Z',
+    status: 'Estudo Inicial',
+    architect: 'FLÁVIA CAMARGO',
+    engineer: '.',
+    city: 'RIBEIRÃO PRETO',
     state: 'SP',
-    history: [
-      { status: 'Estudo inicial', date: '2023-08-01T09:15:00Z' },
-      { status: 'Projeto definitivo', date: '2023-09-10T11:00:00Z' },
-      { status: 'Finalizado', date: '2023-11-20T16:45:00Z' },
-    ],
+    history: [{ status: 'Estudo Inicial', date: '2026-03-24T10:00:00Z' }],
   },
   {
-    id: 'LUC-003',
-    name: 'Casa de Campo Boa Vista',
+    id: '26.081',
+    strategicLevel: '2',
+    name: 'APTO KT',
     responsible: 'Thais',
-    status: 'Anteprojeto',
-    entryDate: '2024-01-10T08:30:00Z',
-    architect: 'Bernardes Arquitetura',
-    city: 'Porto Feliz',
+    entryDate: '2026-03-21T10:00:00Z',
+    status: 'Proposta Sinal',
+    architect: 'MORIZE CARVALHO',
+    engineer: '.',
+    city: 'RIBEIRÃO PRETO',
     state: 'SP',
-    history: [{ status: 'Estudo inicial', date: '2024-01-10T08:30:00Z' }],
+    history: [{ status: 'Proposta Sinal', date: '2026-03-21T10:00:00Z' }],
+  },
+  {
+    id: '26.080',
+    strategicLevel: '4',
+    name: 'GUILHERME',
+    responsible: 'Thairine',
+    entryDate: '2026-03-19T10:00:00Z',
+    status: 'Elaboração Orçamento',
+    architect: '.',
+    engineer: '.',
+    city: 'TAQUARITINGA',
+    state: 'SP',
+    history: [{ status: 'Elaboração Orçamento', date: '2026-03-19T10:00:00Z' }],
+  },
+  {
+    id: '26.079',
+    strategicLevel: '3',
+    name: 'PAISAGISMO DANIELA BULLE',
+    responsible: 'Thais',
+    entryDate: '2026-03-19T10:00:00Z',
+    status: 'Elaboração Orçamento',
+    architect: '.',
+    engineer: '.',
+    city: 'RIBEIRÃO PRETO',
+    state: 'SP',
+    history: [{ status: 'Elaboração Orçamento', date: '2026-03-19T10:00:00Z' }],
   },
 ]
 
@@ -52,6 +64,10 @@ interface ProjectStoreContextType {
   addProject: (project: Omit<Project, 'id' | 'entryDate' | 'history'>) => void
   updateProject: (id: string, updates: Partial<Project>) => void
   getProject: (id: string) => Project | undefined
+  getCities: () => string[]
+  getArchitects: () => string[]
+  getEngineers: () => string[]
+  getStateForCity: (city: string) => string
 }
 
 const ProjectStoreContext = createContext<ProjectStoreContextType | undefined>(undefined)
@@ -62,23 +78,36 @@ export const ProjectStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const addProject = useCallback(
     (projectData: Omit<Project, 'id' | 'entryDate' | 'history'>) => {
-      const newId = `LUC-${String(projects.length + 1).padStart(3, '0')}`
-      const now = new Date().toISOString()
+      const now = new Date()
+      const yearStr = now.getFullYear().toString().slice(-2)
+
+      const thisYearProjects = projects.filter((p) => p.id.startsWith(`${yearStr}.`))
+      let nextNum = 1
+
+      if (thisYearProjects.length > 0) {
+        const max = Math.max(...thisYearProjects.map((p) => parseInt(p.id.split('.')[1], 10)))
+        nextNum = max + 1
+      } else if (yearStr === '26') {
+        nextNum = 83
+      }
+
+      const newId = `${yearStr}.${String(nextNum).padStart(3, '0')}`
+      const isoNow = now.toISOString()
 
       const newProject: Project = {
         ...projectData,
         id: newId,
-        entryDate: now,
-        history: [{ status: projectData.status, date: now }],
+        entryDate: isoNow,
+        history: [{ status: projectData.status, date: isoNow }],
       }
 
       setProjects((prev) => [newProject, ...prev])
       toast({
-        title: 'Projeto Salvo com Sucesso',
-        description: `O projeto ${newId} foi registrado e sincronizado.`,
+        title: 'Projeto Registrado',
+        description: `Código gerado: ${newId} e sincronizado com o Excel.`,
       })
     },
-    [projects.length],
+    [projects],
   )
 
   const updateProject = useCallback((id: string, updates: Partial<Project>) => {
@@ -100,6 +129,32 @@ export const ProjectStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const getProject = useCallback((id: string) => projects.find((p) => p.id === id), [projects])
 
+  const getCities = useCallback(() => {
+    const counts: Record<string, number> = { 'Ribeirão Preto': 0, 'São Paulo': 0, Araraquara: 0 }
+    projects.forEach((p) => {
+      if (p.city) counts[p.city] = (counts[p.city] || 0) + 1
+    })
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map((e) => e[0])
+  }, [projects])
+
+  const getArchitects = useCallback(() => {
+    return Array.from(new Set(projects.map((p) => p.architect).filter(Boolean))).sort()
+  }, [projects])
+
+  const getEngineers = useCallback(() => {
+    return Array.from(new Set(projects.map((p) => p.engineer).filter(Boolean))).sort()
+  }, [projects])
+
+  const getStateForCity = useCallback(
+    (city: string) => {
+      const proj = projects.find((p) => p.city.toLowerCase() === city.toLowerCase())
+      return proj?.state || ''
+    },
+    [projects],
+  )
+
   const value = useMemo(
     () => ({
       projects,
@@ -108,8 +163,22 @@ export const ProjectStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       addProject,
       updateProject,
       getProject,
+      getCities,
+      getArchitects,
+      getEngineers,
+      getStateForCity,
     }),
-    [projects, currentUser, addProject, updateProject, getProject],
+    [
+      projects,
+      currentUser,
+      addProject,
+      updateProject,
+      getProject,
+      getCities,
+      getArchitects,
+      getEngineers,
+      getStateForCity,
+    ],
   )
 
   return <ProjectStoreContext.Provider value={value}>{children}</ProjectStoreContext.Provider>
