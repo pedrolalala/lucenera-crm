@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { FolderKanban, PlusCircle, Menu } from 'lucide-react'
+import { FolderKanban, Menu } from 'lucide-react'
 import logoUrl from '@/assets/img_0775-2f8f9.jpeg'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -8,10 +8,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 export default function Layout() {
   const location = useLocation()
 
-  const navItems = [
-    { name: 'Projetos', href: '/', icon: FolderKanban },
-    { name: 'Novo Projeto', href: '/projetos/novo', icon: PlusCircle },
-  ]
+  const navItems = [{ name: 'Projetos', href: '/', icon: FolderKanban }]
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">

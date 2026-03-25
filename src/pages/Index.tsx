@@ -82,7 +82,7 @@ export default function Index() {
           className="w-full sm:w-auto shadow-elevation h-11"
           size="lg"
         >
-          <Plus className="mr-2 h-5 w-5" /> Adicionar novo item
+          <Plus className="mr-2 h-5 w-5" /> NOVO PROJETO
         </Button>
       </div>
 
