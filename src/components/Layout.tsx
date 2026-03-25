@@ -1,149 +1,85 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Home, Plus, UserCircle, LogOut } from 'lucide-react'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-  SidebarInset,
-} from '@/components/ui/sidebar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import useProjectStore from '@/stores/useProjectStore'
-import { USERS, UserName } from '@/types'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { FolderKanban, PlusCircle, Menu } from 'lucide-react'
+import logoUrl from '@/assets/img_0775-2f8f9.jpeg'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 
 export default function Layout() {
-  const { pathname } = useLocation()
-  const { currentUser, setCurrentUser } = useProjectStore()
-  const userRole = USERS.find((u) => u.name === currentUser)?.role
+  const location = useLocation()
+
+  const navItems = [
+    { name: 'Projetos', href: '/', icon: FolderKanban },
+    { name: 'Novo Projeto', href: '/projetos/novo', icon: PlusCircle },
+  ]
 
   return (
-    <SidebarProvider>
-      <Sidebar variant="inset" collapsible="icon">
-        <SidebarHeader className="flex flex-row items-center p-4 h-16">
-          <div className="flex items-center gap-3 overflow-hidden w-full px-1">
-            <img
-              src="/logo.png"
-              alt="Lucenera"
-              className="h-8 w-auto object-contain shrink-0 group-data-[collapsible=icon]:h-6 transition-all"
-              onError={(e) => {
-                // Tenta algumas extensões comuns ou cai para um placeholder caso a logo não esteja na raiz
-                if (e.currentTarget.src.endsWith('/logo.png')) {
-                  e.currentTarget.src = '/lucenera_logo.jpg'
-                } else if (e.currentTarget.src.endsWith('/lucenera_logo.jpg')) {
-                  e.currentTarget.src = '/logo.jpg'
-                } else {
-                  e.currentTarget.src =
-                    'https://img.usecurling.com/i?q=lightbulb&shape=fill&color=black'
-                }
-              }}
-            />
-            <span className="font-extrabold text-2xl tracking-tight text-sidebar-foreground truncate group-data-[collapsible=icon]:hidden mt-0.5">
-              CRM
-            </span>
-          </div>
-        </SidebarHeader>
-        <SidebarContent className="px-2 mt-4">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === '/'}>
-                <Link to="/">
-                  <Home className="h-4 w-4" />
-                  <span>Projetos</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === '/novo'}>
-                <Link to="/novo">
-                  <Plus className="h-4 w-4" />
-                  <span>Novo Projeto</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <Avatar className="h-8 w-8 rounded-md bg-primary/10">
-              <AvatarFallback className="text-xs text-primary">
-                {currentUser.substring(0, 2)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col text-sm truncate group-data-[collapsible=icon]:hidden">
-              <span className="font-semibold text-sidebar-foreground">{currentUser}</span>
-              <span className="text-xs text-sidebar-foreground/70">{userRole}</span>
-            </div>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset className="bg-background min-h-screen flex flex-col">
-        <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-card/50 backdrop-blur-sm sticky top-0 z-20">
-          <div className="flex items-center gap-4">
-            <SidebarTrigger />
-            <div className="flex items-center gap-2 md:hidden">
-              <img
-                src="/logo.png"
-                alt="Lucenera"
-                className="h-6 w-auto object-contain"
-                onError={(e) => {
-                  if (e.currentTarget.src.endsWith('/logo.png')) {
-                    e.currentTarget.src = '/lucenera_logo.jpg'
-                  } else if (e.currentTarget.src.endsWith('/lucenera_logo.jpg')) {
-                    e.currentTarget.src = '/logo.jpg'
-                  } else {
-                    e.currentTarget.src =
-                      'https://img.usecurling.com/i?q=lightbulb&shape=fill&color=black'
-                  }
-                }}
-              />
-              <span className="font-extrabold text-xl tracking-tight">CRM</span>
-            </div>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2">
-                <UserCircle className="h-4 w-4 text-muted-foreground" />
-                <span className="hidden sm:inline-block">Simular Usuário</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Alternar Usuário</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {USERS.map((user) => (
-                <DropdownMenuItem
-                  key={user.name}
-                  onClick={() => setCurrentUser(user.name as UserName)}
-                  className="justify-between"
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white px-4 md:px-6 shadow-sm">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="icon" className="md:hidden shrink-0">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Menu de navegação</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 sm:max-w-xs">
+            <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
+            <nav className="grid gap-2 text-lg font-medium mt-6">
+              <Link to="/" className="flex items-center gap-3 mb-6 px-2">
+                <img
+                  src={logoUrl}
+                  alt="Lucenera"
+                  className="h-8 object-contain mix-blend-multiply"
+                />
+                <span className="font-bold text-xl tracking-tight text-slate-900">CRM</span>
+              </Link>
+              {navItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    'flex items-center gap-4 px-3 py-2.5 rounded-md transition-colors',
+                    location.pathname === item.href
+                      ? 'bg-slate-100 text-foreground font-semibold'
+                      : 'text-muted-foreground hover:bg-slate-50 hover:text-foreground',
+                  )}
                 >
-                  {user.name}
-                  <span className="text-xs text-muted-foreground">{user.role}</span>
-                </DropdownMenuItem>
+                  <item.icon className="h-5 w-5 shrink-0" />
+                  {item.name}
+                </Link>
               ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
-                <LogOut className="mr-2 h-4 w-4" /> Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </header>
-        <main className="flex-1 p-4 sm:p-6 md:p-8 animate-fade-in-up">
-          <Outlet />
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+            </nav>
+          </SheetContent>
+        </Sheet>
+
+        <Link to="/" className="flex items-center gap-3 mr-6 hidden md:flex shrink-0">
+          <img src={logoUrl} alt="Lucenera" className="h-8 object-contain mix-blend-multiply" />
+          <span className="font-bold text-xl tracking-tight text-slate-900">CRM</span>
+        </Link>
+
+        <nav className="hidden md:flex flex-1 items-center gap-2 text-sm font-medium">
+          {navItems.map((item) => (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={cn(
+                'transition-colors flex items-center gap-2 px-3 py-2 rounded-md',
+                location.pathname === item.href
+                  ? 'bg-slate-100 text-foreground font-semibold'
+                  : 'text-foreground/60 hover:bg-slate-50 hover:text-foreground',
+              )}
+            >
+              <item.icon className="h-4 w-4 shrink-0" />
+              {item.name}
+            </Link>
+          ))}
+        </nav>
+      </header>
+
+      <main className="flex-1 p-4 md:p-8 max-w-[1400px] mx-auto w-full">
+        <Outlet />
+      </main>
+    </div>
   )
 }
