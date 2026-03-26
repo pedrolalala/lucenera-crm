@@ -9,6 +9,7 @@ import ProjectNew from './pages/ProjectNew'
 import ProjectDetail from './pages/ProjectDetail'
 import Clientes from './pages/contatos/Clientes'
 import Arquitetos from './pages/contatos/Arquitetos'
+import Engenheiros from './pages/contatos/Engenheiros'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/projeto/:id" element={<ProjectDetail />} />
             <Route path="/contatos/clientes" element={<Clientes />} />
             <Route path="/contatos/arquitetos" element={<Arquitetos />} />
+            <Route path="/contatos/engenheiros" element={<Engenheiros />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
