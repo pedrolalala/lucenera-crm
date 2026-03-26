@@ -7,6 +7,7 @@ import { ProjectStoreProvider } from '@/stores/useProjectStore'
 import Index from './pages/Index'
 import ProjectNew from './pages/ProjectNew'
 import ProjectDetail from './pages/ProjectDetail'
+import Clientes from './pages/contatos/Clientes'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -21,6 +22,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/novo" element={<ProjectNew />} />
             <Route path="/projeto/:id" element={<ProjectDetail />} />
+            <Route path="/contatos/clientes" element={<Clientes />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
