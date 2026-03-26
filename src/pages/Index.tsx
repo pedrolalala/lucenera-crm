@@ -48,6 +48,7 @@ export default function Index() {
         return (
           p.id.toLowerCase().includes(q) ||
           p.name.toLowerCase().includes(q) ||
+          p.client.toLowerCase().includes(q) ||
           p.architect.toLowerCase().includes(q) ||
           p.engineer.toLowerCase().includes(q) ||
           p.city.toLowerCase().includes(q) ||
@@ -91,7 +92,7 @@ export default function Index() {
           <div className="lg:col-span-4 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por código, projeto, cidade..."
+              placeholder="Buscar por código, projeto, cliente, cidade..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-10 bg-background"

@@ -3,7 +3,7 @@ import { Project } from '@/types'
 import { StatusBadge, StrategicBadge } from '@/components/StatusBadge'
 import { Card, CardContent } from '@/components/ui/card'
 import { format } from 'date-fns'
-import { MapPin, User, Calendar, HardHat } from 'lucide-react'
+import { MapPin, User, Calendar, HardHat, Building2, UserCircle } from 'lucide-react'
 
 export function ProjectMobileCards({ projects }: { projects: Project[] }) {
   const navigate = useNavigate()
@@ -33,7 +33,7 @@ export function ProjectMobileCards({ projects }: { projects: Project[] }) {
               <StatusBadge status={p.status} />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground bg-muted/30 p-2 rounded-md">
+            <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
               <div className="flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5" />
                 <span className="truncate text-foreground font-medium">{p.responsible}</span>
@@ -42,13 +42,29 @@ export function ProjectMobileCards({ projects }: { projects: Project[] }) {
                 <Calendar className="h-3.5 w-3.5" />
                 <span>{format(new Date(p.entryDate), 'dd/MM/yy')}</span>
               </div>
+
+              <div className="flex items-center gap-1.5 col-span-2">
+                <UserCircle className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">
+                  {p.client !== 'Não Informado' ? p.client : 'Cliente não informado'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 col-span-2">
+                <Building2 className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">
+                  {p.architect !== 'Não Informado' ? p.architect : 'Arquiteto não informado'}
+                </span>
+              </div>
+
               <div className="flex items-center gap-1.5 col-span-2">
                 <HardHat className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">
-                  {p.engineer} | {p.architect}
+                  {p.engineer !== 'Não Informado' ? p.engineer : 'Engenheiro não informado'}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 col-span-2">
+
+              <div className="flex items-center gap-1.5 col-span-2 mt-1 pt-2 border-t">
                 <MapPin className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">
                   {p.city} - {p.state}

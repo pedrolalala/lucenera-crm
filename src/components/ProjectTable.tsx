@@ -29,14 +29,15 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
             <TableHead className="w-[80px] font-semibold">Codigo</TableHead>
             <TableHead className="font-semibold">Nível Estratégico</TableHead>
             <TableHead className="font-semibold min-w-[200px]">Projeto</TableHead>
+            <TableHead className="font-semibold">Cliente Final</TableHead>
             <TableHead className="font-semibold">Responsável</TableHead>
             <TableHead className="font-semibold whitespace-nowrap">Data Entrada</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
             <TableHead className="hidden lg:table-cell font-semibold min-w-[150px]">
-              Arquiteto Responsável
+              Arquiteto
             </TableHead>
             <TableHead className="hidden xl:table-cell font-semibold min-w-[150px]">
-              Engenheiro Responsável
+              Engenheiro
             </TableHead>
             <TableHead className="hidden md:table-cell font-semibold text-right">Cidade</TableHead>
             <TableHead className="hidden sm:table-cell font-semibold">Estado</TableHead>
@@ -56,6 +57,9 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
               <TableCell className="font-bold text-foreground" title={p.name}>
                 {p.name}
               </TableCell>
+              <TableCell className="text-muted-foreground max-w-[150px] truncate" title={p.client}>
+                {p.client !== 'Não Informado' ? p.client : '-'}
+              </TableCell>
               <TableCell>
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
                   {p.responsible}
@@ -68,13 +72,16 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
                 <StatusBadge status={p.status} />
               </TableCell>
               <TableCell
-                className="hidden lg:table-cell max-w-[200px] truncate"
+                className="hidden lg:table-cell max-w-[150px] truncate text-muted-foreground"
                 title={p.architect}
               >
-                {p.architect}
+                {p.architect !== 'Não Informado' ? p.architect : '-'}
               </TableCell>
-              <TableCell className="hidden xl:table-cell max-w-[200px] truncate" title={p.engineer}>
-                {p.engineer}
+              <TableCell
+                className="hidden xl:table-cell max-w-[150px] truncate text-muted-foreground"
+                title={p.engineer}
+              >
+                {p.engineer !== 'Não Informado' ? p.engineer : '-'}
               </TableCell>
               <TableCell className="hidden md:table-cell text-muted-foreground text-right">
                 {p.city}

@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select'
 import { StatusBadge, StrategicBadge } from '@/components/StatusBadge'
 import { STATUS_OPTIONS, USERS, ProjectStatus } from '@/types'
-import { ArrowLeft, Save, Clock, Info, CheckCircle2, Building, HardHat } from 'lucide-react'
+import { ArrowLeft, Save, Clock, Info, CheckCircle2, Building2, HardHat, User } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
 const formSchema = z.object({
@@ -33,6 +33,7 @@ const formSchema = z.object({
   strategicLevel: z.enum(['1', '2', '3', '4']),
   responsible: z.enum(['Marina', 'Thairine', 'Thais']),
   status: z.enum(STATUS_OPTIONS as [string, ...string[]]),
+  client: z.string().min(1, 'Obrigatório'),
   architect: z.string().min(1, 'Obrigatório'),
   engineer: z.string().min(1, 'Obrigatório'),
   city: z.string().min(2, 'Obrigatório'),
@@ -47,8 +48,9 @@ export default function ProjectDetail() {
     updateProject,
     currentUser,
     getCities,
-    getArchitects,
-    getEngineers,
+    getClientOptions,
+    getArchitectOptions,
+    getEngineerOptions,
     getStateForCity,
   } = useProjectStore()
   const [isSaving, setIsSaving] = useState(false)
@@ -65,6 +67,7 @@ export default function ProjectDetail() {
           strategicLevel: project.strategicLevel,
           responsible: project.responsible as any,
           status: project.status,
+          client: project.client || 'Não Informado',
           architect: project.architect,
           engineer: project.engineer,
           city: project.city,
@@ -80,6 +83,7 @@ export default function ProjectDetail() {
         strategicLevel: project.strategicLevel,
         responsible: project.responsible as any,
         status: project.status,
+        client: project.client || 'Não Informado',
         architect: project.architect,
         engineer: project.engineer,
         city: project.city,
@@ -261,47 +265,102 @@ export default function ProjectDetail() {
                     </FormItem>
                   )}
                 />
+
                 <div className="col-span-1" />
-                <FormField
-                  control={form.control}
-                  name="architect"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Building className="h-4 w-4" /> Arquiteto Responsável
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          list="architects"
-                          className="h-10"
-                          {...field}
+
+                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-6 p-5 bg-muted/10 rounded-lg border">
+                  <FormField
+                    control={form.control}
+                    name="client"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1.5">
+                          <User className="h-4 w-4" /> Cliente Final
+                        </FormLabel>
+                        <Select
                           disabled={!isEditable}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="engineer"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <HardHat className="h-4 w-4" /> Engenheiro Responsável
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          list="engineers"
-                          className="h-10"
-                          {...field}
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {getClientOptions().map((o) => (
+                              <SelectItem key={o} value={o}>
+                                {o}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="architect"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1.5">
+                          <Building2 className="h-4 w-4" /> Arquiteto
+                        </FormLabel>
+                        <Select
                           disabled={!isEditable}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {getArchitectOptions().map((o) => (
+                              <SelectItem key={o} value={o}>
+                                {o}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="engineer"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1.5">
+                          <HardHat className="h-4 w-4" /> Engenheiro
+                        </FormLabel>
+                        <Select
+                          disabled={!isEditable}
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {getEngineerOptions().map((o) => (
+                              <SelectItem key={o} value={o}>
+                                {o}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <div className="sm:col-span-2 grid grid-cols-3 gap-6">
                   <FormField
                     control={form.control}
@@ -349,16 +408,6 @@ export default function ProjectDetail() {
               <datalist id="cities">
                 {getCities().map((c) => (
                   <option key={c} value={c} />
-                ))}
-              </datalist>
-              <datalist id="architects">
-                {getArchitects().map((a) => (
-                  <option key={a} value={a} />
-                ))}
-              </datalist>
-              <datalist id="engineers">
-                {getEngineers().map((e) => (
-                  <option key={e} value={e} />
                 ))}
               </datalist>
               {isEditable && (

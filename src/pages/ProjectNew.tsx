@@ -30,13 +30,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { STATUS_OPTIONS, USERS } from '@/types'
-import { ArrowLeft, Sparkles } from 'lucide-react'
+import { ArrowLeft, Sparkles, Building2, HardHat, User } from 'lucide-react'
 
 const formSchema = z.object({
   name: z.string().min(2, 'Obrigatório'),
   strategicLevel: z.enum(['1', '2', '3', '4']),
   responsible: z.enum(['Marina', 'Thairine', 'Thais']),
   status: z.enum(STATUS_OPTIONS as [string, ...string[]]),
+  client: z.string().min(1, 'Obrigatório'),
   architect: z.string().min(1, 'Obrigatório'),
   engineer: z.string().min(1, 'Obrigatório'),
   city: z.string().min(2, 'Obrigatório'),
@@ -45,15 +46,23 @@ const formSchema = z.object({
 
 export default function ProjectNew() {
   const navigate = useNavigate()
-  const { addProject, getCities, getArchitects, getEngineers, getStateForCity } = useProjectStore()
+  const {
+    addProject,
+    getCities,
+    getClientOptions,
+    getArchitectOptions,
+    getEngineerOptions,
+    getStateForCity,
+  } = useProjectStore()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       strategicLevel: '3',
-      architect: '',
-      engineer: '',
+      client: 'Não Informado',
+      architect: 'Não Informado',
+      engineer: 'Não Informado',
       city: '',
       state: 'SP',
       status: 'Estudo Inicial',
@@ -187,23 +196,56 @@ export default function ProjectNew() {
                 )}
               />
 
-              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 p-5 bg-muted/20 rounded-lg border">
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-6 p-5 bg-muted/20 rounded-lg border">
+                <FormField
+                  control={form.control}
+                  name="client"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1.5">
+                        <User className="h-4 w-4" /> Cliente Final
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {getClientOptions().map((o) => (
+                            <SelectItem key={o} value={o}>
+                              {o}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="architect"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Arquiteto Responsável <span className="text-destructive">*</span>
+                      <FormLabel className="flex items-center gap-1.5">
+                        <Building2 className="h-4 w-4" /> Arquiteto
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          list="architects"
-                          placeholder="Selecione ou digite um novo"
-                          className="h-11"
-                          {...field}
-                        />
-                      </FormControl>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {getArchitectOptions().map((o) => (
+                            <SelectItem key={o} value={o}>
+                              {o}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -214,17 +256,23 @@ export default function ProjectNew() {
                   name="engineer"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Engenheiro Responsável <span className="text-destructive">*</span>
+                      <FormLabel className="flex items-center gap-1.5">
+                        <HardHat className="h-4 w-4" /> Engenheiro
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          list="engineers"
-                          placeholder="Selecione ou digite um novo"
-                          className="h-11"
-                          {...field}
-                        />
-                      </FormControl>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {getEngineerOptions().map((o) => (
+                            <SelectItem key={o} value={o}>
+                              {o}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -284,16 +332,6 @@ export default function ProjectNew() {
             <datalist id="cities">
               {getCities().map((c) => (
                 <option key={c} value={c} />
-              ))}
-            </datalist>
-            <datalist id="architects">
-              {getArchitects().map((a) => (
-                <option key={a} value={a} />
-              ))}
-            </datalist>
-            <datalist id="engineers">
-              {getEngineers().map((e) => (
-                <option key={e} value={e} />
               ))}
             </datalist>
 

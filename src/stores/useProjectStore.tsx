@@ -2,6 +2,34 @@ import React, { createContext, useContext, useState, useMemo, useCallback } from
 import { Project, UserName } from '@/types'
 import { toast } from '@/hooks/use-toast'
 
+export const MOCK_CLIENT_OPTIONS = [
+  'Não Informado',
+  'João Silva',
+  'Maria Oliveira',
+  'Carlos Santos',
+  'Construtora Silva',
+  'Santos Arquitetura',
+  'Moacir Quirino',
+  'Família Costa',
+]
+
+export const MOCK_ARCHITECT_OPTIONS = [
+  'Não Informado',
+  'FLÁVIA CAMARGO',
+  'MORIZE CARVALHO',
+  'JOÃO SILVA',
+  'ANA PAULA',
+  'MARIA CLARA',
+]
+
+export const MOCK_ENGINEER_OPTIONS = [
+  'Não Informado',
+  'CARLOS ALBERTO',
+  'MARCOS VINICIUS',
+  'FERNANDO HENRIQUE',
+  'ROBERTO JUSTUS',
+]
+
 const MOCK_PROJECTS: Project[] = [
   {
     id: '26.082',
@@ -10,8 +38,9 @@ const MOCK_PROJECTS: Project[] = [
     responsible: 'Thairine',
     entryDate: '2026-03-24T10:00:00Z',
     status: 'Estudo Inicial',
+    client: 'Moacir Quirino',
     architect: 'FLÁVIA CAMARGO',
-    engineer: '.',
+    engineer: 'Não Informado',
     city: 'RIBEIRÃO PRETO',
     state: 'SP',
     history: [{ status: 'Estudo Inicial', date: '2026-03-24T10:00:00Z' }],
@@ -23,8 +52,9 @@ const MOCK_PROJECTS: Project[] = [
     responsible: 'Thais',
     entryDate: '2026-03-21T10:00:00Z',
     status: 'Proposta Sinal',
+    client: 'Não Informado',
     architect: 'MORIZE CARVALHO',
-    engineer: '.',
+    engineer: 'Não Informado',
     city: 'RIBEIRÃO PRETO',
     state: 'SP',
     history: [{ status: 'Proposta Sinal', date: '2026-03-21T10:00:00Z' }],
@@ -36,8 +66,9 @@ const MOCK_PROJECTS: Project[] = [
     responsible: 'Thairine',
     entryDate: '2026-03-19T10:00:00Z',
     status: 'Elaboração Orçamento',
-    architect: '.',
-    engineer: '.',
+    client: 'Não Informado',
+    architect: 'Não Informado',
+    engineer: 'Não Informado',
     city: 'TAQUARITINGA',
     state: 'SP',
     history: [{ status: 'Elaboração Orçamento', date: '2026-03-19T10:00:00Z' }],
@@ -49,8 +80,9 @@ const MOCK_PROJECTS: Project[] = [
     responsible: 'Thais',
     entryDate: '2026-03-19T10:00:00Z',
     status: 'Elaboração Orçamento',
-    architect: '.',
-    engineer: '.',
+    client: 'Não Informado',
+    architect: 'Não Informado',
+    engineer: 'Não Informado',
     city: 'RIBEIRÃO PRETO',
     state: 'SP',
     history: [{ status: 'Elaboração Orçamento', date: '2026-03-19T10:00:00Z' }],
@@ -62,6 +94,7 @@ const MOCK_PROJECTS: Project[] = [
     responsible: 'Marina',
     entryDate: '2026-03-15T10:00:00Z',
     status: 'Projeto executivo',
+    client: 'Maria Oliveira',
     architect: 'JOÃO SILVA',
     engineer: 'CARLOS ALBERTO',
     city: 'SÃO PAULO',
@@ -75,8 +108,9 @@ const MOCK_PROJECTS: Project[] = [
     responsible: 'Thairine',
     entryDate: '2026-03-10T10:00:00Z',
     status: 'Informações necessárias',
+    client: 'Não Informado',
     architect: 'FLÁVIA CAMARGO',
-    engineer: '.',
+    engineer: 'Não Informado',
     city: 'RIBEIRÃO PRETO',
     state: 'SP',
     history: [{ status: 'Informações necessárias', date: '2026-03-10T10:00:00Z' }],
@@ -88,6 +122,7 @@ const MOCK_PROJECTS: Project[] = [
     responsible: 'Thais',
     entryDate: '2026-03-05T10:00:00Z',
     status: 'Entrega materiais',
+    client: 'Construtora Silva',
     architect: 'MORIZE CARVALHO',
     engineer: 'MARCOS VINICIUS',
     city: 'ARARAQUARA',
@@ -101,8 +136,9 @@ const MOCK_PROJECTS: Project[] = [
     responsible: 'Marina',
     entryDate: '2026-03-01T10:00:00Z',
     status: 'Finalizado',
-    architect: '.',
-    engineer: '.',
+    client: 'Não Informado',
+    architect: 'Não Informado',
+    engineer: 'Não Informado',
     city: 'RIBEIRÃO PRETO',
     state: 'SP',
     history: [{ status: 'Finalizado', date: '2026-03-01T10:00:00Z' }],
@@ -114,6 +150,7 @@ const MOCK_PROJECTS: Project[] = [
     responsible: 'Thairine',
     entryDate: '2026-02-28T10:00:00Z',
     status: 'Ajustes finais',
+    client: 'Família Costa',
     architect: 'ANA PAULA',
     engineer: 'ROBERTO JUSTUS',
     city: 'SÃO PAULO',
@@ -127,7 +164,8 @@ const MOCK_PROJECTS: Project[] = [
     responsible: 'Thais',
     entryDate: '2026-02-20T10:00:00Z',
     status: 'Projeto executivo',
-    architect: '.',
+    client: 'Não Informado',
+    architect: 'Não Informado',
     engineer: 'FERNANDO HENRIQUE',
     city: 'CRAVINHOS',
     state: 'SP',
@@ -140,8 +178,9 @@ const MOCK_PROJECTS: Project[] = [
     responsible: 'Marina',
     entryDate: '2026-02-15T10:00:00Z',
     status: 'Estudo Inicial',
+    client: 'Carlos Santos',
     architect: 'FLÁVIA CAMARGO',
-    engineer: '.',
+    engineer: 'Não Informado',
     city: 'RIBEIRÃO PRETO',
     state: 'SP',
     history: [{ status: 'Estudo Inicial', date: '2026-02-15T10:00:00Z' }],
@@ -153,8 +192,9 @@ const MOCK_PROJECTS: Project[] = [
     responsible: 'Thairine',
     entryDate: '2026-02-10T10:00:00Z',
     status: 'Proposta Sinal',
+    client: 'João Silva',
     architect: 'MARIA CLARA',
-    engineer: '.',
+    engineer: 'Não Informado',
     city: 'ARARAQUARA',
     state: 'SP',
     history: [{ status: 'Proposta Sinal', date: '2026-02-10T10:00:00Z' }],
@@ -169,8 +209,9 @@ interface ProjectStoreContextType {
   updateProject: (id: string, updates: Partial<Project>) => void
   getProject: (id: string) => Project | undefined
   getCities: () => string[]
-  getArchitects: () => string[]
-  getEngineers: () => string[]
+  getClientOptions: () => string[]
+  getArchitectOptions: () => string[]
+  getEngineerOptions: () => string[]
   getStateForCity: (city: string) => string
 }
 
@@ -243,13 +284,9 @@ export const ProjectStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       .map((e) => e[0])
   }, [projects])
 
-  const getArchitects = useCallback(() => {
-    return Array.from(new Set(projects.map((p) => p.architect).filter(Boolean))).sort()
-  }, [projects])
-
-  const getEngineers = useCallback(() => {
-    return Array.from(new Set(projects.map((p) => p.engineer).filter(Boolean))).sort()
-  }, [projects])
+  const getClientOptions = useCallback(() => MOCK_CLIENT_OPTIONS, [])
+  const getArchitectOptions = useCallback(() => MOCK_ARCHITECT_OPTIONS, [])
+  const getEngineerOptions = useCallback(() => MOCK_ENGINEER_OPTIONS, [])
 
   const getStateForCity = useCallback(
     (city: string) => {
@@ -268,8 +305,9 @@ export const ProjectStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       updateProject,
       getProject,
       getCities,
-      getArchitects,
-      getEngineers,
+      getClientOptions,
+      getArchitectOptions,
+      getEngineerOptions,
       getStateForCity,
     }),
     [
@@ -279,8 +317,9 @@ export const ProjectStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       updateProject,
       getProject,
       getCities,
-      getArchitects,
-      getEngineers,
+      getClientOptions,
+      getArchitectOptions,
+      getEngineerOptions,
       getStateForCity,
     ],
   )

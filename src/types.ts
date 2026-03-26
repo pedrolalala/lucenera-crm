@@ -42,6 +42,7 @@ export interface Project {
   responsible: UserName
   status: ProjectStatus
   entryDate: string
+  client: string
   architect: string
   engineer: string
   city: string
