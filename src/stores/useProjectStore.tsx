@@ -212,6 +212,9 @@ interface ProjectStoreContextType {
   getClientOptions: () => string[]
   getArchitectOptions: () => string[]
   getEngineerOptions: () => string[]
+  addClientOption: (name: string) => void
+  addArchitectOption: (name: string) => void
+  addEngineerOption: (name: string) => void
   getStateForCity: (city: string) => string
 }
 
@@ -220,6 +223,10 @@ const ProjectStoreContext = createContext<ProjectStoreContextType | undefined>(u
 export const ProjectStoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS)
   const [currentUser, setCurrentUser] = useState<UserName>('Filippo')
+
+  const [clients, setClients] = useState<string[]>(MOCK_CLIENT_OPTIONS)
+  const [architects, setArchitects] = useState<string[]>(MOCK_ARCHITECT_OPTIONS)
+  const [engineers, setEngineers] = useState<string[]>(MOCK_ENGINEER_OPTIONS)
 
   const addProject = useCallback(
     (projectData: Omit<Project, 'id' | 'entryDate' | 'history'>) => {
@@ -284,9 +291,21 @@ export const ProjectStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       .map((e) => e[0])
   }, [projects])
 
-  const getClientOptions = useCallback(() => MOCK_CLIENT_OPTIONS, [])
-  const getArchitectOptions = useCallback(() => MOCK_ARCHITECT_OPTIONS, [])
-  const getEngineerOptions = useCallback(() => MOCK_ENGINEER_OPTIONS, [])
+  const getClientOptions = useCallback(() => clients, [clients])
+  const getArchitectOptions = useCallback(() => architects, [architects])
+  const getEngineerOptions = useCallback(() => engineers, [engineers])
+
+  const addClientOption = useCallback((name: string) => {
+    setClients((prev) => (prev.includes(name) ? prev : [...prev, name]))
+  }, [])
+
+  const addArchitectOption = useCallback((name: string) => {
+    setArchitects((prev) => (prev.includes(name) ? prev : [...prev, name]))
+  }, [])
+
+  const addEngineerOption = useCallback((name: string) => {
+    setEngineers((prev) => (prev.includes(name) ? prev : [...prev, name]))
+  }, [])
 
   const getStateForCity = useCallback(
     (city: string) => {
@@ -308,6 +327,9 @@ export const ProjectStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       getClientOptions,
       getArchitectOptions,
       getEngineerOptions,
+      addClientOption,
+      addArchitectOption,
+      addEngineerOption,
       getStateForCity,
     }),
     [
@@ -320,6 +342,9 @@ export const ProjectStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       getClientOptions,
       getArchitectOptions,
       getEngineerOptions,
+      addClientOption,
+      addArchitectOption,
+      addEngineerOption,
       getStateForCity,
     ],
   )

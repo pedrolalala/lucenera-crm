@@ -22,11 +22,23 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectSeparator,
 } from '@/components/ui/select'
 import { StatusBadge, StrategicBadge } from '@/components/StatusBadge'
 import { STATUS_OPTIONS, USERS, ProjectStatus } from '@/types'
-import { ArrowLeft, Save, Clock, Info, CheckCircle2, Building2, HardHat, User } from 'lucide-react'
+import {
+  ArrowLeft,
+  Save,
+  Clock,
+  Info,
+  CheckCircle2,
+  Building2,
+  HardHat,
+  User,
+  Plus,
+} from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { NewContactModal, ContactType } from '@/components/NewContactModal'
 
 const formSchema = z.object({
   name: z.string().min(2, 'Obrigatório'),
@@ -51,9 +63,13 @@ export default function ProjectDetail() {
     getClientOptions,
     getArchitectOptions,
     getEngineerOptions,
+    addClientOption,
+    addArchitectOption,
+    addEngineerOption,
     getStateForCity,
   } = useProjectStore()
   const [isSaving, setIsSaving] = useState(false)
+  const [modalType, setModalType] = useState<ContactType | null>(null)
 
   const project = id ? getProject(id) : undefined
   const userRole = USERS.find((u) => u.name === currentUser)?.role
@@ -114,6 +130,20 @@ export default function ProjectDetail() {
       action: <CheckCircle2 className="text-emerald-500 h-5 w-5" />,
     })
     setIsSaving(false)
+  }
+
+  const handleNewContactSuccess = (name: string) => {
+    if (modalType === 'client') {
+      addClientOption(name)
+      form.setValue('client', name, { shouldDirty: true })
+    } else if (modalType === 'architect') {
+      addArchitectOption(name)
+      form.setValue('architect', name, { shouldDirty: true })
+    } else if (modalType === 'engineer') {
+      addEngineerOption(name)
+      form.setValue('engineer', name, { shouldDirty: true })
+    }
+    setModalType(null)
   }
 
   const currentStatus = form.watch('status') as ProjectStatus
@@ -293,6 +323,22 @@ export default function ProjectDetail() {
                                 {o}
                               </SelectItem>
                             ))}
+                            {isEditable && (
+                              <>
+                                <SelectSeparator />
+                                <div
+                                  role="button"
+                                  className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setModalType('client')
+                                  }}
+                                >
+                                  <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
+                                  Novo Cliente
+                                </div>
+                              </>
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -323,6 +369,22 @@ export default function ProjectDetail() {
                                 {o}
                               </SelectItem>
                             ))}
+                            {isEditable && (
+                              <>
+                                <SelectSeparator />
+                                <div
+                                  role="button"
+                                  className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setModalType('architect')
+                                  }}
+                                >
+                                  <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
+                                  Novo Arquiteto
+                                </div>
+                              </>
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -353,6 +415,22 @@ export default function ProjectDetail() {
                                 {o}
                               </SelectItem>
                             ))}
+                            {isEditable && (
+                              <>
+                                <SelectSeparator />
+                                <div
+                                  role="button"
+                                  className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setModalType('engineer')
+                                  }}
+                                >
+                                  <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
+                                  Novo Engenheiro
+                                </div>
+                              </>
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -453,6 +531,13 @@ export default function ProjectDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <NewContactModal
+        type={modalType}
+        open={!!modalType}
+        onOpenChange={(open) => !open && setModalType(null)}
+        onSuccess={handleNewContactSuccess}
+      />
     </div>
   )
 }

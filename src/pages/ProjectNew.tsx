@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -28,9 +29,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectSeparator,
 } from '@/components/ui/select'
 import { STATUS_OPTIONS, USERS } from '@/types'
-import { ArrowLeft, Sparkles, Building2, HardHat, User } from 'lucide-react'
+import { ArrowLeft, Sparkles, Building2, HardHat, User, Plus } from 'lucide-react'
+import { NewContactModal, ContactType } from '@/components/NewContactModal'
 
 const formSchema = z.object({
   name: z.string().min(2, 'Obrigatório'),
@@ -52,8 +55,13 @@ export default function ProjectNew() {
     getClientOptions,
     getArchitectOptions,
     getEngineerOptions,
+    addClientOption,
+    addArchitectOption,
+    addEngineerOption,
     getStateForCity,
   } = useProjectStore()
+
+  const [modalType, setModalType] = useState<ContactType | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -72,6 +80,20 @@ export default function ProjectNew() {
   const onSubmit = (v: z.infer<typeof formSchema>) => {
     addProject(v)
     navigate('/')
+  }
+
+  const handleNewContactSuccess = (name: string) => {
+    if (modalType === 'client') {
+      addClientOption(name)
+      form.setValue('client', name)
+    } else if (modalType === 'architect') {
+      addArchitectOption(name)
+      form.setValue('architect', name)
+    } else if (modalType === 'engineer') {
+      addEngineerOption(name)
+      form.setValue('engineer', name)
+    }
+    setModalType(null)
   }
 
   return (
@@ -205,7 +227,7 @@ export default function ProjectNew() {
                       <FormLabel className="flex items-center gap-1.5">
                         <User className="h-4 w-4" /> Cliente
                       </FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="h-11">
                             <SelectValue placeholder="Selecione..." />
@@ -217,6 +239,18 @@ export default function ProjectNew() {
                               {o}
                             </SelectItem>
                           ))}
+                          <SelectSeparator />
+                          <div
+                            role="button"
+                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setModalType('client')
+                            }}
+                          >
+                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
+                            Novo Cliente
+                          </div>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -232,7 +266,7 @@ export default function ProjectNew() {
                       <FormLabel className="flex items-center gap-1.5">
                         <Building2 className="h-4 w-4" /> Arquiteto
                       </FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="h-11">
                             <SelectValue placeholder="Selecione..." />
@@ -244,6 +278,18 @@ export default function ProjectNew() {
                               {o}
                             </SelectItem>
                           ))}
+                          <SelectSeparator />
+                          <div
+                            role="button"
+                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setModalType('architect')
+                            }}
+                          >
+                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
+                            Novo Arquiteto
+                          </div>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -259,7 +305,7 @@ export default function ProjectNew() {
                       <FormLabel className="flex items-center gap-1.5">
                         <HardHat className="h-4 w-4" /> Engenheiro
                       </FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="h-11">
                             <SelectValue placeholder="Selecione..." />
@@ -271,6 +317,18 @@ export default function ProjectNew() {
                               {o}
                             </SelectItem>
                           ))}
+                          <SelectSeparator />
+                          <div
+                            role="button"
+                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setModalType('engineer')
+                            }}
+                          >
+                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
+                            Novo Engenheiro
+                          </div>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -351,6 +409,13 @@ export default function ProjectNew() {
           </form>
         </Form>
       </Card>
+
+      <NewContactModal
+        type={modalType}
+        open={!!modalType}
+        onOpenChange={(open) => !open && setModalType(null)}
+        onSuccess={handleNewContactSuccess}
+      />
     </div>
   )
 }
