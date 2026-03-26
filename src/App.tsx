@@ -8,6 +8,7 @@ import Index from './pages/Index'
 import ProjectNew from './pages/ProjectNew'
 import ProjectDetail from './pages/ProjectDetail'
 import Clientes from './pages/contatos/Clientes'
+import Arquitetos from './pages/contatos/Arquitetos'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/novo" element={<ProjectNew />} />
             <Route path="/projeto/:id" element={<ProjectDetail />} />
             <Route path="/contatos/clientes" element={<Clientes />} />
+            <Route path="/contatos/arquitetos" element={<Arquitetos />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
