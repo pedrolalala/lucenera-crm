@@ -2,10 +2,8 @@ import { Outlet, Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   FolderKanban,
-  Users,
   Calculator,
   Settings,
-  ChevronRight,
   UserCircle,
   Building2,
   HardHat,
@@ -21,14 +19,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarProvider,
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 
 export default function Layout() {
   const location = useLocation()
@@ -36,15 +30,9 @@ export default function Layout() {
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Projetos', href: '/', icon: FolderKanban },
-    {
-      name: 'Contatos',
-      icon: Users,
-      submenu: [
-        { name: 'Clientes Finais', href: '/contatos/clientes', icon: UserCircle },
-        { name: 'Arquitetos', href: '/contatos/arquitetos', icon: Building2 },
-        { name: 'Engenheiros', href: '/contatos/engenheiros', icon: HardHat },
-      ],
-    },
+    { name: 'Clientes', href: '/contatos/clientes', icon: UserCircle },
+    { name: 'Arquitetos', href: '/contatos/arquitetos', icon: Building2 },
+    { name: 'Engenheiros', href: '/contatos/engenheiros', icon: HardHat },
     { name: 'Orçamentos', href: '/orcamentos', icon: Calculator },
     { name: 'Configurações', href: '/configuracoes', icon: Settings },
   ]
@@ -69,62 +57,20 @@ export default function Layout() {
             <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {navItems.map((item) => {
-                  if (item.submenu) {
-                    const isActive = item.submenu.some((sub) =>
-                      location.pathname.startsWith(sub.href),
-                    )
-                    return (
-                      <Collapsible
-                        key={item.name}
-                        defaultOpen={isActive}
-                        className="group/collapsible"
-                      >
-                        <SidebarMenuItem>
-                          <CollapsibleTrigger asChild>
-                            <SidebarMenuButton tooltip={item.name} isActive={isActive}>
-                              <item.icon />
-                              <span>{item.name}</span>
-                              <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                            </SidebarMenuButton>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <SidebarMenuSub>
-                              {item.submenu.map((subItem) => (
-                                <SidebarMenuSubItem key={subItem.name}>
-                                  <SidebarMenuSubButton
-                                    asChild
-                                    isActive={location.pathname === subItem.href}
-                                  >
-                                    <Link to={subItem.href}>
-                                      <subItem.icon className="h-4 w-4 shrink-0" />
-                                      <span>{subItem.name}</span>
-                                    </Link>
-                                  </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                              ))}
-                            </SidebarMenuSub>
-                          </CollapsibleContent>
-                        </SidebarMenuItem>
-                      </Collapsible>
-                    )
-                  }
-
-                  return (
-                    <SidebarMenuItem key={item.name}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={location.pathname === item.href}
-                        tooltip={item.name}
-                      >
-                        <Link to={item.href}>
-                          <item.icon />
-                          <span>{item.name}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
+                {navItems.map((item) => (
+                  <SidebarMenuItem key={item.name}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === item.href}
+                      tooltip={item.name}
+                    >
+                      <Link to={item.href}>
+                        <item.icon />
+                        <span>{item.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
