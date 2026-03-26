@@ -203,7 +203,7 @@ export default function ProjectNew() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1.5">
-                        <User className="h-4 w-4" /> Cliente Final
+                        <User className="h-4 w-4" /> Cliente
                       </FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>

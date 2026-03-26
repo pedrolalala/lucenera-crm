@@ -180,9 +180,9 @@ export default function Clientes() {
     <div className="space-y-6 max-w-[1400px] mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">Clientes Finais</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Clientes</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Gestão do portfólio de clientes finais e empresas.
+            Gestão do portfólio de clientes e empresas.
           </p>
         </div>
         <Button onClick={openNewModal} className="w-full sm:w-auto shadow-elevation h-11" size="lg">

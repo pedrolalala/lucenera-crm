@@ -29,7 +29,7 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
             <TableHead className="w-[80px] font-semibold">Codigo</TableHead>
             <TableHead className="font-semibold">Nível Estratégico</TableHead>
             <TableHead className="font-semibold min-w-[200px]">Projeto</TableHead>
-            <TableHead className="font-semibold">Cliente Final</TableHead>
+            <TableHead className="font-semibold">Cliente</TableHead>
             <TableHead className="font-semibold">Responsável</TableHead>
             <TableHead className="font-semibold whitespace-nowrap">Data Entrada</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
