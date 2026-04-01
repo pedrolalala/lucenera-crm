@@ -351,12 +351,23 @@ export const Constants = {
 //   email_financeiro: text (nullable)
 //   completo: text (nullable)
 
+// --- ROW LEVEL SECURITY POLICIES ---
+// Table: Arquitetos_empresas_crm
+//   Policy "authenticated_delete_arquitetos" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_insert_arquitetos" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_arquitetos" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_update_arquitetos" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+
 // --- WARNING: TABLES WITH RLS ENABLED BUT NO POLICIES ---
 // These tables have Row Level Security enabled but NO policies defined.
 // This means ALL queries (SELECT, INSERT, UPDATE, DELETE) will return ZERO rows
 // for non-superuser roles (including the anon and authenticated roles used by the app).
 // You MUST create RLS policies for these tables to allow data access.
-//   - Arquitetos_empresas_crm
 //   - Organizacao_projetos
 //   - clientes_crm
 

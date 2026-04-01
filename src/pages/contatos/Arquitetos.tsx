@@ -90,12 +90,15 @@ export default function Arquitetos() {
   const fetchArquitetos = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('Arquitetos_empresas_crm')
-        .select('*')
-        .order('Nome do Arquiteto', { ascending: true })
+      const { data, error } = await supabase.from('Arquitetos_empresas_crm').select('*')
       if (error) throw error
-      setArquitetos(data || [])
+
+      const sorted = (data || []).sort((a, b) => {
+        const nameA = a['Nome do Arquiteto'] || ''
+        const nameB = b['Nome do Arquiteto'] || ''
+        return nameA.localeCompare(nameB)
+      })
+      setArquitetos(sorted)
     } catch (error: any) {
       toast({
         title: 'Erro ao carregar arquitetos',
