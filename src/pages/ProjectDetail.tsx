@@ -13,6 +13,7 @@ import {
   UserCircle,
   Briefcase,
   Loader2,
+  Zap,
 } from 'lucide-react'
 
 export default function ProjectDetail() {
@@ -126,11 +127,18 @@ export default function ProjectDetail() {
                 {projeto.arquiteto || 'Não definido'}
               </span>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-b-transparent">
+            <div className="flex justify-between items-center py-2 border-b">
               <span className="text-muted-foreground">Engenheiro Responsável</span>
               <span className="font-medium flex items-center gap-2 text-right">
                 <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 {projeto.engenheiro || 'Não definido'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b border-b-transparent">
+              <span className="text-muted-foreground">Eletricista</span>
+              <span className="font-medium flex items-center gap-2 text-right">
+                <Zap className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                {(projeto as any).eletricista || 'Não definido'}
               </span>
             </div>
           </CardContent>

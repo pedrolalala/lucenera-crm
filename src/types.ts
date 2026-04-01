@@ -45,6 +45,7 @@ export interface Project {
   client: string
   architect: string
   engineer: string
+  electrician?: string
   city: string
   state: string
   history: ProjectHistoryItem[]

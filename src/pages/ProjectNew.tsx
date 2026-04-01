@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -32,8 +32,9 @@ import {
   SelectSeparator,
 } from '@/components/ui/select'
 import { STATUS_OPTIONS, USERS } from '@/types'
-import { ArrowLeft, Sparkles, Building2, HardHat, User, Plus } from 'lucide-react'
+import { ArrowLeft, Sparkles, Building2, HardHat, User, Plus, Zap } from 'lucide-react'
 import { NewContactModal, ContactType } from '@/components/NewContactModal'
+import { supabase } from '@/lib/supabase/client'
 
 const formSchema = z.object({
   name: z.string().min(2, 'Obrigatório'),
@@ -43,6 +44,7 @@ const formSchema = z.object({
   client: z.string().min(1, 'Obrigatório'),
   architect: z.string().min(1, 'Obrigatório'),
   engineer: z.string().min(1, 'Obrigatório'),
+  electrician: z.string().optional(),
   city: z.string().min(2, 'Obrigatório'),
   state: z.string().length(2, 'Inválido'),
 })
@@ -62,6 +64,17 @@ export default function ProjectNew() {
   } = useProjectStore()
 
   const [modalType, setModalType] = useState<ContactType | null>(null)
+  const [eletricistasDb, setEletricistasDb] = useState<{ id: string; nome: string }[]>([])
+
+  useEffect(() => {
+    supabase
+      .from('eletricistas_crm')
+      .select('id, nome')
+      .order('nome')
+      .then(({ data }) => {
+        if (data) setEletricistasDb(data)
+      })
+  }, [])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -71,6 +84,7 @@ export default function ProjectNew() {
       client: 'Não Informado',
       architect: 'Não Informado',
       engineer: 'Não Informado',
+      electrician: '',
       city: '',
       state: 'SP',
       status: 'Estudo Inicial',
@@ -218,7 +232,7 @@ export default function ProjectNew() {
                 )}
               />
 
-              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-6 p-5 bg-muted/20 rounded-lg border">
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-6 p-5 bg-muted/20 rounded-lg border">
                 <FormField
                   control={form.control}
                   name="client"
@@ -329,6 +343,34 @@ export default function ProjectNew() {
                             <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
                             Novo Engenheiro
                           </div>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="electrician"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1.5">
+                        <Zap className="h-4 w-4" /> Eletricista
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Não Informado">Não Informado</SelectItem>
+                          {eletricistasDb.map((o) => (
+                            <SelectItem key={o.id} value={o.nome}>
+                              {o.nome}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />

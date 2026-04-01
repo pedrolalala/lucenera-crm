@@ -7,6 +7,7 @@ import {
   UserCircle,
   Building2,
   HardHat,
+  Zap,
 } from 'lucide-react'
 import logoUrl from '@/assets/img_0775-2f8f9.jpeg'
 import {
@@ -33,6 +34,7 @@ export default function Layout() {
     { name: 'Clientes', href: '/contatos/clientes', icon: UserCircle },
     { name: 'Arquitetos', href: '/contatos/arquitetos', icon: Building2 },
     { name: 'Engenheiros', href: '/contatos/engenheiros', icon: HardHat },
+    { name: 'Eletricistas', href: '/contatos/eletricistas', icon: Zap },
     { name: 'Orçamentos', href: '/orcamentos', icon: Calculator },
     { name: 'Configurações', href: '/configuracoes', icon: Settings },
   ]
