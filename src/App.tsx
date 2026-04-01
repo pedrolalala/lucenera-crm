@@ -9,6 +9,7 @@ import AuthPage from '@/pages/Auth'
 import Index from './pages/Index'
 import ProjectNew from './pages/ProjectNew'
 import ProjectDetail from './pages/ProjectDetail'
+import UpdatePassword from './pages/UpdatePassword'
 import Clientes from './pages/contatos/Clientes'
 import Arquitetos from './pages/contatos/Arquitetos'
 import Engenheiros from './pages/contatos/Engenheiros'
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/contatos/arquitetos" element={<Arquitetos />} />
               <Route path="/contatos/engenheiros" element={<Engenheiros />} />
             </Route>
+            <Route path="/atualizar-senha" element={<UpdatePassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TooltipProvider>
