@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Search, MapPin, Loader2, Plus, Flag, Activity } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics'
+import { DashboardCharts } from '@/components/dashboard/DashboardCharts'
 
 export default function Index() {
   const navigate = useNavigate()
@@ -45,7 +47,20 @@ export default function Index() {
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Projetos</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Visão geral e acompanhamento das principais métricas do CRM.
+          </p>
+        </div>
+      </div>
+
+      <DashboardMetrics projetos={projetos} />
+
+      <DashboardCharts projetos={projetos} />
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-6 border-t">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Projetos</h2>
           <p className="text-muted-foreground">
             Gerencie e acompanhe o andamento dos projetos luminotécnicos.
           </p>
@@ -58,7 +73,7 @@ export default function Index() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Filtros</CardTitle>
+          <CardTitle>Filtros de Projetos</CardTitle>
           <CardDescription>Refine a lista de projetos utilizando os campos abaixo</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
