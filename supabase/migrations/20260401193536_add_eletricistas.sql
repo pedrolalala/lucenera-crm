@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS public.eletricistas_crm (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE public.Organizacao_projetos ADD COLUMN IF NOT EXISTS eletricista TEXT;
+ALTER TABLE IF EXISTS public."Organizacao_projetos" ADD COLUMN IF NOT EXISTS eletricista TEXT;
+ALTER TABLE IF EXISTS public.organizacao_projetos ADD COLUMN IF NOT EXISTS eletricista TEXT;
 
 ALTER TABLE public.eletricistas_crm ENABLE ROW LEVEL SECURITY;
 
