@@ -9,195 +9,149 @@ export type Database = {
   }
   public: {
     Tables: {
-      architects: {
+      Arquitetos_empresas_crm: {
         Row: {
-          address: string | null
-          created_at: string
-          document: string | null
-          email: string | null
-          id: string
-          name: string
-          phone: string | null
-          registration: string | null
+          Bairro: string | null
+          Celular: string | null
+          CEP: string | null
+          Cidade: string | null
+          codigo_do_arquiteto: number | null
+          'CPF/CNPJ': string | null
+          data_de_nascimento: string | null
+          Email: string | null
+          endereço: string | null
+          Estado: string | null
+          'Nome da Empresa': string | null
+          'Nome do Arquiteto': string | null
+          numero_de_arquitetos: number | null
+          Observacoes: string | null
+          RG: string | null
+          Telefone: string | null
         }
         Insert: {
-          address?: string | null
-          created_at?: string
-          document?: string | null
-          email?: string | null
-          id?: string
-          name: string
-          phone?: string | null
-          registration?: string | null
+          Bairro?: string | null
+          Celular?: string | null
+          CEP?: string | null
+          Cidade?: string | null
+          codigo_do_arquiteto?: number | null
+          'CPF/CNPJ'?: string | null
+          data_de_nascimento?: string | null
+          Email?: string | null
+          endereço?: string | null
+          Estado?: string | null
+          'Nome da Empresa'?: string | null
+          'Nome do Arquiteto'?: string | null
+          numero_de_arquitetos?: number | null
+          Observacoes?: string | null
+          RG?: string | null
+          Telefone?: string | null
         }
         Update: {
-          address?: string | null
-          created_at?: string
-          document?: string | null
-          email?: string | null
-          id?: string
-          name?: string
-          phone?: string | null
-          registration?: string | null
+          Bairro?: string | null
+          Celular?: string | null
+          CEP?: string | null
+          Cidade?: string | null
+          codigo_do_arquiteto?: number | null
+          'CPF/CNPJ'?: string | null
+          data_de_nascimento?: string | null
+          Email?: string | null
+          endereço?: string | null
+          Estado?: string | null
+          'Nome da Empresa'?: string | null
+          'Nome do Arquiteto'?: string | null
+          numero_de_arquitetos?: number | null
+          Observacoes?: string | null
+          RG?: string | null
+          Telefone?: string | null
         }
         Relationships: []
       }
-      clients: {
+      clientes_crm: {
         Row: {
-          address: string | null
-          created_at: string
-          document: string | null
-          email: string | null
-          id: string
-          name: string
-          phone: string | null
+          br_cliente: string | null
+          cep_cliente: string | null
+          cid_cliente: string | null
+          cod_cliente: number | null
+          completo: string | null
+          email_cliente: string | null
+          email_financeiro: string | null
+          end_cliente: string | null
+          fax_cliente: string | null
+          nm_cliente: string | null
+          obs_cliente: string | null
+          tel_cliente: string | null
+          uf_cliente: string | null
         }
         Insert: {
-          address?: string | null
-          created_at?: string
-          document?: string | null
-          email?: string | null
-          id?: string
-          name: string
-          phone?: string | null
+          br_cliente?: string | null
+          cep_cliente?: string | null
+          cid_cliente?: string | null
+          cod_cliente?: number | null
+          completo?: string | null
+          email_cliente?: string | null
+          email_financeiro?: string | null
+          end_cliente?: string | null
+          fax_cliente?: string | null
+          nm_cliente?: string | null
+          obs_cliente?: string | null
+          tel_cliente?: string | null
+          uf_cliente?: string | null
         }
         Update: {
-          address?: string | null
-          created_at?: string
-          document?: string | null
-          email?: string | null
-          id?: string
-          name?: string
-          phone?: string | null
+          br_cliente?: string | null
+          cep_cliente?: string | null
+          cid_cliente?: string | null
+          cod_cliente?: number | null
+          completo?: string | null
+          email_cliente?: string | null
+          email_financeiro?: string | null
+          end_cliente?: string | null
+          fax_cliente?: string | null
+          nm_cliente?: string | null
+          obs_cliente?: string | null
+          tel_cliente?: string | null
+          uf_cliente?: string | null
         }
         Relationships: []
       }
-      engineers: {
+      Organizacao_projetos: {
         Row: {
-          address: string | null
-          created_at: string
-          document: string | null
-          email: string | null
-          id: string
-          name: string
-          phone: string | null
-          registration: string | null
+          arquiteto: string | null
+          Cidade: string | null
+          Codigo: number | null
+          data_entrada: string | null
+          engenheiro: string | null
+          Estado: string | null
+          nivel_estrategico: string | null
+          Projeto: string | null
+          responsavel: string | null
+          Status: string | null
         }
         Insert: {
-          address?: string | null
-          created_at?: string
-          document?: string | null
-          email?: string | null
-          id?: string
-          name: string
-          phone?: string | null
-          registration?: string | null
+          arquiteto?: string | null
+          Cidade?: string | null
+          Codigo?: number | null
+          data_entrada?: string | null
+          engenheiro?: string | null
+          Estado?: string | null
+          nivel_estrategico?: string | null
+          Projeto?: string | null
+          responsavel?: string | null
+          Status?: string | null
         }
         Update: {
-          address?: string | null
-          created_at?: string
-          document?: string | null
-          email?: string | null
-          id?: string
-          name?: string
-          phone?: string | null
-          registration?: string | null
+          arquiteto?: string | null
+          Cidade?: string | null
+          Codigo?: number | null
+          data_entrada?: string | null
+          engenheiro?: string | null
+          Estado?: string | null
+          nivel_estrategico?: string | null
+          Projeto?: string | null
+          responsavel?: string | null
+          Status?: string | null
         }
         Relationships: []
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          name: string
-          role: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id: string
-          name: string
-          role?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          name?: string
-          role?: string
-        }
-        Relationships: []
-      }
-      projects: {
-        Row: {
-          architect_id: string | null
-          city: string
-          client_id: string | null
-          created_at: string
-          engineer_id: string | null
-          entry_date: string
-          history: Json
-          id: string
-          name: string
-          responsible: string
-          state: string
-          status: string
-          strategic_level: string
-        }
-        Insert: {
-          architect_id?: string | null
-          city: string
-          client_id?: string | null
-          created_at?: string
-          engineer_id?: string | null
-          entry_date: string
-          history?: Json
-          id: string
-          name: string
-          responsible: string
-          state: string
-          status: string
-          strategic_level: string
-        }
-        Update: {
-          architect_id?: string | null
-          city?: string
-          client_id?: string | null
-          created_at?: string
-          engineer_id?: string | null
-          entry_date?: string
-          history?: Json
-          id?: string
-          name?: string
-          responsible?: string
-          state?: string
-          status?: string
-          strategic_level?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'projects_architect_id_fkey'
-            columns: ['architect_id']
-            isOneToOne: false
-            referencedRelation: 'architects'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'projects_client_id_fkey'
-            columns: ['client_id']
-            isOneToOne: false
-            referencedRelation: 'clients'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'projects_engineer_id_fkey'
-            columns: ['engineer_id']
-            isOneToOne: false
-            referencedRelation: 'engineers'
-            referencedColumns: ['id']
-          },
-        ]
       }
     }
     Views: {
@@ -354,85 +308,57 @@ export const Constants = {
 // --- COLUMN TYPES (actual PostgreSQL types) ---
 // Use this to know the real database type when writing migrations.
 // "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
-// Table: architects
-//   id: uuid (not null, default: gen_random_uuid())
-//   name: text (not null)
-//   email: text (nullable)
-//   phone: text (nullable)
-//   document: text (nullable)
-//   registration: text (nullable)
-//   address: text (nullable)
-//   created_at: timestamp with time zone (not null, default: now())
-// Table: clients
-//   id: uuid (not null, default: gen_random_uuid())
-//   name: text (not null)
-//   email: text (nullable)
-//   phone: text (nullable)
-//   document: text (nullable)
-//   address: text (nullable)
-//   created_at: timestamp with time zone (not null, default: now())
-// Table: engineers
-//   id: uuid (not null, default: gen_random_uuid())
-//   name: text (not null)
-//   email: text (nullable)
-//   phone: text (nullable)
-//   document: text (nullable)
-//   registration: text (nullable)
-//   address: text (nullable)
-//   created_at: timestamp with time zone (not null, default: now())
-// Table: profiles
-//   id: uuid (not null)
-//   email: text (not null)
-//   name: text (not null)
-//   role: text (not null, default: 'User'::text)
-//   created_at: timestamp with time zone (not null, default: now())
-// Table: projects
-//   id: text (not null)
-//   strategic_level: text (not null)
-//   name: text (not null)
-//   responsible: text (not null)
-//   status: text (not null)
-//   entry_date: timestamp with time zone (not null)
-//   architect_id: uuid (nullable)
-//   engineer_id: uuid (nullable)
-//   client_id: uuid (nullable)
-//   city: text (not null)
-//   state: text (not null)
-//   history: jsonb (not null, default: '[]'::jsonb)
-//   created_at: timestamp with time zone (not null, default: now())
+// Table: Arquitetos_empresas_crm
+//   codigo_do_arquiteto: bigint (nullable)
+//   Nome do Arquiteto: text (nullable)
+//   endereço: text (nullable)
+//   Bairro: text (nullable)
+//   CEP: text (nullable)
+//   Cidade: text (nullable)
+//   Estado: text (nullable)
+//   data_de_nascimento: text (nullable)
+//   Telefone: text (nullable)
+//   Celular: text (nullable)
+//   RG: text (nullable)
+//   CPF/CNPJ: text (nullable)
+//   Nome da Empresa: text (nullable)
+//   numero_de_arquitetos: bigint (nullable)
+//   Observacoes: text (nullable)
+//   Email: text (nullable)
+// Table: Organizacao_projetos
+//   Codigo: bigint (nullable)
+//   nivel_estrategico: text (nullable)
+//   Projeto: text (nullable)
+//   responsavel: text (nullable)
+//   data_entrada: text (nullable)
+//   Status: text (nullable)
+//   arquiteto: text (nullable)
+//   engenheiro: text (nullable)
+//   Cidade: text (nullable)
+//   Estado: text (nullable)
+// Table: clientes_crm
+//   cod_cliente: bigint (nullable)
+//   nm_cliente: text (nullable)
+//   end_cliente: text (nullable)
+//   br_cliente: text (nullable)
+//   cep_cliente: text (nullable)
+//   cid_cliente: text (nullable)
+//   uf_cliente: text (nullable)
+//   tel_cliente: text (nullable)
+//   fax_cliente: text (nullable)
+//   obs_cliente: text (nullable)
+//   email_cliente: text (nullable)
+//   email_financeiro: text (nullable)
+//   completo: text (nullable)
 
-// --- CONSTRAINTS ---
-// Table: architects
-//   PRIMARY KEY architects_pkey: PRIMARY KEY (id)
-// Table: clients
-//   PRIMARY KEY clients_pkey: PRIMARY KEY (id)
-// Table: engineers
-//   PRIMARY KEY engineers_pkey: PRIMARY KEY (id)
-// Table: profiles
-//   FOREIGN KEY profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
-//   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
-// Table: projects
-//   FOREIGN KEY projects_architect_id_fkey: FOREIGN KEY (architect_id) REFERENCES architects(id) ON DELETE SET NULL
-//   FOREIGN KEY projects_client_id_fkey: FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL
-//   FOREIGN KEY projects_engineer_id_fkey: FOREIGN KEY (engineer_id) REFERENCES engineers(id) ON DELETE SET NULL
-//   PRIMARY KEY projects_pkey: PRIMARY KEY (id)
-
-// --- ROW LEVEL SECURITY POLICIES ---
-// Table: architects
-//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
-//     USING: true
-// Table: clients
-//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
-//     USING: true
-// Table: engineers
-//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
-//     USING: true
-// Table: profiles
-//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
-//     USING: true
-// Table: projects
-//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
-//     USING: true
+// --- WARNING: TABLES WITH RLS ENABLED BUT NO POLICIES ---
+// These tables have Row Level Security enabled but NO policies defined.
+// This means ALL queries (SELECT, INSERT, UPDATE, DELETE) will return ZERO rows
+// for non-superuser roles (including the anon and authenticated roles used by the app).
+// You MUST create RLS policies for these tables to allow data access.
+//   - Arquitetos_empresas_crm
+//   - Organizacao_projetos
+//   - clientes_crm
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION create_user(text, text, text, text)
