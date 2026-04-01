@@ -15,6 +15,8 @@ import Clientes from './pages/contatos/Clientes'
 import Arquitetos from './pages/contatos/Arquitetos'
 import Engenheiros from './pages/contatos/Engenheiros'
 import Usuarios from './pages/Configuracoes/Usuarios'
+import Orcamentos from './pages/Orcamentos'
+import Configuracoes from './pages/Configuracoes/Index'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -54,6 +56,8 @@ const App = () => (
               <Route path="/contatos/clientes" element={<Clientes />} />
               <Route path="/contatos/arquitetos" element={<Arquitetos />} />
               <Route path="/contatos/engenheiros" element={<Engenheiros />} />
+              <Route path="/orcamentos" element={<Orcamentos />} />
+              <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/configuracoes/usuarios" element={<Usuarios />} />
             </Route>
             <Route path="/atualizar-senha" element={<UpdatePassword />} />
