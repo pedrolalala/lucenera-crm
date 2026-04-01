@@ -46,6 +46,8 @@ const App = () => (
               }
             >
               <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Index />} />
+              <Route path="/projetos" element={<Index />} />
               <Route path="/novo" element={<ProjectNew />} />
               <Route path="/projeto/:id" element={<ProjectDetail />} />
               <Route path="/contatos/clientes" element={<Clientes />} />

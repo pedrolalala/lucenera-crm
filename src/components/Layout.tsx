@@ -28,8 +28,8 @@ export default function Layout() {
   const location = useLocation()
 
   const navItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Projetos', href: '/', icon: FolderKanban },
+    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Projetos', href: '/projetos', icon: FolderKanban },
     { name: 'Clientes', href: '/contatos/clientes', icon: UserCircle },
     { name: 'Arquitetos', href: '/contatos/arquitetos', icon: Building2 },
     { name: 'Engenheiros', href: '/contatos/engenheiros', icon: HardHat },
