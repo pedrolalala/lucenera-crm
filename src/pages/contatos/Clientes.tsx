@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -35,154 +35,220 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { toast } from '@/hooks/use-toast'
+import { supabase } from '@/lib/supabase/client'
+import { Database } from '@/lib/supabase/types'
+
+type ClientRow = Database['public']['Tables']['clientes_crm']['Row']
 
 const clientSchema = z.object({
-  name: z.string().min(2, 'Nome é obrigatório'),
-  email: z.string().email('Email inválido').or(z.literal('')),
-  phone: z.string().min(1, 'Telefone é obrigatório'),
-  company: z.string(),
-  city: z.string().min(1, 'Cidade é obrigatória'),
-  address: z.string(),
-  type: z.enum(['Pessoa Física', 'Pessoa Jurídica']),
+  nm_cliente: z.string().min(2, 'Nome é obrigatório'),
+  email_cliente: z
+    .string()
+    .email('Email inválido')
+    .or(z.literal('').or(z.null()))
+    .transform((v) => v || null),
+  email_financeiro: z
+    .string()
+    .email('Email inválido')
+    .or(z.literal('').or(z.null()))
+    .transform((v) => v || null),
+  tel_cliente: z.string().optional().nullable(),
+  end_cliente: z.string().optional().nullable(),
+  br_cliente: z.string().optional().nullable(),
+  cep_cliente: z.string().optional().nullable(),
+  cid_cliente: z.string().optional().nullable(),
+  uf_cliente: z.string().optional().nullable(),
+  fax_cliente: z.string().optional().nullable(),
+  obs_cliente: z.string().optional().nullable(),
 })
 
 type ClientFormValues = z.infer<typeof clientSchema>
 
-interface Client extends ClientFormValues {
-  id: string
-}
-
-const MOCK_CLIENTS: Client[] = [
-  {
-    id: '1',
-    name: 'João Silva',
-    email: 'joao.silva@exemplo.com',
-    phone: '(11) 99999-9999',
-    company: 'Construtora Silva',
-    city: 'São Paulo',
-    address: 'Av Paulista, 1000',
-    type: 'Pessoa Jurídica',
-  },
-  {
-    id: '2',
-    name: 'Maria Oliveira',
-    email: 'maria.oliveira@exemplo.com',
-    phone: '(16) 98888-8888',
-    company: '',
-    city: 'Ribeirão Preto',
-    address: 'Rua das Flores, 123',
-    type: 'Pessoa Física',
-  },
-  {
-    id: '3',
-    name: 'Carlos Santos',
-    email: 'carlos@santosarq.com',
-    phone: '(21) 97777-7777',
-    company: 'Santos Arquitetura',
-    city: 'Rio de Janeiro',
-    address: 'Av das Américas, 500',
-    type: 'Pessoa Jurídica',
-  },
-]
-
 export default function Clientes() {
-  const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS)
-  const [search, setSearch] = useState('')
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingClient, setEditingClient] = useState<Client | null>(null)
-  const [clientToDelete, setClientToDelete] = useState<string | null>(null)
+  const [clients, setClients] = useState<ClientRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [searchName, setSearchName] = useState('')
+  const [searchCity, setSearchCity] = useState('')
+  const [searchState, setSearchState] = useState('')
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+
+  const [editingClient, setEditingClient] = useState<ClientRow | null>(null)
+  const [selectedClient, setSelectedClient] = useState<ClientRow | null>(null)
+  const [clientToDelete, setClientToDelete] = useState<ClientRow | null>(null)
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
-      name: '',
-      email: '',
-      phone: '',
-      company: '',
-      city: '',
-      address: '',
-      type: 'Pessoa Física',
+      nm_cliente: '',
+      email_cliente: '',
+      email_financeiro: '',
+      tel_cliente: '',
+      end_cliente: '',
+      br_cliente: '',
+      cep_cliente: '',
+      cid_cliente: '',
+      uf_cliente: '',
+      fax_cliente: '',
+      obs_cliente: '',
     },
   })
 
   useEffect(() => {
-    if (editingClient) {
-      form.reset(editingClient)
-    } else {
-      form.reset({
-        name: '',
-        email: '',
-        phone: '',
-        company: '',
-        city: '',
-        address: '',
-        type: 'Pessoa Física',
-      })
+    fetchClients()
+
+    const channel = supabase
+      .channel('clientes_crm_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'clientes_crm' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setClients((prev) => [payload.new as ClientRow, ...prev])
+          } else if (payload.eventType === 'UPDATE') {
+            setClients((prev) =>
+              prev.map((c) =>
+                c.cod_cliente === payload.new.cod_cliente ? (payload.new as ClientRow) : c,
+              ),
+            )
+          } else if (payload.eventType === 'DELETE') {
+            setClients((prev) => prev.filter((c) => c.cod_cliente !== payload.old.cod_cliente))
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
     }
-  }, [editingClient, form, isModalOpen])
+  }, [])
+
+  const fetchClients = async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('clientes_crm')
+      .select('*')
+      .order('nm_cliente', { ascending: true })
+
+    if (error) {
+      toast({
+        title: 'Erro ao buscar clientes',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } else {
+      setClients(data || [])
+    }
+    setLoading(false)
+  }
 
   const filteredClients = useMemo(() => {
     return clients.filter((c) => {
-      const q = search.toLowerCase()
-      return (
-        c.name.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q) ||
-        c.company.toLowerCase().includes(q) ||
-        c.city.toLowerCase().includes(q)
-      )
+      const matchName =
+        !searchName || (c.nm_cliente || '').toLowerCase().includes(searchName.toLowerCase())
+      const matchCity =
+        !searchCity || (c.cid_cliente || '').toLowerCase().includes(searchCity.toLowerCase())
+      const matchState =
+        !searchState || (c.uf_cliente || '').toLowerCase().includes(searchState.toLowerCase())
+      return matchName && matchCity && matchState
     })
-  }, [clients, search])
+  }, [clients, searchName, searchCity, searchState])
 
-  const onSubmit = (values: ClientFormValues) => {
-    if (editingClient) {
-      setClients((prev) =>
-        prev.map((c) => (c.id === editingClient.id ? { ...values, id: c.id } : c)),
-      )
-      toast({ title: 'Cliente atualizado com sucesso' })
+  const onSubmit = async (values: ClientFormValues) => {
+    if (editingClient?.cod_cliente) {
+      const { error } = await supabase
+        .from('clientes_crm')
+        .update(values)
+        .eq('cod_cliente', editingClient.cod_cliente)
+
+      if (error) {
+        toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' })
+      } else {
+        toast({ title: 'Cliente atualizado com sucesso' })
+        setIsEditModalOpen(false)
+      }
     } else {
-      const newClient = { ...values, id: Math.random().toString(36).substr(2, 9) }
-      setClients((prev) => [newClient, ...prev])
-      toast({ title: 'Cliente adicionado com sucesso' })
+      const { error } = await supabase.from('clientes_crm').insert([values])
+
+      if (error) {
+        toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' })
+      } else {
+        toast({ title: 'Cliente adicionado com sucesso' })
+        setIsEditModalOpen(false)
+      }
     }
-    setIsModalOpen(false)
   }
 
-  const handleDelete = () => {
-    if (clientToDelete) {
-      setClients((prev) => prev.filter((c) => c.id !== clientToDelete))
-      toast({ title: 'Cliente excluído com sucesso' })
+  const handleDelete = async () => {
+    if (clientToDelete && clientToDelete.cod_cliente) {
+      const { error } = await supabase
+        .from('clientes_crm')
+        .delete()
+        .eq('cod_cliente', clientToDelete.cod_cliente)
+
+      if (error) {
+        toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' })
+      } else {
+        toast({ title: 'Cliente excluído com sucesso' })
+      }
       setClientToDelete(null)
     }
   }
 
   const openNewModal = () => {
     setEditingClient(null)
-    setIsModalOpen(true)
+    form.reset({
+      nm_cliente: '',
+      email_cliente: '',
+      email_financeiro: '',
+      tel_cliente: '',
+      end_cliente: '',
+      br_cliente: '',
+      cep_cliente: '',
+      cid_cliente: '',
+      uf_cliente: '',
+      fax_cliente: '',
+      obs_cliente: '',
+    })
+    setIsEditModalOpen(true)
   }
 
-  const openEditModal = (client: Client) => {
+  const openEditModal = (client: ClientRow) => {
     setEditingClient(client)
-    setIsModalOpen(true)
+    form.reset({
+      nm_cliente: client.nm_cliente || '',
+      email_cliente: client.email_cliente || '',
+      email_financeiro: client.email_financeiro || '',
+      tel_cliente: client.tel_cliente || '',
+      end_cliente: client.end_cliente || '',
+      br_cliente: client.br_cliente || '',
+      cep_cliente: client.cep_cliente || '',
+      cid_cliente: client.cid_cliente || '',
+      uf_cliente: client.uf_cliente || '',
+      fax_cliente: client.fax_cliente || '',
+      obs_cliente: client.obs_cliente || '',
+    })
+    setIsEditModalOpen(true)
+  }
+
+  const openViewModal = (client: ClientRow) => {
+    setSelectedClient(client)
+    setIsViewModalOpen(true)
   }
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto">
+    <div className="space-y-6 max-w-[1400px] mx-auto animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-foreground">Clientes</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Gestão do portfólio de clientes e empresas.
+            Gestão do portfólio de clientes e empresas do sistema.
           </p>
         </div>
         <Button onClick={openNewModal} className="w-full sm:w-auto shadow-elevation h-11" size="lg">
@@ -191,14 +257,34 @@ export default function Clientes() {
       </div>
 
       <div className="bg-card p-5 rounded-lg border shadow-sm space-y-4">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, email, empresa, cidade..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-10 bg-background"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Filtrar por nome..."
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              className="pl-9 bg-background"
+            />
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Filtrar por cidade..."
+              value={searchCity}
+              onChange={(e) => setSearchCity(e.target.value)}
+              className="pl-9 bg-background"
+            />
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Filtrar por estado (UF)..."
+              value={searchState}
+              onChange={(e) => setSearchState(e.target.value)}
+              className="pl-9 bg-background"
+            />
+          </div>
         </div>
 
         <div className="rounded-md border bg-card overflow-hidden shadow-subtle">
@@ -206,56 +292,80 @@ export default function Clientes() {
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold">Nome</TableHead>
-                <TableHead className="font-semibold">Empresa</TableHead>
                 <TableHead className="font-semibold">Email</TableHead>
                 <TableHead className="font-semibold">Telefone</TableHead>
                 <TableHead className="font-semibold">Cidade</TableHead>
+                <TableHead className="font-semibold">UF</TableHead>
                 <TableHead className="text-right font-semibold">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredClients.map((client) => (
-                <TableRow key={client.id} className="hover:bg-muted/50 transition-colors">
-                  <TableCell className="font-medium text-foreground">{client.name}</TableCell>
-                  <TableCell>{client.company || '-'}</TableCell>
-                  <TableCell>{client.email || '-'}</TableCell>
-                  <TableCell className="whitespace-nowrap">{client.phone}</TableCell>
-                  <TableCell>{client.city}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEditModal(client)}
-                      title="Editar"
-                    >
-                      <Edit2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setClientToDelete(client.id)}
-                      title="Excluir"
-                      className="hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    Carregando clientes...
                   </TableCell>
                 </TableRow>
-              ))}
-              {filteredClients.length === 0 && (
+              ) : filteredClients.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                     Nenhum cliente encontrado.
                   </TableCell>
                 </TableRow>
+              ) : (
+                filteredClients.map((client, index) => (
+                  <TableRow
+                    key={client.cod_cliente || index}
+                    className="hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => openViewModal(client)}
+                  >
+                    <TableCell className="font-medium text-foreground">
+                      {client.nm_cliente}
+                    </TableCell>
+                    <TableCell>{client.email_cliente || '-'}</TableCell>
+                    <TableCell className="whitespace-nowrap">{client.tel_cliente || '-'}</TableCell>
+                    <TableCell>{client.cid_cliente || '-'}</TableCell>
+                    <TableCell>{client.uf_cliente || '-'}</TableCell>
+                    <TableCell
+                      className="text-right whitespace-nowrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openViewModal(client)}
+                        title="Ver Detalhes"
+                      >
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditModal(client)}
+                        title="Editar"
+                      >
+                        <Edit2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setClientToDelete(client)}
+                        title="Excluir"
+                        className="hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
         </div>
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
             <DialogDescription>
@@ -267,14 +377,14 @@ export default function Clientes() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="nm_cliente"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="sm:col-span-2">
                       <FormLabel>
                         Nome <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="Nome completo" {...field} />
+                        <Input placeholder="Nome completo" {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -282,35 +392,17 @@ export default function Clientes() {
                 />
                 <FormField
                   control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        Tipo de Cliente <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o tipo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Pessoa Física">Pessoa Física</SelectItem>
-                          <SelectItem value="Pessoa Jurídica">Pessoa Jurídica</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
+                  name="email_cliente"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>E-mail</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="email@exemplo.com" {...field} />
+                        <Input
+                          type="email"
+                          placeholder="email@exemplo.com"
+                          {...field}
+                          value={field.value || ''}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -318,14 +410,17 @@ export default function Clientes() {
                 />
                 <FormField
                   control={form.control}
-                  name="phone"
+                  name="email_financeiro"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Telefone <span className="text-destructive">*</span>
-                      </FormLabel>
+                      <FormLabel>E-mail Financeiro</FormLabel>
                       <FormControl>
-                        <Input placeholder="(00) 00000-0000" {...field} />
+                        <Input
+                          type="email"
+                          placeholder="financeiro@exemplo.com"
+                          {...field}
+                          value={field.value || ''}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -333,12 +428,12 @@ export default function Clientes() {
                 />
                 <FormField
                   control={form.control}
-                  name="company"
+                  name="tel_cliente"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Empresa</FormLabel>
+                      <FormLabel>Telefone</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nome da empresa (opcional)" {...field} />
+                        <Input placeholder="(00) 0000-0000" {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -346,14 +441,12 @@ export default function Clientes() {
                 />
                 <FormField
                   control={form.control}
-                  name="city"
+                  name="fax_cliente"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Cidade <span className="text-destructive">*</span>
-                      </FormLabel>
+                      <FormLabel>Fax</FormLabel>
                       <FormControl>
-                        <Input placeholder="Cidade do cliente" {...field} />
+                        <Input placeholder="(00) 0000-0000" {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -361,12 +454,90 @@ export default function Clientes() {
                 />
                 <FormField
                   control={form.control}
-                  name="address"
+                  name="cid_cliente"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cidade</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Cidade" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="uf_cliente"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado (UF)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="SP"
+                          maxLength={2}
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="cep_cliente"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CEP</FormLabel>
+                      <FormControl>
+                        <Input placeholder="00000-000" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="br_cliente"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bairro</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Bairro" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="end_cliente"
                   render={({ field }) => (
                     <FormItem className="sm:col-span-2">
                       <FormLabel>Endereço</FormLabel>
                       <FormControl>
-                        <Input placeholder="Rua, Número, Complemento, Bairro" {...field} />
+                        <Input
+                          placeholder="Rua, Número, Complemento"
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="obs_cliente"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Observações</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Observações adicionais"
+                          {...field}
+                          value={field.value || ''}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -374,7 +545,7 @@ export default function Clientes() {
                 />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t mt-4">
-                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
                   Cancelar
                 </Button>
                 <Button type="submit">
@@ -386,6 +557,82 @@ export default function Clientes() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Cliente</DialogTitle>
+            <DialogDescription>Informações completas do registro</DialogDescription>
+          </DialogHeader>
+          {selectedClient && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 py-4">
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Nome</h4>
+                <p className="text-foreground">{selectedClient.nm_cliente || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Código</h4>
+                <p className="text-foreground">{selectedClient.cod_cliente || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">E-mail</h4>
+                <p className="text-foreground">{selectedClient.email_cliente || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">E-mail Financeiro</h4>
+                <p className="text-foreground">{selectedClient.email_financeiro || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Telefone</h4>
+                <p className="text-foreground">{selectedClient.tel_cliente || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Fax</h4>
+                <p className="text-foreground">{selectedClient.fax_cliente || '-'}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <h4 className="font-semibold text-sm text-muted-foreground">Endereço</h4>
+                <p className="text-foreground">{selectedClient.end_cliente || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Bairro</h4>
+                <p className="text-foreground">{selectedClient.br_cliente || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">CEP</h4>
+                <p className="text-foreground">{selectedClient.cep_cliente || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Cidade</h4>
+                <p className="text-foreground">{selectedClient.cid_cliente || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Estado (UF)</h4>
+                <p className="text-foreground">{selectedClient.uf_cliente || '-'}</p>
+              </div>
+              {selectedClient.completo && (
+                <div className="sm:col-span-2">
+                  <h4 className="font-semibold text-sm text-muted-foreground">Registro Completo</h4>
+                  <p className="text-foreground text-sm bg-muted/30 p-2 rounded whitespace-pre-wrap">
+                    {selectedClient.completo}
+                  </p>
+                </div>
+              )}
+              <div className="sm:col-span-2">
+                <h4 className="font-semibold text-sm text-muted-foreground">Observações</h4>
+                <p className="text-foreground whitespace-pre-wrap bg-muted/30 p-2 rounded min-h-12">
+                  {selectedClient.obs_cliente || '-'}
+                </p>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end pt-4 border-t mt-4">
+            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog
         open={!!clientToDelete}
         onOpenChange={(open) => !open && setClientToDelete(null)}
@@ -394,7 +641,8 @@ export default function Clientes() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Cliente</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir o cliente "{clientToDelete?.nm_cliente}"? Esta ação não
+              pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
