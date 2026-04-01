@@ -13,6 +13,7 @@ import UpdatePassword from './pages/UpdatePassword'
 import Clientes from './pages/contatos/Clientes'
 import Arquitetos from './pages/contatos/Arquitetos'
 import Engenheiros from './pages/contatos/Engenheiros'
+import Usuarios from './pages/Configuracoes/Usuarios'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/contatos/clientes" element={<Clientes />} />
               <Route path="/contatos/arquitetos" element={<Arquitetos />} />
               <Route path="/contatos/engenheiros" element={<Engenheiros />} />
+              <Route path="/configuracoes/usuarios" element={<Usuarios />} />
             </Route>
             <Route path="/atualizar-senha" element={<UpdatePassword />} />
             <Route path="*" element={<NotFound />} />
