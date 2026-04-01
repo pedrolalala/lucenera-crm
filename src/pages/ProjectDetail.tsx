@@ -1,543 +1,141 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
-import { format } from 'date-fns'
-import useProjectStore from '@/stores/useProjectStore'
+import { getProjeto, type Projeto } from '@/services/projetos'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectSeparator,
-} from '@/components/ui/select'
-import { StatusBadge, StrategicBadge } from '@/components/StatusBadge'
-import { STATUS_OPTIONS, USERS, ProjectStatus } from '@/types'
 import {
   ArrowLeft,
-  Save,
-  Clock,
-  Info,
-  CheckCircle2,
   Building2,
-  HardHat,
+  MapPin,
+  Calendar,
   User,
-  Plus,
+  UserCircle,
+  Briefcase,
+  Loader2,
 } from 'lucide-react'
-import { toast } from '@/hooks/use-toast'
-import { NewContactModal, ContactType } from '@/components/NewContactModal'
-
-const formSchema = z.object({
-  name: z.string().min(2, 'Obrigatório'),
-  strategicLevel: z.enum(['1', '2', '3', '4']),
-  responsible: z.enum(['Marina', 'Thairine', 'Thais']),
-  status: z.enum(STATUS_OPTIONS as [string, ...string[]]),
-  client: z.string().min(1, 'Obrigatório'),
-  architect: z.string().min(1, 'Obrigatório'),
-  engineer: z.string().min(1, 'Obrigatório'),
-  city: z.string().min(2, 'Obrigatório'),
-  state: z.string().length(2, 'Inválido'),
-})
 
 export default function ProjectDetail() {
-  const { id } = useParams<{ id: string }>()
+  const { id } = useParams()
   const navigate = useNavigate()
-  const {
-    getProject,
-    updateProject,
-    currentUser,
-    getCities,
-    getClientOptions,
-    getArchitectOptions,
-    getEngineerOptions,
-    addClientOption,
-    addArchitectOption,
-    addEngineerOption,
-    getStateForCity,
-  } = useProjectStore()
-  const [isSaving, setIsSaving] = useState(false)
-  const [modalType, setModalType] = useState<ContactType | null>(null)
-
-  const project = id ? getProject(id) : undefined
-  const userRole = USERS.find((u) => u.name === currentUser)?.role
-  const isEditable = project && (userRole === 'Admin' || project.responsible === currentUser)
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: project
-      ? {
-          name: project.name,
-          strategicLevel: project.strategicLevel,
-          responsible: project.responsible as any,
-          status: project.status,
-          client: project.client || 'Não Informado',
-          architect: project.architect,
-          engineer: project.engineer,
-          city: project.city,
-          state: project.state,
-        }
-      : undefined,
-  })
+  const [projeto, setProjeto] = useState<Projeto | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (project) {
-      form.reset({
-        name: project.name,
-        strategicLevel: project.strategicLevel,
-        responsible: project.responsible as any,
-        status: project.status,
-        client: project.client || 'Não Informado',
-        architect: project.architect,
-        engineer: project.engineer,
-        city: project.city,
-        state: project.state,
-      })
-    }
-  }, [project, form])
+    if (!id) return
+    getProjeto(Number(id))
+      .then(setProjeto)
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [id])
 
-  if (!project)
+  if (loading) {
     return (
-      <div className="p-8 text-center min-h-[60vh] flex flex-col items-center justify-center">
-        <Info className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="text-2xl font-bold">Projeto não encontrado</h2>
-        <Button onClick={() => navigate('/')} className="mt-6">
-          Voltar ao Início
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!projeto) {
+    return (
+      <div className="flex h-[50vh] flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground">Projeto não encontrado.</p>
+        <Button variant="outline" onClick={() => navigate('/')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar para Projetos
         </Button>
       </div>
     )
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!isEditable) return
-    setIsSaving(true)
-    await new Promise((r) => setTimeout(r, 600))
-    updateProject(project.id, values)
-    toast({
-      title: 'Alterações Salvas',
-      description: 'Integração com Excel concluída e dados atualizados.',
-      action: <CheckCircle2 className="text-emerald-500 h-5 w-5" />,
-    })
-    setIsSaving(false)
   }
-
-  const handleNewContactSuccess = (name: string) => {
-    if (modalType === 'client') {
-      addClientOption(name)
-      form.setValue('client', name, { shouldDirty: true })
-    } else if (modalType === 'architect') {
-      addArchitectOption(name)
-      form.setValue('architect', name, { shouldDirty: true })
-    } else if (modalType === 'engineer') {
-      addEngineerOption(name)
-      form.setValue('engineer', name, { shouldDirty: true })
-    }
-    setModalType(null)
-  }
-
-  const currentStatus = form.watch('status') as ProjectStatus
-  const currentLevel = form.watch('strategicLevel') as '1' | '2' | '3' | '4'
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-12">
-      <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          className="pl-0 hover:bg-transparent hover:text-primary"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+    <div className="space-y-6 animate-fade-in-up">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+          <ArrowLeft className="h-4 w-4" />
         </Button>
-        {!isEditable && (
-          <span className="text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full border font-medium">
-            Visualização Apenas
-          </span>
-        )}
-      </div>
-
-      <div className="flex flex-col md:flex-row md:items-start gap-4 mb-8 bg-card p-6 rounded-xl border shadow-sm">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="bg-primary/10 text-primary px-3 py-1 rounded font-bold tracking-wider">
-              {project.id}
-            </span>
-            <StrategicBadge level={currentLevel} className="text-sm px-4 py-1" />
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">
+              {projeto.Projeto || 'Projeto sem nome'}
+            </h1>
+            <Badge variant="secondary" className="text-sm">
+              #{projeto.Codigo}
+            </Badge>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">{project.name}</h1>
-          <p className="text-muted-foreground mt-2 font-medium">
-            Data de Entrada:{' '}
-            <span className="text-foreground">
-              {format(new Date(project.entryDate), "dd/MM/yyyy 'às' HH:mm")}
-            </span>
-          </p>
-        </div>
-        <div className="md:ml-auto pt-2">
-          <StatusBadge status={currentStatus} className="text-sm px-5 py-2 text-center" />
+          <p className="text-muted-foreground mt-1">Visualizando detalhes completos do projeto</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 shadow-elevation border-t-2 border-t-primary">
-          <CardHeader className="bg-muted/20 border-b pb-5">
-            <CardTitle>Edição do Projeto</CardTitle>
-            <CardDescription>
-              Modifique os dados operacionais. Código e Data de Entrada são imutáveis.
-            </CardDescription>
-          </CardHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 pt-6">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
-                      <FormLabel>Projeto</FormLabel>
-                      <FormControl>
-                        <Input className="h-10 font-medium" {...field} disabled={!isEditable} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="strategicLevel"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nível Estratégico</FormLabel>
-                      <Select
-                        disabled={!isEditable}
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="h-10">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {[1, 2, 3, 4].map((n) => (
-                            <SelectItem key={n} value={String(n)}>
-                              Nível {n}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select
-                        disabled={!isEditable}
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="h-10">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {STATUS_OPTIONS.map((s) => (
-                            <SelectItem key={s} value={s}>
-                              {s}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="responsible"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Responsável</FormLabel>
-                      <Select
-                        disabled={!isEditable}
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="h-10">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {USERS.filter((u) => u.role === 'User').map((u) => (
-                            <SelectItem key={u.name} value={u.name}>
-                              {u.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="col-span-1" />
-
-                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-6 p-5 bg-muted/10 rounded-lg border">
-                  <FormField
-                    control={form.control}
-                    name="client"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1.5">
-                          <User className="h-4 w-4" /> Cliente
-                        </FormLabel>
-                        <Select
-                          disabled={!isEditable}
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-10">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {getClientOptions().map((o) => (
-                              <SelectItem key={o} value={o}>
-                                {o}
-                              </SelectItem>
-                            ))}
-                            {isEditable && (
-                              <>
-                                <SelectSeparator />
-                                <div
-                                  role="button"
-                                  className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setModalType('client')
-                                  }}
-                                >
-                                  <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
-                                  Novo Cliente
-                                </div>
-                              </>
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="architect"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1.5">
-                          <Building2 className="h-4 w-4" /> Arquiteto
-                        </FormLabel>
-                        <Select
-                          disabled={!isEditable}
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-10">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {getArchitectOptions().map((o) => (
-                              <SelectItem key={o} value={o}>
-                                {o}
-                              </SelectItem>
-                            ))}
-                            {isEditable && (
-                              <>
-                                <SelectSeparator />
-                                <div
-                                  role="button"
-                                  className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setModalType('architect')
-                                  }}
-                                >
-                                  <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
-                                  Novo Arquiteto
-                                </div>
-                              </>
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="engineer"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1.5">
-                          <HardHat className="h-4 w-4" /> Engenheiro
-                        </FormLabel>
-                        <Select
-                          disabled={!isEditable}
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-10">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {getEngineerOptions().map((o) => (
-                              <SelectItem key={o} value={o}>
-                                {o}
-                              </SelectItem>
-                            ))}
-                            {isEditable && (
-                              <>
-                                <SelectSeparator />
-                                <div
-                                  role="button"
-                                  className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setModalType('engineer')
-                                  }}
-                                >
-                                  <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
-                                  Novo Engenheiro
-                                </div>
-                              </>
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="sm:col-span-2 grid grid-cols-3 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>Cidade</FormLabel>
-                        <FormControl>
-                          <Input
-                            list="cities"
-                            className="h-10"
-                            {...field}
-                            disabled={!isEditable}
-                            onChange={(e) => {
-                              field.onChange(e)
-                              const s = getStateForCity(e.target.value)
-                              if (s) form.setValue('state', s)
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem className="col-span-1">
-                        <FormLabel>Estado</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="h-10 uppercase"
-                            maxLength={2}
-                            {...field}
-                            disabled={!isEditable}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-              <datalist id="cities">
-                {getCities().map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
-              {isEditable && (
-                <div className="px-6 py-5 bg-muted/30 border-t flex justify-end">
-                  <Button type="submit" disabled={isSaving} className="px-8 h-11 text-base">
-                    {isSaving ? (
-                      'Salvando & Sincronizando...'
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" /> Salvar Alterações
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-            </form>
-          </Form>
-        </Card>
-
-        <Card className="shadow-sm h-fit sticky top-24">
-          <CardHeader className="bg-muted/20 border-b pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Clock className="h-5 w-5 text-primary" /> Histórico de Status
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-primary" />
+              Informações Gerais
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-6 border-l-2 border-primary/20 ml-3 mt-2">
-              {project.history
-                .slice()
-                .reverse()
-                .map((entry, i) => (
-                  <div key={i} className="relative pl-6">
-                    <span className="absolute -left-[9px] top-1 h-4 w-4 rounded-full bg-background border-2 border-primary ring-4 ring-background" />
-                    <div className="flex flex-col gap-1.5">
-                      <StatusBadge status={entry.status} className="w-fit shadow-sm" />
-                      <time className="text-xs text-muted-foreground font-mono bg-muted/50 w-fit px-2 py-0.5 rounded">
-                        {format(new Date(entry.date), 'dd/MM/yyyy HH:mm')}
-                      </time>
-                    </div>
-                  </div>
-                ))}
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">Status</span>
+              <Badge variant={projeto.Status === 'Concluído' ? 'default' : 'secondary'}>
+                {projeto.Status || 'Não informado'}
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">Nível Estratégico</span>
+              <span className="font-medium">{projeto.nivel_estrategico || 'Não informado'}</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">Data de Entrada</span>
+              <span className="font-medium flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                {projeto.data_entrada || 'Não informado'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b border-b-transparent">
+              <span className="text-muted-foreground">Localização</span>
+              <span className="font-medium flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                {projeto.Cidade || '-'} / {projeto.Estado || '-'}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserCircle className="h-5 w-5 text-primary" />
+              Responsáveis
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">Responsável Principal</span>
+              <span className="font-medium flex items-center gap-2 text-right">
+                <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                {projeto.responsavel || 'Não definido'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">Arquiteto Designado</span>
+              <span className="font-medium flex items-center gap-2 text-right">
+                <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                {projeto.arquiteto || 'Não definido'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b border-b-transparent">
+              <span className="text-muted-foreground">Engenheiro Responsável</span>
+              <span className="font-medium flex items-center gap-2 text-right">
+                <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                {projeto.engenheiro || 'Não definido'}
+              </span>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      <NewContactModal
-        type={modalType}
-        open={!!modalType}
-        onOpenChange={(open) => !open && setModalType(null)}
-        onSuccess={handleNewContactSuccess}
-      />
     </div>
   )
 }
