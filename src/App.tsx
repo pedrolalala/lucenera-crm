@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/hooks/use-auth'
 import AuthPage from '@/pages/Auth'
 
 import Index from './pages/Index'
+import Projetos from './pages/Projetos'
 import ProjectNew from './pages/ProjectNew'
 import ProjectDetail from './pages/ProjectDetail'
 import UpdatePassword from './pages/UpdatePassword'
@@ -47,7 +48,7 @@ const App = () => (
             >
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<Index />} />
-              <Route path="/projetos" element={<Index />} />
+              <Route path="/projetos" element={<Projetos />} />
               <Route path="/novo" element={<ProjectNew />} />
               <Route path="/projeto/:id" element={<ProjectDetail />} />
               <Route path="/contatos/clientes" element={<Clientes />} />
