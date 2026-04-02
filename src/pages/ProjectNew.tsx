@@ -135,7 +135,7 @@ export default function ProjectNew() {
   const onSubmit = async (v: z.infer<typeof formSchema>) => {
     try {
       const payload = {
-        Codigo: Number(v.codigo),
+        Codigo: v.codigo,
         Projeto: v.name,
         nivel_estrategico: v.strategicLevel,
         responsavel: v.responsible,

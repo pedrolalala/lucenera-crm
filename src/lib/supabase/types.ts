@@ -189,6 +189,7 @@ export type Database = {
           eletricista: string | null
           engenheiro: string | null
           Estado: string | null
+          id: number
           nivel_estrategico: string | null
           Projeto: string | null
           responsavel: string | null
@@ -202,6 +203,7 @@ export type Database = {
           eletricista?: string | null
           engenheiro?: string | null
           Estado?: string | null
+          id?: number
           nivel_estrategico?: string | null
           Projeto?: string | null
           responsavel?: string | null
@@ -215,6 +217,7 @@ export type Database = {
           eletricista?: string | null
           engenheiro?: string | null
           Estado?: string | null
+          id?: number
           nivel_estrategico?: string | null
           Projeto?: string | null
           responsavel?: string | null
@@ -406,6 +409,7 @@ export const Constants = {
 //   Cidade: text (nullable)
 //   Estado: text (nullable)
 //   eletricista: text (nullable)
+//   id: bigint (not null, default: nextval('"Organizacao_projetos_id_seq"'::regclass))
 // Table: clientes_crm
 //   cod_cliente: bigint (nullable)
 //   nm_cliente: text (nullable)
@@ -440,6 +444,8 @@ export const Constants = {
 //   created_at: timestamp with time zone (not null, default: now())
 
 // --- CONSTRAINTS ---
+// Table: Organizacao_projetos
+//   PRIMARY KEY Organizacao_projetos_pkey: PRIMARY KEY (id)
 // Table: eletricistas_crm
 //   PRIMARY KEY eletricistas_crm_pkey: PRIMARY KEY (id)
 // Table: engenheiro_crm

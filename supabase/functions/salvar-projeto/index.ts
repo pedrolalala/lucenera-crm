@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const payloadInsercao = {
-      Codigo: Number(Codigo),
+      Codigo: String(Codigo).trim(),
       Projeto,
       Status,
       Cidade,
