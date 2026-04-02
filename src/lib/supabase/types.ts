@@ -114,12 +114,46 @@ export type Database = {
         }
         Relationships: []
       }
+      eletricistas_crm: {
+        Row: {
+          cidade: string | null
+          created_at: string
+          email: string | null
+          estado: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+        }
+        Insert: {
+          cidade?: string | null
+          created_at?: string
+          email?: string | null
+          estado?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          cidade?: string | null
+          created_at?: string
+          email?: string | null
+          estado?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+        }
+        Relationships: []
+      }
       Organizacao_projetos: {
         Row: {
           arquiteto: string | null
           Cidade: string | null
           Codigo: number | null
           data_entrada: string | null
+          eletricista: string | null
           engenheiro: string | null
           Estado: string | null
           nivel_estrategico: string | null
@@ -132,6 +166,7 @@ export type Database = {
           Cidade?: string | null
           Codigo?: number | null
           data_entrada?: string | null
+          eletricista?: string | null
           engenheiro?: string | null
           Estado?: string | null
           nivel_estrategico?: string | null
@@ -144,6 +179,7 @@ export type Database = {
           Cidade?: string | null
           Codigo?: number | null
           data_entrada?: string | null
+          eletricista?: string | null
           engenheiro?: string | null
           Estado?: string | null
           nivel_estrategico?: string | null
@@ -336,6 +372,7 @@ export const Constants = {
 //   engenheiro: text (nullable)
 //   Cidade: text (nullable)
 //   Estado: text (nullable)
+//   eletricista: text (nullable)
 // Table: clientes_crm
 //   cod_cliente: bigint (nullable)
 //   nm_cliente: text (nullable)
@@ -350,6 +387,19 @@ export const Constants = {
 //   email_cliente: text (nullable)
 //   email_financeiro: text (nullable)
 //   completo: text (nullable)
+// Table: eletricistas_crm
+//   id: uuid (not null, default: gen_random_uuid())
+//   nome: text (not null)
+//   telefone: text (nullable)
+//   email: text (nullable)
+//   cidade: text (nullable)
+//   estado: text (nullable)
+//   observacoes: text (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
+
+// --- CONSTRAINTS ---
+// Table: eletricistas_crm
+//   PRIMARY KEY eletricistas_crm_pkey: PRIMARY KEY (id)
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: Arquitetos_empresas_crm
@@ -380,6 +430,16 @@ export const Constants = {
 //   Policy "authenticated_select_clientes" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 //   Policy "authenticated_update_clientes" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: eletricistas_crm
+//   Policy "authenticated_delete_eletricistas" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_insert_eletricistas" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_eletricistas" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_update_eletricistas" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 
