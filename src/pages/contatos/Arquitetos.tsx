@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Search,
   MapPin,
@@ -147,6 +148,7 @@ export default function Arquitetos() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingArquiteto, setEditingArquiteto] = useState<Arquiteto | null>(null)
   const [arquitetoToDelete, setArquitetoToDelete] = useState<Arquiteto | null>(null)
+  const [searchParams] = useSearchParams()
 
   const form = useForm<ArquitetoFormValues>({
     resolver: zodResolver(arquitetoSchema),
@@ -205,6 +207,21 @@ export default function Arquitetos() {
       supabase.removeChannel(channel)
     }
   }, [])
+
+  useEffect(() => {
+    const viewName = searchParams.get('view')
+    if (viewName && arquitetos.length > 0 && !selectedArquiteto) {
+      const match = arquitetos.find(
+        (a) =>
+          a['Nome do Arquiteto']?.toLowerCase() === viewName.toLowerCase() ||
+          a['Nome da Empresa']?.toLowerCase() === viewName.toLowerCase(),
+      )
+      if (match) {
+        setSelectedArquiteto(match)
+        setSearchName(match['Nome do Arquiteto'] || viewName)
+      }
+    }
+  }, [searchParams, arquitetos])
 
   const filteredArquitetos = useMemo(() => {
     return arquitetos.filter((a) => {

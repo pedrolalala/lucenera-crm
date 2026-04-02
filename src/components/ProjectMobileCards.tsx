@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Project } from '@/types'
 import { StatusBadge, StrategicBadge } from '@/components/StatusBadge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -46,21 +46,51 @@ export function ProjectMobileCards({ projects }: { projects: Project[] }) {
               <div className="flex items-center gap-1.5 col-span-2">
                 <UserCircle className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">
-                  {p.client !== 'Não Informado' ? p.client : 'Cliente não informado'}
+                  {p.client !== 'Não Informado' && p.client !== '-' ? (
+                    <Link
+                      to={`/contatos/clientes?view=${encodeURIComponent(p.client)}`}
+                      className="hover:underline hover:text-primary transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {p.client}
+                    </Link>
+                  ) : (
+                    'Cliente não informado'
+                  )}
                 </span>
               </div>
 
               <div className="flex items-center gap-1.5 col-span-2">
                 <Building2 className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">
-                  {p.architect !== 'Não Informado' ? p.architect : 'Arquiteto não informado'}
+                  {p.architect !== 'Não Informado' && p.architect !== '-' ? (
+                    <Link
+                      to={`/contatos/arquitetos?view=${encodeURIComponent(p.architect)}`}
+                      className="hover:underline hover:text-primary transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {p.architect}
+                    </Link>
+                  ) : (
+                    'Arquiteto não informado'
+                  )}
                 </span>
               </div>
 
               <div className="flex items-center gap-1.5 col-span-2">
                 <HardHat className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">
-                  {p.engineer !== 'Não Informado' ? p.engineer : 'Engenheiro não informado'}
+                  {p.engineer !== 'Não Informado' && p.engineer !== '-' ? (
+                    <Link
+                      to={`/contatos/engenheiros?view=${encodeURIComponent(p.engineer)}`}
+                      className="hover:underline hover:text-primary transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {p.engineer}
+                    </Link>
+                  ) : (
+                    'Engenheiro não informado'
+                  )}
                 </span>
               </div>
 

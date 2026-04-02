@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { getProjeto, type Projeto } from '@/services/projetos'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -121,24 +121,68 @@ export default function ProjectDetail() {
               </span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">Cliente</span>
+              <span className="font-medium flex items-center gap-2 text-right">
+                <UserCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                {(projeto as any).cliente && (projeto as any).cliente !== 'Não Informado' ? (
+                  <Link
+                    to={`/contatos/clientes?view=${encodeURIComponent((projeto as any).cliente)}`}
+                    className="text-primary hover:underline"
+                  >
+                    {(projeto as any).cliente}
+                  </Link>
+                ) : (
+                  'Não definido'
+                )}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
               <span className="text-muted-foreground">Arquiteto Designado</span>
               <span className="font-medium flex items-center gap-2 text-right">
                 <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                {projeto.arquiteto || 'Não definido'}
+                {projeto.arquiteto && projeto.arquiteto !== 'Não Informado' ? (
+                  <Link
+                    to={`/contatos/arquitetos?view=${encodeURIComponent(projeto.arquiteto)}`}
+                    className="text-primary hover:underline"
+                  >
+                    {projeto.arquiteto}
+                  </Link>
+                ) : (
+                  'Não definido'
+                )}
               </span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
               <span className="text-muted-foreground">Engenheiro Responsável</span>
               <span className="font-medium flex items-center gap-2 text-right">
                 <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                {projeto.engenheiro || 'Não definido'}
+                {projeto.engenheiro && projeto.engenheiro !== 'Não Informado' ? (
+                  <Link
+                    to={`/contatos/engenheiros?view=${encodeURIComponent(projeto.engenheiro)}`}
+                    className="text-primary hover:underline"
+                  >
+                    {projeto.engenheiro}
+                  </Link>
+                ) : (
+                  'Não definido'
+                )}
               </span>
             </div>
             <div className="flex justify-between items-center py-2 border-b border-b-transparent">
               <span className="text-muted-foreground">Eletricista</span>
               <span className="font-medium flex items-center gap-2 text-right">
                 <Zap className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                {(projeto as any).eletricista || 'Não definido'}
+                {(projeto as any).eletricista &&
+                (projeto as any).eletricista !== 'Não Informado' ? (
+                  <Link
+                    to={`/contatos/eletricistas?view=${encodeURIComponent((projeto as any).eletricista)}`}
+                    className="text-primary hover:underline"
+                  >
+                    {(projeto as any).eletricista}
+                  </Link>
+                ) : (
+                  'Não definido'
+                )}
               </span>
             </div>
           </CardContent>

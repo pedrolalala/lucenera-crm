@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Project } from '@/types'
 import { StatusBadge, StrategicBadge } from '@/components/StatusBadge'
 import {
@@ -58,7 +58,17 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
                 {p.name}
               </TableCell>
               <TableCell className="text-muted-foreground max-w-[150px] truncate" title={p.client}>
-                {p.client !== 'Não Informado' ? p.client : '-'}
+                {p.client !== 'Não Informado' && p.client !== '-' ? (
+                  <Link
+                    to={`/contatos/clientes?view=${encodeURIComponent(p.client)}`}
+                    className="hover:underline hover:text-primary transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {p.client}
+                  </Link>
+                ) : (
+                  '-'
+                )}
               </TableCell>
               <TableCell>
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
@@ -75,13 +85,33 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
                 className="hidden lg:table-cell max-w-[150px] truncate text-muted-foreground"
                 title={p.architect}
               >
-                {p.architect !== 'Não Informado' ? p.architect : '-'}
+                {p.architect !== 'Não Informado' && p.architect !== '-' ? (
+                  <Link
+                    to={`/contatos/arquitetos?view=${encodeURIComponent(p.architect)}`}
+                    className="hover:underline hover:text-primary transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {p.architect}
+                  </Link>
+                ) : (
+                  '-'
+                )}
               </TableCell>
               <TableCell
                 className="hidden xl:table-cell max-w-[150px] truncate text-muted-foreground"
                 title={p.engineer}
               >
-                {p.engineer !== 'Não Informado' ? p.engineer : '-'}
+                {p.engineer !== 'Não Informado' && p.engineer !== '-' ? (
+                  <Link
+                    to={`/contatos/engenheiros?view=${encodeURIComponent(p.engineer)}`}
+                    className="hover:underline hover:text-primary transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {p.engineer}
+                  </Link>
+                ) : (
+                  '-'
+                )}
               </TableCell>
               <TableCell className="hidden md:table-cell text-muted-foreground text-right">
                 {p.city}

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Eye } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -83,6 +84,10 @@ export default function Engenheiros() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingEngineer, setEditingEngineer] = useState<EngineerRow | null>(null)
   const [engineerToDelete, setEngineerToDelete] = useState<string | null>(null)
+  
+  const [viewingEngineer, setViewingEngineer] = useState<EngineerRow | null>(null)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [searchParams] = useSearchParams()
 
   const form = useForm<EngineerFormValues>({
     resolver: zodResolver(engineerSchema),
@@ -125,6 +130,18 @@ export default function Engenheiros() {
       supabase.removeChannel(channel)
     }
   }, [])
+
+  useEffect(() => {
+    const viewName = searchParams.get('view')
+    if (viewName && engineers.length > 0 && !isViewModalOpen) {
+      const match = engineers.find((e) => e.nome.toLowerCase() === viewName.toLowerCase())
+      if (match) {
+        setViewingEngineer(match)
+        setIsViewModalOpen(true)
+        setSearch(viewName)
+      }
+    }
+  }, [searchParams, engineers])
 
   useEffect(() => {
     if (editingEngineer) {
@@ -276,6 +293,17 @@ export default function Engenheiros() {
                       {engineer.endereco_comercial || '-'}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setViewingEngineer(engineer)
+                          setIsViewModalOpen(true)
+                        }}
+                        title="Ver Detalhes"
+                      >
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -432,6 +460,52 @@ export default function Engenheiros() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={!!engineerToDelete}
+        onOpenChange={(open) => !open && setEngineerToDelete(null)}
+      >
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Engenheiro</DialogTitle>
+            <DialogDescription>Informações completas do registro</DialogDescription>
+          </DialogHeader>
+          {viewingEngineer && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 py-4">
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Nome</h4>
+                <p className="text-foreground">{viewingEngineer.nome || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Tipo / Especialidade</h4>
+                <p className="text-foreground">{viewingEngineer.tipo || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">E-mail</h4>
+                <p className="text-foreground">{viewingEngineer.email || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Telefone</h4>
+                <p className="text-foreground">{viewingEngineer.telefone || '-'}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <h4 className="font-semibold text-sm text-muted-foreground">Empresa</h4>
+                <p className="text-foreground">{viewingEngineer.empresa || '-'}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <h4 className="font-semibold text-sm text-muted-foreground">Endereço Comercial</h4>
+                <p className="text-foreground">{viewingEngineer.endereco_comercial || '-'}</p>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end pt-4 border-t mt-4">
+            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+              Fechar
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Zap, Search, Loader2 } from 'lucide-react'
+import { Plus, Zap, Search, Loader2, Eye } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -27,6 +28,10 @@ export default function Eletricistas() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [open, setOpen] = useState(false)
+  const [viewingEletricista, setViewingEletricista] = useState<any | null>(null)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [searchParams] = useSearchParams()
+
   const [formData, setFormData] = useState({
     nome: '',
     telefone: '',
@@ -50,6 +55,18 @@ export default function Eletricistas() {
   useEffect(() => {
     fetchEletricistas()
   }, [])
+
+  useEffect(() => {
+    const viewName = searchParams.get('view')
+    if (viewName && eletricistas.length > 0 && !isViewModalOpen) {
+      const match = eletricistas.find((e) => e.nome?.toLowerCase() === viewName.toLowerCase())
+      if (match) {
+        setViewingEletricista(match)
+        setIsViewModalOpen(true)
+        setSearchTerm(viewName)
+      }
+    }
+  }, [searchParams, eletricistas])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -185,6 +202,7 @@ export default function Eletricistas() {
                     <TableHead>Telefone</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Cidade/UF</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -203,6 +221,19 @@ export default function Eletricistas() {
                         <TableCell>
                           {el.cidade ? `${el.cidade}/${el.estado || '-'}` : '-'}
                         </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setViewingEletricista(el)
+                              setIsViewModalOpen(true)
+                            }}
+                            title="Ver Detalhes"
+                          >
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -212,6 +243,51 @@ export default function Eletricistas() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Eletricista</DialogTitle>
+          </DialogHeader>
+          {viewingEletricista && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 py-4">
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Nome</h4>
+                <p className="text-foreground">{viewingEletricista.nome || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Telefone</h4>
+                <p className="text-foreground">{viewingEletricista.telefone || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">E-mail</h4>
+                <p className="text-foreground">{viewingEletricista.email || '-'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Cidade/UF</h4>
+                <p className="text-foreground">
+                  {viewingEletricista.cidade
+                    ? `${viewingEletricista.cidade}/${viewingEletricista.estado || '-'}`
+                    : '-'}
+                </p>
+              </div>
+              {viewingEletricista.observacoes && (
+                <div className="sm:col-span-2">
+                  <h4 className="font-semibold text-sm text-muted-foreground">Observações</h4>
+                  <p className="text-foreground whitespace-pre-wrap">
+                    {viewingEletricista.observacoes}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <div className="flex justify-end pt-4 border-t mt-4">
+            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

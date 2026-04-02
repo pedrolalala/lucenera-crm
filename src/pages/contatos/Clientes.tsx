@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Plus, Search, Edit2, Trash2, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -82,6 +83,7 @@ export default function Clientes() {
   const [editingClient, setEditingClient] = useState<ClientRow | null>(null)
   const [selectedClient, setSelectedClient] = useState<ClientRow | null>(null)
   const [clientToDelete, setClientToDelete] = useState<ClientRow | null>(null)
+  const [searchParams] = useSearchParams()
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
@@ -128,6 +130,18 @@ export default function Clientes() {
       supabase.removeChannel(channel)
     }
   }, [])
+
+  useEffect(() => {
+    const viewName = searchParams.get('view')
+    if (viewName && clients.length > 0 && !isViewModalOpen) {
+      const match = clients.find((c) => c.nm_cliente?.toLowerCase() === viewName.toLowerCase())
+      if (match) {
+        setSelectedClient(match)
+        setIsViewModalOpen(true)
+        setSearchName(viewName)
+      }
+    }
+  }, [searchParams, clients])
 
   const fetchClients = async () => {
     setLoading(true)
