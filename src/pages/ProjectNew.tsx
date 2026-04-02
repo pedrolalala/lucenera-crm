@@ -154,9 +154,12 @@ export default function ProjectNew() {
         data_entrada: new Date().toISOString(),
       }
 
-      const { error } = await supabase.from('Organizacao_projetos').insert([payload])
+      const { data: result, error } = await supabase.functions.invoke('salvar-projeto', {
+        body: payload,
+      })
 
       if (error) throw error
+      if (result?.error) throw new Error(result.error)
 
       try {
         addProject({
