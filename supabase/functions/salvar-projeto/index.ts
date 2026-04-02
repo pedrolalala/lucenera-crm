@@ -46,6 +46,38 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    if (!Projeto || String(Projeto).trim() === '') {
+      console.warn('[salvar-projeto] Validação falhou: Campo Projeto ausente.')
+      return new Response(JSON.stringify({ error: 'O campo Projeto é obrigatório.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!Status || String(Status).trim() === '') {
+      console.warn('[salvar-projeto] Validação falhou: Campo Status ausente.')
+      return new Response(JSON.stringify({ error: 'O campo Status é obrigatório.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!Cidade || String(Cidade).trim() === '') {
+      console.warn('[salvar-projeto] Validação falhou: Campo Cidade ausente.')
+      return new Response(JSON.stringify({ error: 'O campo Cidade é obrigatório.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!Estado || String(Estado).trim() === '') {
+      console.warn('[salvar-projeto] Validação falhou: Campo Estado ausente.')
+      return new Response(JSON.stringify({ error: 'O campo Estado é obrigatório.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // CORREÇÃO: O frontend pode estar enviando o código formatado com a máscara (ex: "12.345"),
     // mas a coluna Codigo na tabela Organizacao_projetos é do tipo numérico (bigint).
     // Precisamos limpar a formatação antes de prosseguir para evitar erro 500 do banco de dados.
@@ -60,9 +92,10 @@ Deno.serve(async (req: Request) => {
       .from('Organizacao_projetos')
       .select('Codigo')
       .eq('Codigo', codigoNumerico)
-      .maybeSingle()
+      .limit(1)
+      .single()
 
-    if (checkError) {
+    if (checkError && checkError.code !== 'PGRST116') {
       console.error('[salvar-projeto] Erro ao consultar banco (checkError):', checkError)
       throw checkError
     }
@@ -90,6 +123,9 @@ Deno.serve(async (req: Request) => {
       data_entrada,
       nivel_estrategico,
     }
+
+    console.log('[salvar-projeto] Confirmando formato dos dados antes do INSERT:')
+    console.log(JSON.stringify(payloadInsercao, null, 2))
 
     console.log('[salvar-projeto] Iniciando inserção com os dados:', payloadInsercao)
     const { data, error } = await supabase
