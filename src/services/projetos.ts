@@ -18,10 +18,11 @@ export async function getProjeto(codigo: number) {
     .from('Organizacao_projetos')
     .select('*')
     .eq('Codigo', codigo)
-    .single()
+    .limit(1)
 
   if (error) throw error
-  return data
+  if (!data || data.length === 0) throw new Error('Projeto não encontrado')
+  return data[0]
 }
 
 export async function updateProjeto(codigo: number, data: Partial<Projeto>) {
@@ -30,10 +31,9 @@ export async function updateProjeto(codigo: number, data: Partial<Projeto>) {
     .update(data)
     .eq('Codigo', codigo)
     .select()
-    .single()
 
   if (error) throw error
-  return result
+  return result?.[0] || null
 }
 
 export async function deleteProjeto(codigo: number) {
