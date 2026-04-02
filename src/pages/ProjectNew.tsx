@@ -64,6 +64,7 @@ const formSchema = z.object({
 
 export default function ProjectNew() {
   const navigate = useNavigate()
+  const store = useProjectStore() as any
   const { getCities, getStateForCity, addProject } = useProjectStore()
 
   const [modalType, setModalType] = useState<ContactType | null>(null)
@@ -162,19 +163,26 @@ export default function ProjectNew() {
       if (result?.error) throw new Error(result.error)
 
       try {
-        addProject({
-          id: String(nextCodigo),
-          name: v.name,
-          strategicLevel: v.strategicLevel as any,
-          responsible: v.responsible as any,
-          status: v.status as any,
-          client: v.client,
-          architect: v.architect,
-          engineer: v.engineer,
-          city: v.city,
-          state: v.state,
-          electrician: v.electrician,
-        })
+        // Recarrega automaticamente a lista de projetos após o status 200
+        await supabase.from('Organizacao_projetos').select('*')
+
+        if (typeof store.fetchProjects === 'function') {
+          await store.fetchProjects()
+        } else {
+          addProject({
+            id: String(nextCodigo),
+            name: v.name,
+            strategicLevel: v.strategicLevel as any,
+            responsible: v.responsible as any,
+            status: v.status as any,
+            client: v.client,
+            architect: v.architect,
+            engineer: v.engineer,
+            city: v.city,
+            state: v.state,
+            electrician: v.electrician,
+          })
+        }
       } catch (e) {
         // Ignorar erro do store caso ocorra
       }

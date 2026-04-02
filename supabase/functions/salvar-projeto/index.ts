@@ -96,7 +96,10 @@ Deno.serve(async (req: Request) => {
     console.log('[salvar-projeto] Confirmando formato dos dados antes do INSERT:')
     console.log(JSON.stringify(payloadInsercao, null, 2))
 
-    console.log('[salvar-projeto] Iniciando inserção com os dados:', payloadInsercao)
+    console.log(
+      '[salvar-projeto] Tabela alvo: Organizacao_projetos. Dados sendo inseridos:',
+      payloadInsercao,
+    )
     const { data, error } = await supabase
       .from('Organizacao_projetos')
       .insert([payloadInsercao])
