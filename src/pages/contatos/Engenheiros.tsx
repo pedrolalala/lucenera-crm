@@ -46,51 +46,25 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { toast } from '@/hooks/use-toast'
+import { supabase } from '@/lib/supabase/client'
+import { Database } from '@/lib/supabase/types'
+
+type EngineerRow = Database['public']['Tables']['engenheiro_crm']['Row']
 
 const engineerSchema = z.object({
-  name: z.string().min(2, 'Nome é obrigatório'),
-  type: z.string().min(1, 'Tipo de engenharia é obrigatório'),
-  email: z.string().email('Email inválido').or(z.literal('')),
-  phone: z.string().min(1, 'Telefone é obrigatório'),
-  company: z.string(),
-  commercialAddress: z.string(),
+  nome: z.string().min(2, 'Nome é obrigatório'),
+  tipo: z.string().min(1, 'Tipo de engenharia é obrigatório'),
+  email: z
+    .string()
+    .email('Email inválido')
+    .or(z.literal('').or(z.null()))
+    .transform((v) => v || null),
+  telefone: z.string().min(1, 'Telefone é obrigatório'),
+  empresa: z.string().optional().nullable(),
+  endereco_comercial: z.string().optional().nullable(),
 })
 
 type EngineerFormValues = z.infer<typeof engineerSchema>
-
-interface Engineer extends EngineerFormValues {
-  id: string
-}
-
-const MOCK_ENGINEERS: Engineer[] = [
-  {
-    id: '1',
-    name: 'Carlos Alberto',
-    type: 'Civil',
-    email: 'carlos@construtora.com',
-    phone: '(11) 98888-7777',
-    company: 'Construtora Alfa',
-    commercialAddress: 'Av. Paulista, 1000 - São Paulo',
-  },
-  {
-    id: '2',
-    name: 'Marcos Vinicius',
-    type: 'Elétrica',
-    email: 'marcos.eletrica@exemplo.com',
-    phone: '(16) 97777-6666',
-    company: 'MV Elétrica',
-    commercialAddress: 'Rua das Indústrias, 500 - Ribeirão Preto',
-  },
-  {
-    id: '3',
-    name: 'Fernanda Lima',
-    type: 'Automação',
-    email: 'fernanda@automacao.br',
-    phone: '(21) 99999-5555',
-    company: 'SmartHomes',
-    commercialAddress: 'Av. das Américas, 2000 - Rio de Janeiro',
-  },
-]
 
 const ENGINEER_TYPES = [
   'Civil',
@@ -103,35 +77,73 @@ const ENGINEER_TYPES = [
 ]
 
 export default function Engenheiros() {
-  const [engineers, setEngineers] = useState<Engineer[]>(MOCK_ENGINEERS)
+  const [engineers, setEngineers] = useState<EngineerRow[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingEngineer, setEditingEngineer] = useState<Engineer | null>(null)
+  const [editingEngineer, setEditingEngineer] = useState<EngineerRow | null>(null)
   const [engineerToDelete, setEngineerToDelete] = useState<string | null>(null)
 
   const form = useForm<EngineerFormValues>({
     resolver: zodResolver(engineerSchema),
     defaultValues: {
-      name: '',
-      type: '',
+      nome: '',
+      tipo: '',
       email: '',
-      phone: '',
-      company: '',
-      commercialAddress: '',
+      telefone: '',
+      empresa: '',
+      endereco_comercial: '',
     },
   })
 
+  const fetchEngineers = async () => {
+    setLoading(true)
+    const { data, error } = await supabase.from('engenheiro_crm').select('*').order('nome')
+    if (error) {
+      toast({
+        title: 'Erro ao buscar engenheiros',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } else {
+      setEngineers(data || [])
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchEngineers()
+
+    const channel = supabase
+      .channel('engenheiros_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'engenheiro_crm' }, () => {
+        fetchEngineers()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
   useEffect(() => {
     if (editingEngineer) {
-      form.reset(editingEngineer)
+      form.reset({
+        nome: editingEngineer.nome,
+        tipo: editingEngineer.tipo || '',
+        email: editingEngineer.email || '',
+        telefone: editingEngineer.telefone || '',
+        empresa: editingEngineer.empresa || '',
+        endereco_comercial: editingEngineer.endereco_comercial || '',
+      })
     } else {
       form.reset({
-        name: '',
-        type: '',
+        nome: '',
+        tipo: '',
         email: '',
-        phone: '',
-        company: '',
-        commercialAddress: '',
+        telefone: '',
+        empresa: '',
+        endereco_comercial: '',
       })
     }
   }, [editingEngineer, form, isModalOpen])
@@ -140,32 +152,45 @@ export default function Engenheiros() {
     return engineers.filter((e) => {
       const q = search.toLowerCase()
       return (
-        e.name.toLowerCase().includes(q) ||
-        e.email.toLowerCase().includes(q) ||
-        e.company.toLowerCase().includes(q) ||
-        e.type.toLowerCase().includes(q)
+        e.nome.toLowerCase().includes(q) ||
+        (e.email || '').toLowerCase().includes(q) ||
+        (e.empresa || '').toLowerCase().includes(q) ||
+        (e.tipo || '').toLowerCase().includes(q)
       )
     })
   }, [engineers, search])
 
-  const onSubmit = (values: EngineerFormValues) => {
+  const onSubmit = async (values: EngineerFormValues) => {
     if (editingEngineer) {
-      setEngineers((prev) =>
-        prev.map((e) => (e.id === editingEngineer.id ? { ...values, id: e.id } : e)),
-      )
-      toast({ title: 'Engenheiro atualizado com sucesso' })
+      const { error } = await supabase
+        .from('engenheiro_crm')
+        .update(values)
+        .eq('id', editingEngineer.id)
+      if (error) {
+        toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' })
+      } else {
+        toast({ title: 'Engenheiro atualizado com sucesso' })
+        setIsModalOpen(false)
+      }
     } else {
-      const newEngineer = { ...values, id: Math.random().toString(36).substring(2, 9) }
-      setEngineers((prev) => [newEngineer, ...prev])
-      toast({ title: 'Engenheiro adicionado com sucesso' })
+      const { error } = await supabase.from('engenheiro_crm').insert([values])
+      if (error) {
+        toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' })
+      } else {
+        toast({ title: 'Engenheiro adicionado com sucesso' })
+        setIsModalOpen(false)
+      }
     }
-    setIsModalOpen(false)
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (engineerToDelete) {
-      setEngineers((prev) => prev.filter((e) => e.id !== engineerToDelete))
-      toast({ title: 'Engenheiro excluído com sucesso' })
+      const { error } = await supabase.from('engenheiro_crm').delete().eq('id', engineerToDelete)
+      if (error) {
+        toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' })
+      } else {
+        toast({ title: 'Engenheiro excluído com sucesso' })
+      }
       setEngineerToDelete(null)
     }
   }
@@ -175,13 +200,13 @@ export default function Engenheiros() {
     setIsModalOpen(true)
   }
 
-  const openEditModal = (engineer: Engineer) => {
+  const openEditModal = (engineer: EngineerRow) => {
     setEditingEngineer(engineer)
     setIsModalOpen(true)
   }
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto">
+    <div className="space-y-6 max-w-[1400px] mx-auto animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-foreground">Engenheiros</h2>
@@ -218,52 +243,59 @@ export default function Engenheiros() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEngineers.map((engineer) => (
-                <TableRow key={engineer.id} className="hover:bg-muted/50 transition-colors">
-                  <TableCell className="font-medium text-foreground">{engineer.name}</TableCell>
-                  <TableCell>{engineer.type}</TableCell>
-                  <TableCell>{engineer.company || '-'}</TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="flex flex-col">
-                      <span className="text-sm">{engineer.phone}</span>
-                      {engineer.email && (
-                        <span className="text-xs text-muted-foreground">{engineer.email}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell
-                    className="hidden lg:table-cell max-w-[200px] truncate"
-                    title={engineer.commercialAddress}
-                  >
-                    {engineer.commercialAddress || '-'}
-                  </TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEditModal(engineer)}
-                      title="Editar"
-                    >
-                      <Edit2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setEngineerToDelete(engineer.id)}
-                      title="Excluir"
-                      className="hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    Carregando engenheiros...
                   </TableCell>
                 </TableRow>
-              ))}
-              {filteredEngineers.length === 0 && (
+              ) : filteredEngineers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                     Nenhum engenheiro encontrado.
                   </TableCell>
                 </TableRow>
+              ) : (
+                filteredEngineers.map((engineer) => (
+                  <TableRow key={engineer.id} className="hover:bg-muted/50 transition-colors">
+                    <TableCell className="font-medium text-foreground">{engineer.nome}</TableCell>
+                    <TableCell>{engineer.tipo}</TableCell>
+                    <TableCell>{engineer.empresa || '-'}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-sm">{engineer.telefone}</span>
+                        {engineer.email && (
+                          <span className="text-xs text-muted-foreground">{engineer.email}</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell
+                      className="hidden lg:table-cell max-w-[200px] truncate"
+                      title={engineer.endereco_comercial || ''}
+                    >
+                      {engineer.endereco_comercial || '-'}
+                    </TableCell>
+                    <TableCell className="text-right whitespace-nowrap">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditModal(engineer)}
+                        title="Editar"
+                      >
+                        <Edit2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setEngineerToDelete(engineer.id)}
+                        title="Excluir"
+                        className="hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
@@ -283,7 +315,7 @@ export default function Engenheiros() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="nome"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
@@ -298,7 +330,7 @@ export default function Engenheiros() {
                 />
                 <FormField
                   control={form.control}
-                  name="type"
+                  name="tipo"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
@@ -329,7 +361,12 @@ export default function Engenheiros() {
                     <FormItem>
                       <FormLabel>E-mail</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="email@exemplo.com" {...field} />
+                        <Input
+                          type="email"
+                          placeholder="email@exemplo.com"
+                          {...field}
+                          value={field.value || ''}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -337,14 +374,14 @@ export default function Engenheiros() {
                 />
                 <FormField
                   control={form.control}
-                  name="phone"
+                  name="telefone"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
                         Telefone <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="(00) 00000-0000" {...field} />
+                        <Input placeholder="(00) 00000-0000" {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -352,12 +389,16 @@ export default function Engenheiros() {
                 />
                 <FormField
                   control={form.control}
-                  name="company"
+                  name="empresa"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Empresa / Escritório</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nome do escritório (opcional)" {...field} />
+                        <Input
+                          placeholder="Nome do escritório (opcional)"
+                          {...field}
+                          value={field.value || ''}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -365,12 +406,16 @@ export default function Engenheiros() {
                 />
                 <FormField
                   control={form.control}
-                  name="commercialAddress"
+                  name="endereco_comercial"
                   render={({ field }) => (
                     <FormItem className="sm:col-span-2">
                       <FormLabel>Endereço Comercial</FormLabel>
                       <FormControl>
-                        <Input placeholder="Rua, Número, Complemento, Bairro, Cidade" {...field} />
+                        <Input
+                          placeholder="Rua, Número, Complemento, Bairro, Cidade"
+                          {...field}
+                          value={field.value || ''}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -1,5 +1,17 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, MapPin, Building2, User, Phone, FileText, Info } from 'lucide-react'
+import {
+  Search,
+  MapPin,
+  Building2,
+  User,
+  Phone,
+  FileText,
+  Info,
+  Plus,
+  Edit2,
+  Trash2,
+  Eye,
+} from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import {
   Table,
@@ -16,11 +28,56 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Button } from '@/components/ui/button'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/supabase/types'
 import { toast } from '@/hooks/use-toast'
 
 type Arquiteto = Database['public']['Tables']['Arquitetos_empresas_crm']['Row']
+
+const arquitetoSchema = z.object({
+  'Nome do Arquiteto': z.string().min(2, 'Obrigatório'),
+  'Nome da Empresa': z.string().optional().nullable(),
+  Email: z
+    .string()
+    .email('Email inválido')
+    .or(z.literal('').or(z.null()))
+    .transform((v) => v || null),
+  Celular: z.string().optional().nullable(),
+  Telefone: z.string().optional().nullable(),
+  Cidade: z.string().optional().nullable(),
+  Estado: z.string().optional().nullable(),
+  endereço: z.string().optional().nullable(),
+  Bairro: z.string().optional().nullable(),
+  CEP: z.string().optional().nullable(),
+  'CPF/CNPJ': z.string().optional().nullable(),
+  RG: z.string().optional().nullable(),
+  Observacoes: z.string().optional().nullable(),
+  numero_de_arquitetos: z.coerce.number().optional().nullable(),
+})
+
+type ArquitetoFormValues = z.infer<typeof arquitetoSchema>
 
 function ArquitetoDetails({ arquiteto }: { arquiteto: Arquiteto }) {
   const Section = ({ title, icon: Icon, children }: any) => (
@@ -85,7 +142,31 @@ export default function Arquitetos() {
   const [searchState, setSearchState] = useState('')
   const [searchCompany, setSearchCompany] = useState('')
   const [searchName, setSearchName] = useState('')
+
   const [selectedArquiteto, setSelectedArquiteto] = useState<Arquiteto | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingArquiteto, setEditingArquiteto] = useState<Arquiteto | null>(null)
+  const [arquitetoToDelete, setArquitetoToDelete] = useState<Arquiteto | null>(null)
+
+  const form = useForm<ArquitetoFormValues>({
+    resolver: zodResolver(arquitetoSchema),
+    defaultValues: {
+      'Nome do Arquiteto': '',
+      'Nome da Empresa': '',
+      Email: '',
+      Celular: '',
+      Telefone: '',
+      Cidade: '',
+      Estado: '',
+      endereço: '',
+      Bairro: '',
+      CEP: '',
+      'CPF/CNPJ': '',
+      RG: '',
+      Observacoes: '',
+      numero_de_arquitetos: null,
+    },
+  })
 
   const fetchArquitetos = async () => {
     try {
@@ -141,13 +222,101 @@ export default function Arquitetos() {
     })
   }, [arquitetos, searchCity, searchState, searchCompany, searchName])
 
+  const onSubmit = async (values: ArquitetoFormValues) => {
+    if (editingArquiteto?.codigo_do_arquiteto) {
+      const { error } = await supabase
+        .from('Arquitetos_empresas_crm')
+        .update(values)
+        .eq('codigo_do_arquiteto', editingArquiteto.codigo_do_arquiteto)
+
+      if (error) {
+        toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' })
+      } else {
+        toast({ title: 'Arquiteto atualizado com sucesso' })
+        setIsEditModalOpen(false)
+      }
+    } else {
+      const { error } = await supabase.from('Arquitetos_empresas_crm').insert([values])
+
+      if (error) {
+        toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' })
+      } else {
+        toast({ title: 'Arquiteto adicionado com sucesso' })
+        setIsEditModalOpen(false)
+      }
+    }
+  }
+
+  const handleDelete = async () => {
+    if (arquitetoToDelete && arquitetoToDelete.codigo_do_arquiteto) {
+      const { error } = await supabase
+        .from('Arquitetos_empresas_crm')
+        .delete()
+        .eq('codigo_do_arquiteto', arquitetoToDelete.codigo_do_arquiteto)
+
+      if (error) {
+        toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' })
+      } else {
+        toast({ title: 'Arquiteto excluído com sucesso' })
+      }
+      setArquitetoToDelete(null)
+    }
+  }
+
+  const openNewModal = () => {
+    setEditingArquiteto(null)
+    form.reset({
+      'Nome do Arquiteto': '',
+      'Nome da Empresa': '',
+      Email: '',
+      Celular: '',
+      Telefone: '',
+      Cidade: '',
+      Estado: '',
+      endereço: '',
+      Bairro: '',
+      CEP: '',
+      'CPF/CNPJ': '',
+      RG: '',
+      Observacoes: '',
+      numero_de_arquitetos: null,
+    })
+    setIsEditModalOpen(true)
+  }
+
+  const openEditModal = (arquiteto: Arquiteto) => {
+    setEditingArquiteto(arquiteto)
+    form.reset({
+      'Nome do Arquiteto': arquiteto['Nome do Arquiteto'] || '',
+      'Nome da Empresa': arquiteto['Nome da Empresa'] || '',
+      Email: arquiteto.Email || '',
+      Celular: arquiteto.Celular || '',
+      Telefone: arquiteto.Telefone || '',
+      Cidade: arquiteto.Cidade || '',
+      Estado: arquiteto.Estado || '',
+      endereço: arquiteto.endereço || '',
+      Bairro: arquiteto.Bairro || '',
+      CEP: arquiteto.CEP || '',
+      'CPF/CNPJ': arquiteto['CPF/CNPJ'] || '',
+      RG: arquiteto.RG || '',
+      Observacoes: arquiteto.Observacoes || '',
+      numero_de_arquitetos: arquiteto.numero_de_arquitetos,
+    })
+    setIsEditModalOpen(true)
+  }
+
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">Arquitetos</h2>
-        <p className="text-muted-foreground text-sm mt-1">
-          Base de arquitetos e empresas parceiras integradas.
-        </p>
+    <div className="space-y-6 max-w-[1400px] mx-auto animate-fade-in-up">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Arquitetos</h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            Base de arquitetos e empresas parceiras integradas.
+          </p>
+        </div>
+        <Button onClick={openNewModal} className="w-full sm:w-auto shadow-elevation h-11" size="lg">
+          <Plus className="mr-2 h-5 w-5" /> NOVO ARQUITETO
+        </Button>
       </div>
 
       <div className="bg-card p-5 rounded-lg border shadow-sm space-y-4">
@@ -198,18 +367,19 @@ export default function Arquitetos() {
                 <TableHead className="font-semibold">Empresa</TableHead>
                 <TableHead className="font-semibold">Contato</TableHead>
                 <TableHead className="font-semibold">Cidade/UF</TableHead>
+                <TableHead className="text-right font-semibold">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                     Carregando arquitetos...
                   </TableCell>
                 </TableRow>
               ) : filteredArquitetos.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                     Nenhum arquiteto encontrado.
                   </TableCell>
                 </TableRow>
@@ -241,6 +411,36 @@ export default function Arquitetos() {
                         ? `${arquiteto.Cidade}${arquiteto.Estado ? ` - ${arquiteto.Estado}` : ''}`
                         : '-'}
                     </TableCell>
+                    <TableCell
+                      className="text-right whitespace-nowrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedArquiteto(arquiteto)}
+                        title="Ver Detalhes"
+                      >
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditModal(arquiteto)}
+                        title="Editar"
+                      >
+                        <Edit2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setArquitetoToDelete(arquiteto)}
+                        title="Excluir"
+                        className="hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -249,8 +449,201 @@ export default function Arquitetos() {
         </div>
       </div>
 
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingArquiteto ? 'Editar Arquiteto' : 'Novo Arquiteto'}</DialogTitle>
+            <DialogDescription>
+              Preencha os dados do arquiteto ou empresa parceira.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="Nome do Arquiteto"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>
+                        Nome do Arquiteto <span className="text-destructive">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome completo" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="Nome da Empresa"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Empresa</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome da empresa" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="numero_de_arquitetos"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nº de Arquitetos na Equipe</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Ex: 5"
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="Email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>E-mail</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="email@exemplo.com"
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="Celular"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Celular</FormLabel>
+                      <FormControl>
+                        <Input placeholder="(00) 00000-0000" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="Telefone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone Fixo</FormLabel>
+                      <FormControl>
+                        <Input placeholder="(00) 0000-0000" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="CPF/CNPJ"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CPF / CNPJ</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Documento" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="Cidade"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cidade</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Cidade" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="Estado"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado (UF)</FormLabel>
+                      <FormControl>
+                        <Input
+                          maxLength={2}
+                          placeholder="SP"
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="endereço"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Endereço</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Rua, Número, Complemento"
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="Observacoes"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Observações</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Notas adicionais"
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t mt-4">
+                <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  {editingArquiteto ? 'Salvar Alterações' : 'Criar Arquiteto'}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
       <Dialog
-        open={!!selectedArquiteto}
+        open={!!selectedArquiteto && !isEditModalOpen}
         onOpenChange={(open) => !open && setSelectedArquiteto(null)}
       >
         <DialogContent className="max-w-3xl">
@@ -264,6 +657,30 @@ export default function Arquitetos() {
           {selectedArquiteto && <ArquitetoDetails arquiteto={selectedArquiteto} />}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={!!arquitetoToDelete}
+        onOpenChange={(open) => !open && setArquitetoToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Arquiteto</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o arquiteto "{arquitetoToDelete?.['Nome do Arquiteto']}
+              "? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDelete}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

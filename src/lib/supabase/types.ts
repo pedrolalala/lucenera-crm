@@ -114,6 +114,39 @@ export type Database = {
         }
         Relationships: []
       }
+      engenheiro_crm: {
+        Row: {
+          created_at: string
+          email: string | null
+          empresa: string | null
+          endereco_comercial: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          tipo: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          empresa?: string | null
+          endereco_comercial?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          empresa?: string | null
+          endereco_comercial?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          tipo?: string | null
+        }
+        Relationships: []
+      }
       eletricistas_crm: {
         Row: {
           cidade: string | null
@@ -387,6 +420,15 @@ export const Constants = {
 //   email_cliente: text (nullable)
 //   email_financeiro: text (nullable)
 //   completo: text (nullable)
+// Table: engenheiro_crm
+//   id: uuid (not null, default: gen_random_uuid())
+//   nome: text (not null)
+//   tipo: text (nullable)
+//   email: text (nullable)
+//   telefone: text (nullable)
+//   empresa: text (nullable)
+//   endereco_comercial: text (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: eletricistas_crm
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)

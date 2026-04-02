@@ -31,10 +31,12 @@ import {
   SelectValue,
   SelectSeparator,
 } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { STATUS_OPTIONS, USERS } from '@/types'
 import { ArrowLeft, Sparkles, Building2, HardHat, User, Plus, Zap } from 'lucide-react'
-import { NewContactModal, ContactType } from '@/components/NewContactModal'
 import { supabase } from '@/lib/supabase/client'
+import { toast } from '@/hooks/use-toast'
 
 const formSchema = z.object({
   name: z.string().min(2, 'Obrigatório'),
@@ -51,29 +53,55 @@ const formSchema = z.object({
 
 export default function ProjectNew() {
   const navigate = useNavigate()
-  const {
-    addProject,
-    getCities,
-    getClientOptions,
-    getArchitectOptions,
-    getEngineerOptions,
-    addClientOption,
-    addArchitectOption,
-    addEngineerOption,
-    getStateForCity,
-  } = useProjectStore()
+  const { getCities, getStateForCity } = useProjectStore()
 
-  const [modalType, setModalType] = useState<ContactType | null>(null)
-  const [eletricistasDb, setEletricistasDb] = useState<{ id: string; nome: string }[]>([])
+  const [modalType, setModalType] = useState<'client' | 'architect' | 'engineer' | null>(null)
+  const [newContactName, setNewContactName] = useState('')
+
+  const [clientsDb, setClientsDb] = useState<{ id: string; nome: string }[]>([])
+  const [architectsDb, setArchitectsDb] = useState<{ id: string; nome: string }[]>([])
+  const [engineersDb, setEngineersDb] = useState<{ id: string; nome: string }[]>([])
+  const [electriciansDb, setElectriciansDb] = useState<{ id: string; nome: string }[]>([])
 
   useEffect(() => {
+    supabase
+      .from('clientes_crm')
+      .select('cod_cliente, nm_cliente')
+      .order('nm_cliente')
+      .then(({ data }) =>
+        setClientsDb(
+          data
+            ?.map((d) => ({ id: String(d.cod_cliente), nome: d.nm_cliente || '' }))
+            .filter((d) => d.nome) || [],
+        ),
+      )
+
+    supabase
+      .from('Arquitetos_empresas_crm')
+      .select('codigo_do_arquiteto, "Nome do Arquiteto"')
+      .order('"Nome do Arquiteto"')
+      .then(({ data }) =>
+        setArchitectsDb(
+          data
+            ?.map((d) => ({
+              id: String(d.codigo_do_arquiteto),
+              nome: d['Nome do Arquiteto'] || '',
+            }))
+            .filter((d) => d.nome) || [],
+        ),
+      )
+
+    supabase
+      .from('engenheiro_crm')
+      .select('id, nome')
+      .order('nome')
+      .then(({ data }) => setEngineersDb(data?.map((d) => ({ id: d.id, nome: d.nome })) || []))
+
     supabase
       .from('eletricistas_crm')
       .select('id, nome')
       .order('nome')
-      .then(({ data }) => {
-        if (data) setEletricistasDb(data)
-      })
+      .then(({ data }) => setElectriciansDb(data?.map((d) => ({ id: d.id, nome: d.nome })) || []))
   }, [])
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -91,23 +119,71 @@ export default function ProjectNew() {
     },
   })
 
-  const onSubmit = (v: z.infer<typeof formSchema>) => {
-    addProject(v)
-    navigate('/')
+  const onSubmit = async (v: z.infer<typeof formSchema>) => {
+    const payload = {
+      Projeto: v.name,
+      nivel_estrategico: v.strategicLevel,
+      responsavel: v.responsible,
+      Status: v.status,
+      arquiteto: v.architect !== 'Não Informado' ? v.architect : null,
+      engenheiro: v.engineer !== 'Não Informado' ? v.engineer : null,
+      eletricista: v.electrician !== 'Não Informado' ? v.electrician : null,
+      Cidade: v.city,
+      Estado: v.state,
+      data_entrada: new Date().toISOString(),
+    }
+
+    const { error } = await supabase.from('Organizacao_projetos').insert([payload])
+
+    if (error) {
+      toast({ title: 'Erro ao salvar projeto', description: error.message, variant: 'destructive' })
+      return
+    }
+
+    toast({ title: 'Projeto criado com sucesso!' })
+    navigate('/projetos')
   }
 
-  const handleNewContactSuccess = (name: string) => {
+  const handleSaveNewContact = async () => {
+    if (!newContactName) return
     if (modalType === 'client') {
-      addClientOption(name)
-      form.setValue('client', name)
+      const { error } = await supabase.from('clientes_crm').insert([{ nm_cliente: newContactName }])
+      if (!error) {
+        setClientsDb((p) =>
+          [...p, { id: newContactName, nome: newContactName }].sort((a, b) =>
+            a.nome.localeCompare(b.nome),
+          ),
+        )
+        form.setValue('client', newContactName)
+        toast({ title: 'Cliente criado com sucesso!' })
+      }
     } else if (modalType === 'architect') {
-      addArchitectOption(name)
-      form.setValue('architect', name)
+      const { error } = await supabase
+        .from('Arquitetos_empresas_crm')
+        .insert([{ 'Nome do Arquiteto': newContactName }])
+      if (!error) {
+        setArchitectsDb((p) =>
+          [...p, { id: newContactName, nome: newContactName }].sort((a, b) =>
+            a.nome.localeCompare(b.nome),
+          ),
+        )
+        form.setValue('architect', newContactName)
+        toast({ title: 'Arquiteto criado com sucesso!' })
+      }
     } else if (modalType === 'engineer') {
-      addEngineerOption(name)
-      form.setValue('engineer', name)
+      const { error } = await supabase.from('engenheiro_crm').insert([{ nome: newContactName }])
+      if (!error) {
+        setEngineersDb((p) =>
+          [...p, { id: newContactName, nome: newContactName }].sort((a, b) =>
+            a.nome.localeCompare(b.nome),
+          ),
+        )
+        form.setValue('engineer', newContactName)
+        toast({ title: 'Engenheiro criado com sucesso!' })
+      }
     }
     setModalType(null)
+    setNewContactName('')
   }
 
   return (
@@ -248,21 +324,22 @@ export default function ProjectNew() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {getClientOptions().map((o) => (
-                            <SelectItem key={o} value={o}>
-                              {o}
+                          <SelectItem value="Não Informado">Não Informado</SelectItem>
+                          {clientsDb.map((o) => (
+                            <SelectItem key={o.id} value={o.nome}>
+                              {o.nome}
                             </SelectItem>
                           ))}
                           <SelectSeparator />
                           <div
                             role="button"
-                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent"
                             onClick={(e) => {
                               e.stopPropagation()
                               setModalType('client')
                             }}
                           >
-                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
+                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />{' '}
                             Novo Cliente
                           </div>
                         </SelectContent>
@@ -287,21 +364,22 @@ export default function ProjectNew() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {getArchitectOptions().map((o) => (
-                            <SelectItem key={o} value={o}>
-                              {o}
+                          <SelectItem value="Não Informado">Não Informado</SelectItem>
+                          {architectsDb.map((o) => (
+                            <SelectItem key={o.id} value={o.nome}>
+                              {o.nome}
                             </SelectItem>
                           ))}
                           <SelectSeparator />
                           <div
                             role="button"
-                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent"
                             onClick={(e) => {
                               e.stopPropagation()
                               setModalType('architect')
                             }}
                           >
-                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
+                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />{' '}
                             Novo Arquiteto
                           </div>
                         </SelectContent>
@@ -326,21 +404,22 @@ export default function ProjectNew() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {getEngineerOptions().map((o) => (
-                            <SelectItem key={o} value={o}>
-                              {o}
+                          <SelectItem value="Não Informado">Não Informado</SelectItem>
+                          {engineersDb.map((o) => (
+                            <SelectItem key={o.id} value={o.nome}>
+                              {o.nome}
                             </SelectItem>
                           ))}
                           <SelectSeparator />
                           <div
                             role="button"
-                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent hover:text-accent-foreground"
+                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent"
                             onClick={(e) => {
                               e.stopPropagation()
                               setModalType('engineer')
                             }}
                           >
-                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />
+                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />{' '}
                             Novo Engenheiro
                           </div>
                         </SelectContent>
@@ -366,7 +445,7 @@ export default function ProjectNew() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="Não Informado">Não Informado</SelectItem>
-                          {eletricistasDb.map((o) => (
+                          {electriciansDb.map((o) => (
                             <SelectItem key={o.id} value={o.nome}>
                               {o.nome}
                             </SelectItem>
@@ -452,12 +531,36 @@ export default function ProjectNew() {
         </Form>
       </Card>
 
-      <NewContactModal
-        type={modalType}
-        open={!!modalType}
-        onOpenChange={(open) => !open && setModalType(null)}
-        onSuccess={handleNewContactSuccess}
-      />
+      <Dialog open={!!modalType} onOpenChange={(open) => !open && setModalType(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Novo{' '}
+              {modalType === 'client'
+                ? 'Cliente'
+                : modalType === 'architect'
+                  ? 'Arquiteto'
+                  : 'Engenheiro'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>Nome Completo</Label>
+              <Input
+                value={newContactName}
+                onChange={(e) => setNewContactName(e.target.value)}
+                placeholder="Digite o nome..."
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setModalType(null)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveNewContact}>Salvar</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
