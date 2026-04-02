@@ -31,18 +31,29 @@ import {
   SelectValue,
   SelectSeparator,
 } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { STATUS_OPTIONS, USERS } from '@/types'
+import { USERS } from '@/types'
 import { ArrowLeft, Sparkles, Building2, HardHat, User, Plus, Zap } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from '@/hooks/use-toast'
+import { NewContactModal, ContactType } from '@/components/NewContactModal'
+
+const NEW_STATUS_OPTIONS = [
+  'Estudo Inicial',
+  'Elaboração Orçamento',
+  'Proposta Sinal',
+  'Contrato de Projeto',
+  'Emissão Projeto Executivo',
+  'Ajustes Finais',
+  'Obra Finalizada',
+  'Venda DocuSign',
+  'Não Fechou',
+]
 
 const formSchema = z.object({
   name: z.string().min(2, 'Obrigatório'),
   strategicLevel: z.enum(['1', '2', '3', '4']),
-  responsible: z.enum(['Marina', 'Thairine', 'Thais']),
-  status: z.enum(STATUS_OPTIONS as [string, ...string[]]),
+  responsible: z.string().min(1, 'Obrigatório'),
+  status: z.string().min(1, 'Obrigatório'),
   client: z.string().min(1, 'Obrigatório'),
   architect: z.string().min(1, 'Obrigatório'),
   engineer: z.string().min(1, 'Obrigatório'),
@@ -53,10 +64,9 @@ const formSchema = z.object({
 
 export default function ProjectNew() {
   const navigate = useNavigate()
-  const { getCities, getStateForCity } = useProjectStore()
+  const { getCities, getStateForCity, addProject } = useProjectStore()
 
-  const [modalType, setModalType] = useState<'client' | 'architect' | 'engineer' | null>(null)
-  const [newContactName, setNewContactName] = useState('')
+  const [modalType, setModalType] = useState<ContactType | null>(null)
 
   const [clientsDb, setClientsDb] = useState<{ id: string; nome: string }[]>([])
   const [architectsDb, setArchitectsDb] = useState<{ id: string; nome: string }[]>([])
@@ -112,7 +122,7 @@ export default function ProjectNew() {
       client: 'Não Informado',
       architect: 'Não Informado',
       engineer: 'Não Informado',
-      electrician: '',
+      electrician: 'Não Informado',
       city: '',
       state: 'SP',
       status: 'Estudo Inicial',
@@ -120,70 +130,143 @@ export default function ProjectNew() {
   })
 
   const onSubmit = async (v: z.infer<typeof formSchema>) => {
-    const payload = {
-      Projeto: v.name,
-      nivel_estrategico: v.strategicLevel,
-      responsavel: v.responsible,
-      Status: v.status,
-      arquiteto: v.architect !== 'Não Informado' ? v.architect : null,
-      engenheiro: v.engineer !== 'Não Informado' ? v.engineer : null,
-      eletricista: v.electrician !== 'Não Informado' ? v.electrician : null,
-      Cidade: v.city,
-      Estado: v.state,
-      data_entrada: new Date().toISOString(),
+    try {
+      const { data: maxData } = await supabase
+        .from('Organizacao_projetos')
+        .select('Codigo')
+        .order('Codigo', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const nextCodigo = maxData?.Codigo ? Number(maxData.Codigo) + 1 : 26001
+
+      const payload = {
+        Codigo: nextCodigo,
+        Projeto: v.name,
+        nivel_estrategico: v.strategicLevel,
+        responsavel: v.responsible,
+        Status: v.status,
+        arquiteto: v.architect !== 'Não Informado' ? v.architect : null,
+        engenheiro: v.engineer !== 'Não Informado' ? v.engineer : null,
+        eletricista: v.electrician !== 'Não Informado' ? v.electrician : null,
+        Cidade: v.city,
+        Estado: v.state,
+        data_entrada: new Date().toISOString(),
+      }
+
+      const { error } = await supabase.from('Organizacao_projetos').insert([payload])
+
+      if (error) throw error
+
+      try {
+        addProject({
+          id: String(nextCodigo),
+          name: v.name,
+          strategicLevel: v.strategicLevel as any,
+          responsible: v.responsible as any,
+          status: v.status as any,
+          client: v.client,
+          architect: v.architect,
+          engineer: v.engineer,
+          city: v.city,
+          state: v.state,
+          electrician: v.electrician,
+        })
+      } catch (e) {
+        // Ignorar erro do store caso ocorra
+      }
+
+      toast({ title: 'Projeto criado com sucesso!' })
+      navigate('/projetos')
+    } catch (err: any) {
+      toast({ title: 'Erro ao salvar projeto', description: err.message, variant: 'destructive' })
     }
-
-    const { error } = await supabase.from('Organizacao_projetos').insert([payload])
-
-    if (error) {
-      toast({ title: 'Erro ao salvar projeto', description: error.message, variant: 'destructive' })
-      return
-    }
-
-    toast({ title: 'Projeto criado com sucesso!' })
-    navigate('/projetos')
   }
 
-  const handleSaveNewContact = async () => {
-    if (!newContactName) return
-    if (modalType === 'client') {
-      const { error } = await supabase.from('clientes_crm').insert([{ nm_cliente: newContactName }])
-      if (!error) {
-        setClientsDb((p) =>
-          [...p, { id: newContactName, nome: newContactName }].sort((a, b) =>
-            a.nome.localeCompare(b.nome),
-          ),
-        )
-        form.setValue('client', newContactName)
-        toast({ title: 'Cliente criado com sucesso!' })
+  const handleSaveNewContact = async (values: { name: string; email?: string; phone?: string }) => {
+    try {
+      if (modalType === 'client') {
+        const { data, error } = await supabase
+          .from('clientes_crm')
+          .insert([
+            {
+              nm_cliente: values.name,
+              email_cliente: values.email || '',
+              tel_cliente: values.phone || '',
+            },
+          ])
+          .select('cod_cliente, nm_cliente')
+          .single()
+
+        if (error) throw error
+        if (data) {
+          setClientsDb((p) =>
+            [...p, { id: String(data.cod_cliente), nome: data.nm_cliente || '' }].sort((a, b) =>
+              a.nome.localeCompare(b.nome),
+            ),
+          )
+          form.setValue('client', values.name)
+          toast({ title: 'Cliente criado com sucesso!' })
+        }
+      } else if (modalType === 'architect') {
+        const { data, error } = await supabase
+          .from('Arquitetos_empresas_crm')
+          .insert([
+            {
+              'Nome do Arquiteto': values.name,
+              Email: values.email || '',
+              Telefone: values.phone || '',
+            },
+          ])
+          .select('codigo_do_arquiteto, "Nome do Arquiteto"')
+          .single()
+
+        if (error) throw error
+        if (data) {
+          setArchitectsDb((p) =>
+            [
+              ...p,
+              { id: String(data.codigo_do_arquiteto), nome: data['Nome do Arquiteto'] || '' },
+            ].sort((a, b) => a.nome.localeCompare(b.nome)),
+          )
+          form.setValue('architect', values.name)
+          toast({ title: 'Arquiteto criado com sucesso!' })
+        }
+      } else if (modalType === 'engineer') {
+        const { data, error } = await supabase
+          .from('engenheiro_crm')
+          .insert([{ nome: values.name, email: values.email || '', telefone: values.phone || '' }])
+          .select('id, nome')
+          .single()
+
+        if (error) throw error
+        if (data) {
+          setEngineersDb((p) =>
+            [...p, { id: data.id, nome: data.nome }].sort((a, b) => a.nome.localeCompare(b.nome)),
+          )
+          form.setValue('engineer', values.name)
+          toast({ title: 'Engenheiro criado com sucesso!' })
+        }
+      } else if (modalType === 'electrician') {
+        const { data, error } = await supabase
+          .from('eletricistas_crm')
+          .insert([{ nome: values.name, email: values.email || '', telefone: values.phone || '' }])
+          .select('id, nome')
+          .single()
+
+        if (error) throw error
+        if (data) {
+          setElectriciansDb((p) =>
+            [...p, { id: data.id, nome: data.nome }].sort((a, b) => a.nome.localeCompare(b.nome)),
+          )
+          form.setValue('electrician', values.name)
+          toast({ title: 'Eletricista criado com sucesso!' })
+        }
       }
-    } else if (modalType === 'architect') {
-      const { error } = await supabase
-        .from('Arquitetos_empresas_crm')
-        .insert([{ 'Nome do Arquiteto': newContactName }])
-      if (!error) {
-        setArchitectsDb((p) =>
-          [...p, { id: newContactName, nome: newContactName }].sort((a, b) =>
-            a.nome.localeCompare(b.nome),
-          ),
-        )
-        form.setValue('architect', newContactName)
-        toast({ title: 'Arquiteto criado com sucesso!' })
-      }
-    } else if (modalType === 'engineer') {
-      const { error } = await supabase.from('engenheiro_crm').insert([{ nome: newContactName }])
-      if (!error) {
-        setEngineersDb((p) =>
-          [...p, { id: newContactName, nome: newContactName }].sort((a, b) =>
-            a.nome.localeCompare(b.nome),
-          ),
-        )
-        form.setValue('engineer', newContactName)
-        toast({ title: 'Engenheiro criado com sucesso!' })
-      }
+      setModalType(null)
+    } catch (err: any) {
+      toast({ title: 'Erro ao criar contato', description: err.message, variant: 'destructive' })
     }
-    setModalType(null)
-    setNewContactName('')
   }
 
   return (
@@ -269,7 +352,7 @@ export default function ProjectNew() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {STATUS_OPTIONS.map((s) => (
+                        {NEW_STATUS_OPTIONS.map((s) => (
                           <SelectItem key={s} value={s}>
                             {s}
                           </SelectItem>
@@ -437,7 +520,7 @@ export default function ProjectNew() {
                       <FormLabel className="flex items-center gap-1.5">
                         <Zap className="h-4 w-4" /> Eletricista
                       </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <Select onValueChange={field.onChange} value={field.value || 'Não Informado'}>
                         <FormControl>
                           <SelectTrigger className="h-11">
                             <SelectValue placeholder="Selecione..." />
@@ -450,6 +533,18 @@ export default function ProjectNew() {
                               {o.nome}
                             </SelectItem>
                           ))}
+                          <SelectSeparator />
+                          <div
+                            role="button"
+                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setModalType('electrician')
+                            }}
+                          >
+                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />{' '}
+                            Novo Eletricista
+                          </div>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -531,36 +626,12 @@ export default function ProjectNew() {
         </Form>
       </Card>
 
-      <Dialog open={!!modalType} onOpenChange={(open) => !open && setModalType(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              Novo{' '}
-              {modalType === 'client'
-                ? 'Cliente'
-                : modalType === 'architect'
-                  ? 'Arquiteto'
-                  : 'Engenheiro'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label>Nome Completo</Label>
-              <Input
-                value={newContactName}
-                onChange={(e) => setNewContactName(e.target.value)}
-                placeholder="Digite o nome..."
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setModalType(null)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleSaveNewContact}>Salvar</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <NewContactModal
+        type={modalType}
+        open={!!modalType}
+        onOpenChange={(open) => !open && setModalType(null)}
+        onSuccess={handleSaveNewContact}
+      />
     </div>
   )
 }

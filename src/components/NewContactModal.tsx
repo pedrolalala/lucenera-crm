@@ -26,19 +26,20 @@ const schema = z.object({
   phone: z.string().min(1, 'Telefone é obrigatório'),
 })
 
-export type ContactType = 'client' | 'architect' | 'engineer'
+export type ContactType = 'client' | 'architect' | 'engineer' | 'electrician'
 
 interface Props {
   type: ContactType | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSuccess: (name: string) => void
+  onSuccess: (values: { name: string; email?: string; phone?: string }) => void
 }
 
-const TITLES = {
+const TITLES: Record<string, string> = {
   client: 'Novo Cliente',
   architect: 'Novo Arquiteto',
   engineer: 'Novo Engenheiro',
+  electrician: 'Novo Eletricista',
 }
 
 export function NewContactModal({ type, open, onOpenChange, onSuccess }: Props) {
@@ -52,7 +53,7 @@ export function NewContactModal({ type, open, onOpenChange, onSuccess }: Props) 
   }, [open, form])
 
   const onSubmit = (values: z.infer<typeof schema>) => {
-    onSuccess(values.name)
+    onSuccess(values)
   }
 
   const title = type ? TITLES[type] : ''
