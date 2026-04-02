@@ -110,6 +110,27 @@ export function ProjectActions({ projeto, onChange }: ProjectActionsProps) {
           <ScrollArea className="h-[calc(100vh-10rem)] pr-4 mt-4">
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
+                <Label htmlFor="Codigo">Código</Label>
+                <Input
+                  id="Codigo"
+                  value={
+                    formData.Codigo
+                      ? formData.Codigo.toString().length > 2
+                        ? `${formData.Codigo.toString().slice(0, 2)}.${formData.Codigo.toString().slice(2)}`
+                        : formData.Codigo.toString()
+                      : ''
+                  }
+                  onChange={(e) => {
+                    const numbersOnly = e.target.value.replace(/\D/g, '').slice(0, 5)
+                    setFormData({
+                      ...formData,
+                      Codigo: numbersOnly ? parseInt(numbersOnly, 10) : null,
+                    })
+                  }}
+                  placeholder="XX.XXX"
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="Projeto">Nome do Projeto</Label>
                 <Input
                   id="Projeto"
