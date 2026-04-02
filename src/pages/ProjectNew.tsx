@@ -50,6 +50,7 @@ const NEW_STATUS_OPTIONS = [
 ]
 
 const formSchema = z.object({
+  codigo: z.string().min(1, 'O campo Código é obrigatório'),
   name: z.string().min(2, 'Obrigatório'),
   strategicLevel: z.enum(['1', '2', '3', '4']),
   responsible: z.string().min(1, 'Obrigatório'),
@@ -118,6 +119,7 @@ export default function ProjectNew() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      codigo: '',
       name: '',
       strategicLevel: '3',
       client: 'Não Informado',
@@ -132,17 +134,8 @@ export default function ProjectNew() {
 
   const onSubmit = async (v: z.infer<typeof formSchema>) => {
     try {
-      const { data: maxData } = await supabase
-        .from('Organizacao_projetos')
-        .select('Codigo')
-        .order('Codigo', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      const nextCodigo = maxData?.Codigo ? Number(maxData.Codigo) + 1 : 26001
-
       const payload = {
-        Codigo: nextCodigo,
+        Codigo: Number(v.codigo),
         Projeto: v.name,
         nivel_estrategico: v.strategicLevel,
         responsavel: v.responsible,
@@ -170,7 +163,7 @@ export default function ProjectNew() {
           await store.fetchProjects()
         } else {
           addProject({
-            id: String(nextCodigo),
+            id: String(v.codigo),
             name: v.name,
             strategicLevel: v.strategicLevel as any,
             responsible: v.responsible as any,
@@ -295,7 +288,7 @@ export default function ProjectNew() {
             Registro de Novo Projeto <Sparkles className="h-5 w-5 text-primary" />
           </CardTitle>
           <CardDescription>
-            O código de controle (Codigo) será gerado automaticamente após salvar.
+            Preencha os dados abaixo para registrar um novo projeto no sistema.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -303,9 +296,25 @@ export default function ProjectNew() {
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pt-8">
               <FormField
                 control={form.control}
+                name="codigo"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-1">
+                    <FormLabel className="text-base">
+                      Código <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: 26083" className="h-11 text-base" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="name"
                 render={({ field }) => (
-                  <FormItem className="md:col-span-2">
+                  <FormItem className="md:col-span-1">
                     <FormLabel className="text-base">
                       Projeto <span className="text-destructive">*</span>
                     </FormLabel>
@@ -630,7 +639,7 @@ export default function ProjectNew() {
                 Cancelar
               </Button>
               <Button type="submit" className="h-11 px-8 text-base">
-                Salvar e Gerar Código
+                Salvar Projeto
               </Button>
             </CardFooter>
           </form>

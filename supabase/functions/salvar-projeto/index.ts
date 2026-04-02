@@ -38,6 +38,14 @@ Deno.serve(async (req: Request) => {
       nivel_estrategico,
     } = body
 
+    if (!Codigo || String(Codigo).trim() === '') {
+      console.warn('[salvar-projeto] Validação falhou: Campo Codigo ausente.')
+      return new Response(JSON.stringify({ error: 'O campo Código é obrigatório.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     if (!Projeto || String(Projeto).trim() === '') {
       console.warn('[salvar-projeto] Validação falhou: Campo Projeto ausente.')
       return new Response(JSON.stringify({ error: 'O campo Projeto é obrigatório.' }), {
@@ -70,37 +78,8 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // CORREÇÃO: Para garantir a sequência correta (ex: 26081, 26082, 26083),
-    // ignoramos o código enviado pelo frontend (que estava indo incorretamente como 200) e
-    // buscamos o maior valor atual no banco de dados para incrementar automaticamente.
-    console.log('[salvar-projeto] Buscando o maior Codigo atual na tabela Organizacao_projetos...')
-    const { data: maxCodeData, error: maxCodeError } = await supabase
-      .from('Organizacao_projetos')
-      .select('Codigo')
-      .order('Codigo', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (maxCodeError) {
-      console.error('[salvar-projeto] Erro ao buscar maior Codigo:', maxCodeError)
-      throw new Error('Falha ao calcular o próximo Código do projeto.')
-    }
-
-    let codigoNumerico = 26000 // Valor inicial de fallback seguro
-    if (maxCodeData && maxCodeData.Codigo != null) {
-      codigoNumerico = Number(maxCodeData.Codigo) + 1
-      console.log(
-        `[salvar-projeto] Maior Codigo encontrado: ${maxCodeData.Codigo}. Próximo Codigo será: ${codigoNumerico}`,
-      )
-    } else {
-      console.log(
-        '[salvar-projeto] Nenhum código anterior encontrado, iniciando com:',
-        codigoNumerico,
-      )
-    }
-
     const payloadInsercao = {
-      Codigo: codigoNumerico,
+      Codigo: Number(Codigo),
       Projeto,
       Status,
       Cidade,
