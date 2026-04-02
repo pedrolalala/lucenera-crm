@@ -84,7 +84,7 @@ export default function Engenheiros() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingEngineer, setEditingEngineer] = useState<EngineerRow | null>(null)
   const [engineerToDelete, setEngineerToDelete] = useState<string | null>(null)
-  
+
   const [viewingEngineer, setViewingEngineer] = useState<EngineerRow | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [searchParams] = useSearchParams()
@@ -463,10 +463,6 @@ export default function Engenheiros() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog
-        open={!!engineerToDelete}
-        onOpenChange={(open) => !open && setEngineerToDelete(null)}
-      >
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -480,7 +476,9 @@ export default function Engenheiros() {
                 <p className="text-foreground">{viewingEngineer.nome || '-'}</p>
               </div>
               <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">Tipo / Especialidade</h4>
+                <h4 className="font-semibold text-sm text-muted-foreground">
+                  Tipo / Especialidade
+                </h4>
                 <p className="text-foreground">{viewingEngineer.tipo || '-'}</p>
               </div>
               <div>
