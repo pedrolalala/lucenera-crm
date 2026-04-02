@@ -23,3 +23,21 @@ export async function getProjeto(codigo: number) {
   if (error) throw error
   return data
 }
+
+export async function updateProjeto(codigo: number, data: Partial<Projeto>) {
+  const { data: result, error } = await supabase
+    .from('Organizacao_projetos')
+    .update(data)
+    .eq('Codigo', codigo)
+    .select()
+    .single()
+
+  if (error) throw error
+  return result
+}
+
+export async function deleteProjeto(codigo: number) {
+  const { error } = await supabase.from('Organizacao_projetos').delete().eq('Codigo', codigo)
+
+  if (error) throw error
+}

@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { MapPin, Loader2, Plus, Flag, Activity, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ProjectActions } from '@/components/ProjectActions'
 
 type ViewMode = 'resumida' | 'operacional' | 'completa'
 
@@ -26,11 +27,16 @@ export default function Projetos() {
   const [searchStatus, setSearchStatus] = useState('')
   const [searchResponsavel, setSearchResponsavel] = useState('')
 
-  useEffect(() => {
+  const loadProjetos = () => {
+    setLoading(true)
     getProjetos()
       .then(setProjetos)
       .catch(console.error)
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadProjetos()
   }, [])
 
   const filteredProjetos = projetos.filter((p) => {
@@ -43,9 +49,9 @@ export default function Projetos() {
   })
 
   const getColSpan = () => {
-    if (viewMode === 'resumida') return 4
-    if (viewMode === 'operacional') return 6
-    return 9
+    if (viewMode === 'resumida') return 5
+    if (viewMode === 'operacional') return 7
+    return 10
   }
 
   const formatDate = (dateStr: string | null) => {
@@ -150,6 +156,7 @@ export default function Projetos() {
                   {(viewMode === 'completa' || viewMode === 'resumida') && (
                     <TableHead>Localização</TableHead>
                   )}
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -252,6 +259,10 @@ export default function Projetos() {
                           </div>
                         </TableCell>
                       )}
+
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <ProjectActions projeto={projeto} onChange={loadProjetos} />
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
