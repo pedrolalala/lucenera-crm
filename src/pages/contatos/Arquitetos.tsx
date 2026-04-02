@@ -148,7 +148,7 @@ export default function Arquitetos() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingArquiteto, setEditingArquiteto] = useState<Arquiteto | null>(null)
   const [arquitetoToDelete, setArquitetoToDelete] = useState<Arquiteto | null>(null)
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const form = useForm<ArquitetoFormValues>({
     resolver: zodResolver(arquitetoSchema),
@@ -210,18 +210,31 @@ export default function Arquitetos() {
 
   useEffect(() => {
     const viewName = searchParams.get('view')
-    if (viewName && arquitetos.length > 0 && !selectedArquiteto) {
-      const match = arquitetos.find(
+    if (viewName && arquitetos.length > 0) {
+      const normalizedView = viewName.toLowerCase().trim()
+      let match = arquitetos.find(
         (a) =>
-          a['Nome do Arquiteto']?.toLowerCase() === viewName.toLowerCase() ||
-          a['Nome da Empresa']?.toLowerCase() === viewName.toLowerCase(),
+          a['Nome do Arquiteto']?.toLowerCase().trim() === normalizedView ||
+          a['Nome da Empresa']?.toLowerCase().trim() === normalizedView,
       )
+      if (!match) {
+        match = arquitetos.find(
+          (a) =>
+            a['Nome do Arquiteto']?.toLowerCase().includes(normalizedView) ||
+            a['Nome da Empresa']?.toLowerCase().includes(normalizedView),
+        )
+      }
+
       if (match) {
         setSelectedArquiteto(match)
-        setSearchName(match['Nome do Arquiteto'] || viewName)
+      } else {
+        setSearchName(viewName)
       }
+
+      searchParams.delete('view')
+      setSearchParams(searchParams, { replace: true })
     }
-  }, [searchParams, arquitetos])
+  }, [searchParams, arquitetos, setSearchParams])
 
   const filteredArquitetos = useMemo(() => {
     return arquitetos.filter((a) => {

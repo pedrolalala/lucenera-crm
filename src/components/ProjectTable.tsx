@@ -39,6 +39,9 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
             <TableHead className="hidden xl:table-cell font-semibold min-w-[150px]">
               Engenheiro
             </TableHead>
+            <TableHead className="hidden xl:table-cell font-semibold min-w-[150px]">
+              Eletricista
+            </TableHead>
             <TableHead className="hidden md:table-cell font-semibold text-right">Cidade</TableHead>
             <TableHead className="hidden sm:table-cell font-semibold">Estado</TableHead>
           </TableRow>
@@ -108,6 +111,24 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
                     onClick={(e) => e.stopPropagation()}
                   >
                     {p.engineer}
+                  </Link>
+                ) : (
+                  '-'
+                )}
+              </TableCell>
+              <TableCell
+                className="hidden xl:table-cell max-w-[150px] truncate text-muted-foreground"
+                title={(p as any).eletricista || (p as any).electrician}
+              >
+                {((p as any).eletricista || (p as any).electrician) &&
+                ((p as any).eletricista || (p as any).electrician) !== 'Não Informado' &&
+                ((p as any).eletricista || (p as any).electrician) !== '-' ? (
+                  <Link
+                    to={`/contatos/eletricistas?view=${encodeURIComponent((p as any).eletricista || (p as any).electrician)}`}
+                    className="hover:underline hover:text-primary transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {(p as any).eletricista || (p as any).electrician}
                   </Link>
                 ) : (
                   '-'

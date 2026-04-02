@@ -83,7 +83,7 @@ export default function Clientes() {
   const [editingClient, setEditingClient] = useState<ClientRow | null>(null)
   const [selectedClient, setSelectedClient] = useState<ClientRow | null>(null)
   const [clientToDelete, setClientToDelete] = useState<ClientRow | null>(null)
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
@@ -133,15 +133,24 @@ export default function Clientes() {
 
   useEffect(() => {
     const viewName = searchParams.get('view')
-    if (viewName && clients.length > 0 && !isViewModalOpen) {
-      const match = clients.find((c) => c.nm_cliente?.toLowerCase() === viewName.toLowerCase())
+    if (viewName && clients.length > 0) {
+      const normalizedView = viewName.toLowerCase().trim()
+      let match = clients.find((c) => c.nm_cliente?.toLowerCase().trim() === normalizedView)
+      if (!match) {
+        match = clients.find((c) => c.nm_cliente?.toLowerCase().includes(normalizedView))
+      }
+
       if (match) {
         setSelectedClient(match)
         setIsViewModalOpen(true)
+      } else {
         setSearchName(viewName)
       }
+
+      searchParams.delete('view')
+      setSearchParams(searchParams, { replace: true })
     }
-  }, [searchParams, clients])
+  }, [searchParams, clients, setSearchParams])
 
   const fetchClients = async () => {
     setLoading(true)

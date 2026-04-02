@@ -87,7 +87,7 @@ export default function Engenheiros() {
 
   const [viewingEngineer, setViewingEngineer] = useState<EngineerRow | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const form = useForm<EngineerFormValues>({
     resolver: zodResolver(engineerSchema),
@@ -133,15 +133,24 @@ export default function Engenheiros() {
 
   useEffect(() => {
     const viewName = searchParams.get('view')
-    if (viewName && engineers.length > 0 && !isViewModalOpen) {
-      const match = engineers.find((e) => e.nome.toLowerCase() === viewName.toLowerCase())
+    if (viewName && engineers.length > 0) {
+      const normalizedView = viewName.toLowerCase().trim()
+      let match = engineers.find((e) => e.nome.toLowerCase().trim() === normalizedView)
+      if (!match) {
+        match = engineers.find((e) => e.nome.toLowerCase().includes(normalizedView))
+      }
+
       if (match) {
         setViewingEngineer(match)
         setIsViewModalOpen(true)
+      } else {
         setSearch(viewName)
       }
+
+      searchParams.delete('view')
+      setSearchParams(searchParams, { replace: true })
     }
-  }, [searchParams, engineers])
+  }, [searchParams, engineers, setSearchParams])
 
   useEffect(() => {
     if (editingEngineer) {

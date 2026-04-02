@@ -3,7 +3,7 @@ import { Project } from '@/types'
 import { StatusBadge, StrategicBadge } from '@/components/StatusBadge'
 import { Card, CardContent } from '@/components/ui/card'
 import { format } from 'date-fns'
-import { MapPin, User, Calendar, HardHat, Building2, UserCircle } from 'lucide-react'
+import { MapPin, User, Calendar, HardHat, Building2, UserCircle, Zap } from 'lucide-react'
 
 export function ProjectMobileCards({ projects }: { projects: Project[] }) {
   const navigate = useNavigate()
@@ -90,6 +90,25 @@ export function ProjectMobileCards({ projects }: { projects: Project[] }) {
                     </Link>
                   ) : (
                     'Engenheiro não informado'
+                  )}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 col-span-2">
+                <Zap className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">
+                  {((p as any).eletricista || (p as any).electrician) &&
+                  ((p as any).eletricista || (p as any).electrician) !== 'Não Informado' &&
+                  ((p as any).eletricista || (p as any).electrician) !== '-' ? (
+                    <Link
+                      to={`/contatos/eletricistas?view=${encodeURIComponent((p as any).eletricista || (p as any).electrician)}`}
+                      className="hover:underline hover:text-primary transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {(p as any).eletricista || (p as any).electrician}
+                    </Link>
+                  ) : (
+                    'Eletricista não informado'
                   )}
                 </span>
               </div>

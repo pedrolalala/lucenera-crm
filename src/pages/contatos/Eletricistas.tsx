@@ -30,7 +30,7 @@ export default function Eletricistas() {
   const [open, setOpen] = useState(false)
   const [viewingEletricista, setViewingEletricista] = useState<any | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -58,15 +58,24 @@ export default function Eletricistas() {
 
   useEffect(() => {
     const viewName = searchParams.get('view')
-    if (viewName && eletricistas.length > 0 && !isViewModalOpen) {
-      const match = eletricistas.find((e) => e.nome?.toLowerCase() === viewName.toLowerCase())
+    if (viewName && eletricistas.length > 0) {
+      const normalizedView = viewName.toLowerCase().trim()
+      let match = eletricistas.find((e) => e.nome?.toLowerCase().trim() === normalizedView)
+      if (!match) {
+        match = eletricistas.find((e) => e.nome?.toLowerCase().includes(normalizedView))
+      }
+
       if (match) {
         setViewingEletricista(match)
         setIsViewModalOpen(true)
+      } else {
         setSearchTerm(viewName)
       }
+
+      searchParams.delete('view')
+      setSearchParams(searchParams, { replace: true })
     }
-  }, [searchParams, eletricistas])
+  }, [searchParams, eletricistas, setSearchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
