@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { MoreHorizontal, Edit, Trash2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -43,17 +43,36 @@ export function ProjectActions({ projeto, onChange }: ProjectActionsProps) {
   const [formData, setFormData] = useState<Partial<Projeto>>(projeto)
   const { toast } = useToast()
 
-  const handleSave = async () => {
+  useEffect(() => {
+    if (isEditOpen) {
+      setFormData(projeto)
+    }
+  }, [isEditOpen, projeto])
+
+  const handleSave = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     try {
       setLoading(true)
-      if (!projeto.Codigo) return
-      await updateProjeto(projeto.Codigo, formData)
+      if (!projeto.Codigo) {
+        toast({ title: 'Erro: Projeto sem código', variant: 'destructive' })
+        return
+      }
+
+      const cleanData = Object.fromEntries(
+        Object.entries(formData).filter(([_, v]) => v !== undefined),
+      )
+
+      await updateProjeto(projeto.Codigo, cleanData)
       toast({ title: 'Projeto atualizado com sucesso' })
       setIsEditOpen(false)
       onChange()
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      toast({ title: 'Erro ao atualizar', variant: 'destructive' })
+      toast({
+        title: 'Erro ao atualizar',
+        description: error?.message || 'Ocorreu um erro ao salvar as alterações.',
+        variant: 'destructive',
+      })
     } finally {
       setLoading(false)
     }
@@ -107,111 +126,115 @@ export function ProjectActions({ projeto, onChange }: ProjectActionsProps) {
               Faça alterações nas informações do projeto aqui. Clique em salvar quando terminar.
             </SheetDescription>
           </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-10rem)] pr-4 mt-4">
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="Codigo">Código</Label>
-                <Input
-                  id="Codigo"
-                  value={
-                    formData.Codigo
-                      ? formData.Codigo.toString().length > 2
-                        ? `${formData.Codigo.toString().slice(0, 2)}.${formData.Codigo.toString().slice(2)}`
-                        : formData.Codigo.toString()
-                      : ''
-                  }
-                  onChange={(e) => {
-                    const numbersOnly = e.target.value.replace(/\D/g, '').slice(0, 5)
-                    setFormData({
-                      ...formData,
-                      Codigo: numbersOnly ? parseInt(numbersOnly, 10) : null,
-                    })
-                  }}
-                  placeholder="XX.XXX"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="Projeto">Nome do Projeto</Label>
-                <Input
-                  id="Projeto"
-                  value={formData.Projeto || ''}
-                  onChange={(e) => setFormData({ ...formData, Projeto: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="Status">Status</Label>
-                <Input
-                  id="Status"
-                  value={formData.Status || ''}
-                  onChange={(e) => setFormData({ ...formData, Status: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="nivel_estrategico">Nível Estratégico</Label>
-                <Input
-                  id="nivel_estrategico"
-                  value={formData.nivel_estrategico || ''}
-                  onChange={(e) => setFormData({ ...formData, nivel_estrategico: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="responsavel">Responsável (Interno)</Label>
-                <Input
-                  id="responsavel"
-                  value={formData.responsavel || ''}
-                  onChange={(e) => setFormData({ ...formData, responsavel: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="arquiteto">Arquiteto</Label>
-                <Input
-                  id="arquiteto"
-                  value={formData.arquiteto || ''}
-                  onChange={(e) => setFormData({ ...formData, arquiteto: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="engenheiro">Engenheiro</Label>
-                <Input
-                  id="engenheiro"
-                  value={formData.engenheiro || ''}
-                  onChange={(e) => setFormData({ ...formData, engenheiro: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="eletricista">Eletricista</Label>
-                <Input
-                  id="eletricista"
-                  value={formData.eletricista || ''}
-                  onChange={(e) => setFormData({ ...formData, eletricista: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSave} className="flex flex-col h-[calc(100vh-8rem)]">
+            <ScrollArea className="flex-1 pr-4 mt-4">
+              <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="Cidade">Cidade</Label>
+                  <Label htmlFor="Codigo">Código</Label>
                   <Input
-                    id="Cidade"
-                    value={formData.Cidade || ''}
-                    onChange={(e) => setFormData({ ...formData, Cidade: e.target.value })}
+                    id="Codigo"
+                    value={
+                      formData.Codigo
+                        ? formData.Codigo.toString().length > 2
+                          ? `${formData.Codigo.toString().slice(0, 2)}.${formData.Codigo.toString().slice(2)}`
+                          : formData.Codigo.toString()
+                        : ''
+                    }
+                    onChange={(e) => {
+                      const numbersOnly = e.target.value.replace(/\D/g, '').slice(0, 5)
+                      setFormData({
+                        ...formData,
+                        Codigo: numbersOnly ? parseInt(numbersOnly, 10) : null,
+                      })
+                    }}
+                    placeholder="XX.XXX"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="Estado">Estado</Label>
+                  <Label htmlFor="Projeto">Nome do Projeto</Label>
                   <Input
-                    id="Estado"
-                    value={formData.Estado || ''}
-                    onChange={(e) => setFormData({ ...formData, Estado: e.target.value })}
+                    id="Projeto"
+                    value={formData.Projeto || ''}
+                    onChange={(e) => setFormData({ ...formData, Projeto: e.target.value })}
                   />
                 </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="Status">Status</Label>
+                  <Input
+                    id="Status"
+                    value={formData.Status || ''}
+                    onChange={(e) => setFormData({ ...formData, Status: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="nivel_estrategico">Nível Estratégico</Label>
+                  <Input
+                    id="nivel_estrategico"
+                    value={formData.nivel_estrategico || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, nivel_estrategico: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="responsavel">Responsável (Interno)</Label>
+                  <Input
+                    id="responsavel"
+                    value={formData.responsavel || ''}
+                    onChange={(e) => setFormData({ ...formData, responsavel: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="arquiteto">Arquiteto</Label>
+                  <Input
+                    id="arquiteto"
+                    value={formData.arquiteto || ''}
+                    onChange={(e) => setFormData({ ...formData, arquiteto: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="engenheiro">Engenheiro</Label>
+                  <Input
+                    id="engenheiro"
+                    value={formData.engenheiro || ''}
+                    onChange={(e) => setFormData({ ...formData, engenheiro: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="eletricista">Eletricista</Label>
+                  <Input
+                    id="eletricista"
+                    value={formData.eletricista || ''}
+                    onChange={(e) => setFormData({ ...formData, eletricista: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="Cidade">Cidade</Label>
+                    <Input
+                      id="Cidade"
+                      value={formData.Cidade || ''}
+                      onChange={(e) => setFormData({ ...formData, Cidade: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="Estado">Estado</Label>
+                    <Input
+                      id="Estado"
+                      value={formData.Estado || ''}
+                      onChange={(e) => setFormData({ ...formData, Estado: e.target.value })}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          </ScrollArea>
-          <SheetFooter className="mt-4">
-            <Button onClick={handleSave} disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar Alterações
-            </Button>
-          </SheetFooter>
+            </ScrollArea>
+            <SheetFooter className="mt-4 mb-4 sm:mb-0">
+              <Button type="submit" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar Alterações
+              </Button>
+            </SheetFooter>
+          </form>
         </SheetContent>
       </Sheet>
 
