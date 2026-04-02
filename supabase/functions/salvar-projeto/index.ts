@@ -8,11 +8,16 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    console.log('[salvar-projeto] Iniciando processamento da requisição')
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     const supabase = createClient(supabaseUrl, supabaseKey)
 
+    console.log('[salvar-projeto] Lendo corpo da requisição...')
     const body = await req.json()
+    console.log('[salvar-projeto] Payload recebido:', body)
+
     const {
       Codigo,
       Projeto,
@@ -28,59 +33,78 @@ Deno.serve(async (req: Request) => {
     } = body
 
     if (!Codigo) {
+      console.warn('[salvar-projeto] Validação falhou: Campo Codigo ausente.')
       return new Response(JSON.stringify({ error: 'O campo Codigo é obrigatório.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
+    // CORREÇÃO: O frontend pode estar enviando o código formatado com a máscara (ex: "12.345"),
+    // mas a coluna Codigo na tabela Organizacao_projetos é do tipo numérico (bigint).
+    // Precisamos limpar a formatação antes de prosseguir para evitar erro 500 do banco de dados.
+    let codigoNumerico = Codigo
+    if (typeof Codigo === 'string') {
+      console.log(`[salvar-projeto] Convertendo Codigo formatado '${Codigo}' para numérico`)
+      codigoNumerico = Number(Codigo.replace(/\D/g, ''))
+    }
+
+    console.log(`[salvar-projeto] Verificando existência do Codigo: ${codigoNumerico}`)
     const { data: existing, error: checkError } = await supabase
       .from('Organizacao_projetos')
       .select('Codigo')
-      .eq('Codigo', Codigo)
+      .eq('Codigo', codigoNumerico)
       .maybeSingle()
 
     if (checkError) {
+      console.error('[salvar-projeto] Erro ao consultar banco (checkError):', checkError)
       throw checkError
     }
 
     if (existing) {
+      console.warn(
+        `[salvar-projeto] Validação falhou: Codigo ${codigoNumerico} já existe no banco.`,
+      )
       return new Response(JSON.stringify({ error: 'O Codigo informado já está em uso.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
+    const payloadInsercao = {
+      Codigo: codigoNumerico,
+      Projeto,
+      Status,
+      Cidade,
+      Estado,
+      arquiteto,
+      engenheiro,
+      eletricista,
+      responsavel,
+      data_entrada,
+      nivel_estrategico,
+    }
+
+    console.log('[salvar-projeto] Iniciando inserção com os dados:', payloadInsercao)
     const { data, error } = await supabase
       .from('Organizacao_projetos')
-      .insert([
-        {
-          Codigo,
-          Projeto,
-          Status,
-          Cidade,
-          Estado,
-          arquiteto,
-          engenheiro,
-          eletricista,
-          responsavel,
-          data_entrada,
-          nivel_estrategico,
-        },
-      ])
+      .insert([payloadInsercao])
       .select()
       .single()
 
     if (error) {
+      console.error('[salvar-projeto] Erro ao tentar inserir no banco (insert error):', error)
       throw error
     }
 
+    console.log('[salvar-projeto] Inserção concluída com sucesso:', data)
     return new Response(JSON.stringify({ success: true, data }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('[salvar-projeto] Exceção capturada (catch):', error)
+    return new Response(JSON.stringify({ error: error.message || 'Erro interno no servidor' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
