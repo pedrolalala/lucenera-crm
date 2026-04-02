@@ -38,14 +38,6 @@ Deno.serve(async (req: Request) => {
       nivel_estrategico,
     } = body
 
-    if (!Codigo) {
-      console.warn('[salvar-projeto] Validação falhou: Campo Codigo ausente.')
-      return new Response(JSON.stringify({ error: 'O campo Codigo é obrigatório.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     if (!Projeto || String(Projeto).trim() === '') {
       console.warn('[salvar-projeto] Validação falhou: Campo Projeto ausente.')
       return new Response(JSON.stringify({ error: 'O campo Projeto é obrigatório.' }), {
@@ -82,32 +74,9 @@ Deno.serve(async (req: Request) => {
     // mas a coluna Codigo na tabela Organizacao_projetos é do tipo numérico (bigint).
     // Precisamos limpar a formatação antes de prosseguir para evitar erro 500 do banco de dados.
     let codigoNumerico = Codigo
-    if (typeof Codigo === 'string') {
+    if (typeof Codigo === 'string' && Codigo.trim() !== '') {
       console.log(`[salvar-projeto] Convertendo Codigo formatado '${Codigo}' para numérico`)
       codigoNumerico = Number(Codigo.replace(/\D/g, ''))
-    }
-
-    console.log(`[salvar-projeto] Verificando existência do Codigo: ${codigoNumerico}`)
-    const { data: existing, error: checkError } = await supabase
-      .from('Organizacao_projetos')
-      .select('Codigo')
-      .eq('Codigo', codigoNumerico)
-      .limit(1)
-      .single()
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('[salvar-projeto] Erro ao consultar banco (checkError):', checkError)
-      throw checkError
-    }
-
-    if (existing) {
-      console.warn(
-        `[salvar-projeto] Validação falhou: Codigo ${codigoNumerico} já existe no banco.`,
-      )
-      return new Response(JSON.stringify({ error: 'O Codigo informado já está em uso.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
     }
 
     const payloadInsercao = {
