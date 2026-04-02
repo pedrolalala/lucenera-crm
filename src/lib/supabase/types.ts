@@ -114,39 +114,6 @@ export type Database = {
         }
         Relationships: []
       }
-      engenheiro_crm: {
-        Row: {
-          created_at: string
-          email: string | null
-          empresa: string | null
-          endereco_comercial: string | null
-          id: string
-          nome: string
-          telefone: string | null
-          tipo: string | null
-        }
-        Insert: {
-          created_at?: string
-          email?: string | null
-          empresa?: string | null
-          endereco_comercial?: string | null
-          id?: string
-          nome: string
-          telefone?: string | null
-          tipo?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string | null
-          empresa?: string | null
-          endereco_comercial?: string | null
-          id?: string
-          nome?: string
-          telefone?: string | null
-          tipo?: string | null
-        }
-        Relationships: []
-      }
       eletricistas_crm: {
         Row: {
           cidade: string | null
@@ -177,6 +144,39 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           telefone?: string | null
+        }
+        Relationships: []
+      }
+      engenheiro_crm: {
+        Row: {
+          created_at: string
+          email: string | null
+          empresa: string | null
+          endereco_comercial: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          tipo: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          empresa?: string | null
+          endereco_comercial?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          empresa?: string | null
+          endereco_comercial?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          tipo?: string | null
         }
         Relationships: []
       }
@@ -420,15 +420,6 @@ export const Constants = {
 //   email_cliente: text (nullable)
 //   email_financeiro: text (nullable)
 //   completo: text (nullable)
-// Table: engenheiro_crm
-//   id: uuid (not null, default: gen_random_uuid())
-//   nome: text (not null)
-//   tipo: text (nullable)
-//   email: text (nullable)
-//   telefone: text (nullable)
-//   empresa: text (nullable)
-//   endereco_comercial: text (nullable)
-//   created_at: timestamp with time zone (not null, default: now())
 // Table: eletricistas_crm
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)
@@ -438,10 +429,21 @@ export const Constants = {
 //   estado: text (nullable)
 //   observacoes: text (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
+// Table: engenheiro_crm
+//   id: uuid (not null, default: gen_random_uuid())
+//   nome: text (not null)
+//   tipo: text (nullable)
+//   email: text (nullable)
+//   telefone: text (nullable)
+//   empresa: text (nullable)
+//   endereco_comercial: text (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
 
 // --- CONSTRAINTS ---
 // Table: eletricistas_crm
 //   PRIMARY KEY eletricistas_crm_pkey: PRIMARY KEY (id)
+// Table: engenheiro_crm
+//   PRIMARY KEY engenheiro_crm_pkey: PRIMARY KEY (id)
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: Arquitetos_empresas_crm
@@ -482,6 +484,16 @@ export const Constants = {
 //   Policy "authenticated_select_eletricistas" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 //   Policy "authenticated_update_eletricistas" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: engenheiro_crm
+//   Policy "authenticated_delete_engenheiros" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_insert_engenheiros" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_engenheiros" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_update_engenheiros" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 

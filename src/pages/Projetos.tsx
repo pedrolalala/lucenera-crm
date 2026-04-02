@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { MapPin, Loader2, Plus, Flag, Activity } from 'lucide-react'
+import { MapPin, Loader2, Plus, Flag, Activity, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 type ViewMode = 'resumida' | 'operacional' | 'completa'
@@ -23,10 +23,8 @@ export default function Projetos() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('resumida')
 
-  const [searchCidade, setSearchCidade] = useState('')
-  const [searchEstado, setSearchEstado] = useState('')
   const [searchStatus, setSearchStatus] = useState('')
-  const [searchNivel, setSearchNivel] = useState('')
+  const [searchResponsavel, setSearchResponsavel] = useState('')
 
   useEffect(() => {
     getProjetos()
@@ -36,15 +34,12 @@ export default function Projetos() {
   }, [])
 
   const filteredProjetos = projetos.filter((p) => {
-    const matchCidade =
-      !searchCidade || (p.Cidade?.toLowerCase() || '').includes(searchCidade.toLowerCase())
-    const matchEstado =
-      !searchEstado || (p.Estado?.toLowerCase() || '').includes(searchEstado.toLowerCase())
     const matchStatus =
       !searchStatus || (p.Status?.toLowerCase() || '').includes(searchStatus.toLowerCase())
-    const matchNivel =
-      !searchNivel || (p.nivel_estrategico?.toLowerCase() || '').includes(searchNivel.toLowerCase())
-    return matchCidade && matchEstado && matchStatus && matchNivel
+    const matchResponsavel =
+      !searchResponsavel ||
+      (p.responsavel?.toLowerCase() || '').includes(searchResponsavel.toLowerCase())
+    return matchStatus && matchResponsavel
   })
 
   const getColSpan = () => {
@@ -110,7 +105,7 @@ export default function Projetos() {
           <CardTitle>Filtros de Projetos</CardTitle>
           <CardDescription>Refine a lista de projetos utilizando os campos abaixo</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="relative">
             <Activity className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -121,30 +116,12 @@ export default function Projetos() {
             />
           </div>
           <div className="relative">
-            <Flag className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Users className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Filtrar por Nível..."
+              placeholder="Filtrar por Responsável..."
               className="pl-8"
-              value={searchNivel}
-              onChange={(e) => setSearchNivel(e.target.value)}
-            />
-          </div>
-          <div className="relative">
-            <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Filtrar por Cidade..."
-              className="pl-8"
-              value={searchCidade}
-              onChange={(e) => setSearchCidade(e.target.value)}
-            />
-          </div>
-          <div className="relative">
-            <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Filtrar por Estado..."
-              className="pl-8"
-              value={searchEstado}
-              onChange={(e) => setSearchEstado(e.target.value)}
+              value={searchResponsavel}
+              onChange={(e) => setSearchResponsavel(e.target.value)}
             />
           </div>
         </CardContent>
