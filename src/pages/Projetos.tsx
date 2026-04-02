@@ -66,6 +66,15 @@ export default function Projetos() {
     }
   }
 
+  const formatCodigo = (codigo: number | null) => {
+    if (!codigo) return '-'
+    const codStr = codigo.toString()
+    if (codStr.length > 2) {
+      return `${codStr.substring(0, 2)}.${codStr.substring(2)}`
+    }
+    return codStr
+  }
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -183,7 +192,7 @@ export default function Projetos() {
                       onClick={() => navigate(`/projeto/${projeto.Codigo}`)}
                     >
                       <TableCell className="font-medium text-muted-foreground">
-                        #{projeto.Codigo}
+                        {formatCodigo(projeto.Codigo)}
                       </TableCell>
 
                       {(viewMode === 'completa' || viewMode === 'operacional') && (
