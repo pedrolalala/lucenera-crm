@@ -184,7 +184,7 @@ export type Database = {
         Row: {
           arquiteto: string | null
           Cidade: string | null
-          Codigo: number | null
+          Codigo: string | null
           data_entrada: string | null
           eletricista: string | null
           engenheiro: string | null
@@ -198,7 +198,7 @@ export type Database = {
         Insert: {
           arquiteto?: string | null
           Cidade?: string | null
-          Codigo?: number | null
+          Codigo?: string | null
           data_entrada?: string | null
           eletricista?: string | null
           engenheiro?: string | null
@@ -212,7 +212,7 @@ export type Database = {
         Update: {
           arquiteto?: string | null
           Cidade?: string | null
-          Codigo?: number | null
+          Codigo?: string | null
           data_entrada?: string | null
           eletricista?: string | null
           engenheiro?: string | null
@@ -398,7 +398,7 @@ export const Constants = {
 //   Observacoes: text (nullable)
 //   Email: text (nullable)
 // Table: Organizacao_projetos
-//   Codigo: bigint (nullable)
+//   Codigo: text (nullable)
 //   nivel_estrategico: text (nullable)
 //   Projeto: text (nullable)
 //   responsavel: text (nullable)

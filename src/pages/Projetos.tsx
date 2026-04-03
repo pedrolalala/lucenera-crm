@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getProjetos, type Projeto } from '@/services/projetos'
-import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -11,10 +10,17 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { MapPin, Loader2, Plus, Flag, Activity, Users } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Loader2, Plus, FilterX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProjectActions } from '@/components/ProjectActions'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type ViewMode = 'resumida' | 'operacional' | 'completa'
 
@@ -24,8 +30,12 @@ export default function Projetos() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('resumida')
 
-  const [searchStatus, setSearchStatus] = useState('')
-  const [searchResponsavel, setSearchResponsavel] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [filterResponsavel, setFilterResponsavel] = useState('all')
+  const [filterArquiteto, setFilterArquiteto] = useState('all')
+  const [filterEngenheiro, setFilterEngenheiro] = useState('all')
+  const [filterEletricista, setFilterEletricista] = useState('all')
+  const [filterCidade, setFilterCidade] = useState('all')
 
   const loadProjetos = () => {
     setLoading(true)
@@ -39,19 +49,50 @@ export default function Projetos() {
     loadProjetos()
   }, [])
 
+  const filterConfigs = [
+    { label: 'Status', state: filterStatus, set: setFilterStatus, key: 'Status' },
+    {
+      label: 'Responsável',
+      state: filterResponsavel,
+      set: setFilterResponsavel,
+      key: 'responsavel',
+    },
+    {
+      label: 'Arquiteto Responsável',
+      state: filterArquiteto,
+      set: setFilterArquiteto,
+      key: 'arquiteto',
+    },
+    { label: 'Engenheiro', state: filterEngenheiro, set: setFilterEngenheiro, key: 'engenheiro' },
+    {
+      label: 'Eletricista',
+      state: filterEletricista,
+      set: setFilterEletricista,
+      key: 'eletricista',
+    },
+    { label: 'Cidade', state: filterCidade, set: setFilterCidade, key: 'Cidade' },
+  ]
+
+  const getUnique = (key: string) => {
+    const vals = projetos.map((p) => (p as any)[key]).filter(Boolean) as string[]
+    return Array.from(new Set(vals)).sort()
+  }
+
   const filteredProjetos = projetos.filter((p) => {
-    const matchStatus =
-      !searchStatus || (p.Status?.toLowerCase() || '').includes(searchStatus.toLowerCase())
-    const matchResponsavel =
-      !searchResponsavel ||
-      (p.responsavel?.toLowerCase() || '').includes(searchResponsavel.toLowerCase())
-    return matchStatus && matchResponsavel
+    return filterConfigs.every((config) => {
+      if (config.state === 'all') return true
+      return (p as any)[config.key] === config.state
+    })
   })
+
+  const clearFilters = () => {
+    filterConfigs.forEach((c) => c.set('all'))
+  }
 
   const getColSpan = () => {
     if (viewMode === 'resumida') return 5
     if (viewMode === 'operacional') return 7
-    return 10
+    return 11
   }
 
   const formatDate = (dateStr: string | null) => {
@@ -66,10 +107,10 @@ export default function Projetos() {
     }
   }
 
-  const formatCodigo = (codigo: number | null) => {
+  const formatCodigo = (codigo: any) => {
     if (!codigo) return '-'
     const codStr = codigo.toString()
-    if (codStr.length > 2) {
+    if (codStr.length > 2 && !codStr.includes('.')) {
       return `${codStr.substring(0, 2)}.${codStr.substring(2)}`
     }
     return codStr
@@ -115,29 +156,33 @@ export default function Projetos() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>Filtros de Projetos</CardTitle>
-          <CardDescription>Refine a lista de projetos utilizando os campos abaixo</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="relative">
-            <Activity className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Filtrar por Status..."
-              className="pl-8"
-              value={searchStatus}
-              onChange={(e) => setSearchStatus(e.target.value)}
-            />
-          </div>
-          <div className="relative">
-            <Users className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Filtrar por Responsável..."
-              className="pl-8"
-              value={searchResponsavel}
-              onChange={(e) => setSearchResponsavel(e.target.value)}
-            />
+      <Card className="border-0 shadow-sm bg-card/50">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-end gap-4">
+            {filterConfigs.map((config) => (
+              <div key={config.label} className="space-y-1.5 flex-1 min-w-[140px]">
+                <label className="text-xs font-medium text-muted-foreground">{config.label}</label>
+                <Select value={config.state} onValueChange={config.set}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {getUnique(config.key).map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+            <div className="flex-none w-full sm:w-auto mt-2 sm:mt-0">
+              <Button variant="outline" onClick={clearFilters} className="w-full">
+                <FilterX className="mr-2 h-4 w-4" />
+                Limpar Filtros
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -162,6 +207,7 @@ export default function Projetos() {
                   <TableHead>Status</TableHead>
                   {viewMode === 'completa' && <TableHead>Arquiteto</TableHead>}
                   {viewMode === 'completa' && <TableHead>Engenheiro</TableHead>}
+                  {viewMode === 'completa' && <TableHead>Eletricista</TableHead>}
                   {(viewMode === 'completa' || viewMode === 'resumida') && (
                     <TableHead>Localização</TableHead>
                   )}
@@ -187,7 +233,7 @@ export default function Projetos() {
                 ) : (
                   filteredProjetos.map((projeto) => (
                     <TableRow
-                      key={projeto.Codigo}
+                      key={projeto.Codigo || Math.random().toString()}
                       className="cursor-pointer hover:bg-muted/50 transition-colors"
                       onClick={() => navigate(`/projeto/${projeto.Codigo}`)}
                     >
@@ -252,6 +298,15 @@ export default function Projetos() {
                           title={projeto.engenheiro || ''}
                         >
                           {projeto.engenheiro || '-'}
+                        </TableCell>
+                      )}
+
+                      {viewMode === 'completa' && (
+                        <TableCell
+                          className="max-w-[150px] truncate text-muted-foreground"
+                          title={(projeto as any).eletricista || ''}
+                        >
+                          {(projeto as any).eletricista || '-'}
                         </TableCell>
                       )}
 
