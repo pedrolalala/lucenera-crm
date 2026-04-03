@@ -42,14 +42,14 @@ export default function Layout() {
   return (
     <SidebarProvider>
       <Sidebar variant="sidebar" collapsible="icon">
-        <SidebarHeader className="flex h-16 items-center border-b px-4 justify-center">
+        <SidebarHeader className="flex h-16 items-center border-b border-sidebar-border px-4 justify-center">
           <Link to="/" className="flex items-center gap-3 w-full overflow-hidden">
             <img
               src={logoUrl}
               alt="Lucenera"
-              className="h-8 shrink-0 object-contain mix-blend-multiply"
+              className="h-8 shrink-0 object-contain brightness-0 invert opacity-90"
             />
-            <span className="font-bold text-xl tracking-tight text-slate-900 group-data-[collapsible=icon]:hidden">
+            <span className="font-bold text-xl tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden">
               CRM
             </span>
           </Link>
@@ -80,10 +80,10 @@ export default function Layout() {
       </Sidebar>
 
       <SidebarInset>
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4 shadow-sm">
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 shadow-sm">
           <SidebarTrigger className="-ml-1" />
         </header>
-        <main className="flex-1 p-4 md:p-8 w-full mx-auto max-w-[1400px]">
+        <main className="flex-1 p-4 md:p-8 lg:p-10 w-full mx-auto max-w-[1400px]">
           <Outlet />
         </main>
       </SidebarInset>

@@ -117,19 +117,22 @@ export default function Projetos() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-8 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Projetos</h1>
-          <p className="text-muted-foreground">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Projetos</h1>
+          <p className="text-slate-500">
             Gerencie e acompanhe o andamento dos projetos luminotécnicos.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-muted p-1 rounded-md flex items-center">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="bg-slate-100 p-1.5 rounded-lg flex items-center border border-slate-200">
             <Button
               variant={viewMode === 'resumida' ? 'secondary' : 'ghost'}
               size="sm"
+              className={
+                viewMode === 'resumida' ? 'bg-white shadow-sm font-medium' : 'text-slate-600'
+              }
               onClick={() => setViewMode('resumida')}
             >
               Resumida
@@ -137,6 +140,9 @@ export default function Projetos() {
             <Button
               variant={viewMode === 'operacional' ? 'secondary' : 'ghost'}
               size="sm"
+              className={
+                viewMode === 'operacional' ? 'bg-white shadow-sm font-medium' : 'text-slate-600'
+              }
               onClick={() => setViewMode('operacional')}
             >
               Operacional
@@ -144,26 +150,31 @@ export default function Projetos() {
             <Button
               variant={viewMode === 'completa' ? 'secondary' : 'ghost'}
               size="sm"
+              className={
+                viewMode === 'completa' ? 'bg-white shadow-sm font-medium' : 'text-slate-600'
+              }
               onClick={() => setViewMode('completa')}
             >
               Completa
             </Button>
           </div>
-          <Button onClick={() => navigate('/novo')}>
+          <Button onClick={() => navigate('/novo')} className="shadow-sm font-medium">
             <Plus className="mr-2 h-4 w-4" />
             Novo Projeto
           </Button>
         </div>
       </div>
 
-      <Card className="border-0 shadow-sm bg-card/50">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-end gap-4">
+      <Card className="shadow-sm border-slate-200 bg-white">
+        <CardContent className="p-5 md:p-6">
+          <div className="flex flex-wrap items-end gap-5">
             {filterConfigs.map((config) => (
-              <div key={config.label} className="space-y-1.5 flex-1 min-w-[140px]">
-                <label className="text-xs font-medium text-muted-foreground">{config.label}</label>
+              <div key={config.label} className="space-y-2 flex-1 min-w-[150px]">
+                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  {config.label}
+                </label>
                 <Select value={config.state} onValueChange={config.set}>
-                  <SelectTrigger className="bg-background">
+                  <SelectTrigger className="bg-white border-slate-200 shadow-sm focus:ring-primary/20 transition-all">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
@@ -178,7 +189,11 @@ export default function Projetos() {
               </div>
             ))}
             <div className="flex-none w-full sm:w-auto mt-2 sm:mt-0">
-              <Button variant="outline" onClick={clearFilters} className="w-full">
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                className="w-full border-slate-200 shadow-sm hover:bg-slate-50 text-slate-700 font-medium transition-all"
+              >
                 <FilterX className="mr-2 h-4 w-4" />
                 Limpar Filtros
               </Button>
@@ -187,45 +202,55 @@ export default function Projetos() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-sm border-slate-200 bg-white overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
           <div className="rounded-md border-0 min-w-[700px]">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Código</TableHead>
+              <TableHeader className="bg-slate-50/80 border-b border-slate-200">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-[100px] py-4 text-slate-600 font-semibold">
+                    Código
+                  </TableHead>
                   {(viewMode === 'completa' || viewMode === 'operacional') && (
-                    <TableHead>Nível</TableHead>
+                    <TableHead className="py-4 text-slate-600 font-semibold">Nível</TableHead>
                   )}
-                  <TableHead>Projeto</TableHead>
+                  <TableHead className="py-4 text-slate-600 font-semibold">Projeto</TableHead>
                   {(viewMode === 'completa' || viewMode === 'operacional') && (
-                    <TableHead>Responsável</TableHead>
+                    <TableHead className="py-4 text-slate-600 font-semibold">Responsável</TableHead>
                   )}
                   {(viewMode === 'completa' || viewMode === 'operacional') && (
-                    <TableHead>Data Entrada</TableHead>
+                    <TableHead className="py-4 text-slate-600 font-semibold">
+                      Data Entrada
+                    </TableHead>
                   )}
-                  <TableHead>Status</TableHead>
-                  {viewMode === 'completa' && <TableHead>Arquiteto</TableHead>}
-                  {viewMode === 'completa' && <TableHead>Engenheiro</TableHead>}
-                  {viewMode === 'completa' && <TableHead>Eletricista</TableHead>}
+                  <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
+                  {viewMode === 'completa' && (
+                    <TableHead className="py-4 text-slate-600 font-semibold">Arquiteto</TableHead>
+                  )}
+                  {viewMode === 'completa' && (
+                    <TableHead className="py-4 text-slate-600 font-semibold">Engenheiro</TableHead>
+                  )}
+                  {viewMode === 'completa' && (
+                    <TableHead className="py-4 text-slate-600 font-semibold">Eletricista</TableHead>
+                  )}
                   {(viewMode === 'completa' || viewMode === 'resumida') && (
-                    <TableHead>Localização</TableHead>
+                    <TableHead className="py-4 text-slate-600 font-semibold">Localização</TableHead>
                   )}
-                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead className="w-[50px] py-4"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={getColSpan()} className="h-24 text-center">
-                      <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                    <TableCell colSpan={getColSpan()} className="h-32 text-center">
+                      <Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" />
                     </TableCell>
                   </TableRow>
                 ) : filteredProjetos.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={getColSpan()}
-                      className="h-24 text-center text-muted-foreground"
+                      className="h-32 text-center text-slate-500 font-medium"
                     >
                       Nenhum projeto encontrado com os filtros atuais.
                     </TableCell>
@@ -234,25 +259,27 @@ export default function Projetos() {
                   filteredProjetos.map((projeto) => (
                     <TableRow
                       key={projeto.Codigo || Math.random().toString()}
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      className="cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
                       onClick={() => navigate(`/projeto/${projeto.Codigo}`)}
                     >
-                      <TableCell className="font-medium text-muted-foreground">
+                      <TableCell className="py-4 font-medium text-slate-900">
                         {formatCodigo(projeto.Codigo)}
                       </TableCell>
 
                       {(viewMode === 'completa' || viewMode === 'operacional') && (
-                        <TableCell>
+                        <TableCell className="py-4">
                           {projeto.nivel_estrategico ? (
-                            <Badge variant="outline">{projeto.nivel_estrategico}</Badge>
+                            <Badge variant="outline" className="bg-slate-50">
+                              {projeto.nivel_estrategico}
+                            </Badge>
                           ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
+                            <span className="text-slate-400 text-sm">-</span>
                           )}
                         </TableCell>
                       )}
 
                       <TableCell
-                        className="font-semibold max-w-[200px] truncate"
+                        className="py-4 font-semibold text-slate-900 max-w-[200px] truncate"
                         title={projeto.Projeto || ''}
                       >
                         {projeto.Projeto || 'Sem nome'}
@@ -260,7 +287,7 @@ export default function Projetos() {
 
                       {(viewMode === 'completa' || viewMode === 'operacional') && (
                         <TableCell
-                          className="max-w-[120px] truncate"
+                          className="py-4 max-w-[120px] truncate text-slate-600"
                           title={projeto.responsavel || ''}
                         >
                           {projeto.responsavel || '-'}
@@ -268,24 +295,27 @@ export default function Projetos() {
                       )}
 
                       {(viewMode === 'completa' || viewMode === 'operacional') && (
-                        <TableCell className="whitespace-nowrap text-muted-foreground">
+                        <TableCell className="py-4 whitespace-nowrap text-slate-500">
                           {formatDate(projeto.data_entrada)}
                         </TableCell>
                       )}
 
-                      <TableCell>
+                      <TableCell className="py-4">
                         {projeto.Status ? (
-                          <Badge variant={projeto.Status === 'Concluído' ? 'default' : 'secondary'}>
+                          <Badge
+                            variant={projeto.Status === 'Concluído' ? 'default' : 'secondary'}
+                            className="font-medium shadow-sm"
+                          >
                             {projeto.Status}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
+                          <span className="text-slate-400 text-sm">-</span>
                         )}
                       </TableCell>
 
                       {viewMode === 'completa' && (
                         <TableCell
-                          className="max-w-[150px] truncate text-muted-foreground"
+                          className="py-4 max-w-[150px] truncate text-slate-600"
                           title={projeto.arquiteto || ''}
                         >
                           {projeto.arquiteto || '-'}
@@ -294,7 +324,7 @@ export default function Projetos() {
 
                       {viewMode === 'completa' && (
                         <TableCell
-                          className="max-w-[150px] truncate text-muted-foreground"
+                          className="py-4 max-w-[150px] truncate text-slate-600"
                           title={projeto.engenheiro || ''}
                         >
                           {projeto.engenheiro || '-'}
@@ -303,7 +333,7 @@ export default function Projetos() {
 
                       {viewMode === 'completa' && (
                         <TableCell
-                          className="max-w-[150px] truncate text-muted-foreground"
+                          className="py-4 max-w-[150px] truncate text-slate-600"
                           title={(projeto as any).eletricista || ''}
                         >
                           {(projeto as any).eletricista || '-'}
@@ -311,20 +341,20 @@ export default function Projetos() {
                       )}
 
                       {(viewMode === 'completa' || viewMode === 'resumida') && (
-                        <TableCell>
+                        <TableCell className="py-4">
                           <div
                             className="flex flex-col max-w-[150px] truncate"
                             title={`${projeto.Cidade || ''} - ${projeto.Estado || ''}`}
                           >
-                            <span>{projeto.Cidade || '-'}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {projeto.Estado || '-'}
+                            <span className="text-slate-700 font-medium">
+                              {projeto.Cidade || '-'}
                             </span>
+                            <span className="text-xs text-slate-500">{projeto.Estado || '-'}</span>
                           </div>
                         </TableCell>
                       )}
 
-                      <TableCell onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
                         <ProjectActions projeto={projeto} onChange={loadProjetos} />
                       </TableCell>
                     </TableRow>
