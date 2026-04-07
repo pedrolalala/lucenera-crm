@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Project } from '@/types'
 import { StatusBadge, StrategicBadge } from '@/components/StatusBadge'
@@ -10,11 +11,48 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { format } from 'date-fns'
+import { Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
+import { deleteProjeto } from '@/services/projetos'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 export function ProjectTable({ projects }: { projects: Project[] }) {
   const navigate = useNavigate()
+  const { toast } = useToast()
+  const [deletedIds, setDeletedIds] = useState<Set<number | string>>(new Set())
 
-  if (projects.length === 0)
+  const displayProjects = projects.filter((p) => !deletedIds.has(p.id))
+
+  const handleDelete = async (id: number | string) => {
+    try {
+      await deleteProjeto(Number(id))
+      setDeletedIds((prev) => new Set(prev).add(id))
+      toast({
+        title: 'Projeto deletado',
+        description: 'O projeto foi removido com sucesso.',
+      })
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: 'Erro ao deletar',
+        description: 'Ocorreu um erro ao tentar deletar o projeto.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  if (displayProjects.length === 0)
     return (
       <div className="p-8 text-center border rounded-lg bg-card shadow-subtle text-muted-foreground font-medium">
         Nenhum projeto encontrado para os filtros selecionados.
@@ -47,10 +85,11 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
             </TableHead>
             <TableHead className="hidden md:table-cell font-semibold text-right">Cidade</TableHead>
             <TableHead className="hidden sm:table-cell font-semibold">Estado</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {projects.map((p) => (
+          {displayProjects.map((p) => (
             <TableRow
               key={p.id}
               className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -151,6 +190,37 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
               </TableCell>
               <TableCell className="hidden sm:table-cell text-muted-foreground">
                 {p.state}
+              </TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir Projeto</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja deletar este projeto? Esta ação não pode ser
+                        desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(p.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Deletar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </TableCell>
             </TableRow>
           ))}
