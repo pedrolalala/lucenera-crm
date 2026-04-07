@@ -117,6 +117,38 @@ export default function Index() {
       .slice(0, 8)
   }, [filteredProjetos])
 
+  const getStatusCount = (statusName: string) => {
+    if (statusName === 'Sem Status') {
+      return filteredProjetos.filter((p) => !p.Status || p.Status.trim() === '').length
+    }
+    return filteredProjetos.filter(
+      (p) => p.Status?.trim().toLowerCase() === statusName.toLowerCase(),
+    ).length
+  }
+
+  const statusCards = [
+    {
+      label: 'Elaboração Orçamento',
+      count: getStatusCount('Elaboração Orçamento'),
+      color: 'text-amber-500',
+    },
+    { label: 'Não Fechou', count: getStatusCount('Não Fechou'), color: 'text-red-500' },
+    { label: 'Proposta Sinal', count: getStatusCount('Proposta Sinal'), color: 'text-blue-500' },
+    {
+      label: 'Obra Finalizada',
+      count: getStatusCount('Obra Finalizada'),
+      color: 'text-emerald-500',
+    },
+    { label: 'Sem Status', count: getStatusCount('Sem Status'), color: 'text-slate-500' },
+    { label: 'Estudo Inicial', count: getStatusCount('Estudo Inicial'), color: 'text-purple-500' },
+    {
+      label: 'Emissão Proj. Exec.',
+      count: getStatusCount('Emissão Projeto Executivo'),
+      color: 'text-indigo-500',
+    },
+    { label: 'Venda DocuSign', count: getStatusCount('Venda DocuSign'), color: 'text-pink-500' },
+  ]
+
   return (
     <div className="space-y-8 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -181,13 +213,19 @@ export default function Index() {
               </CardContent>
             </Card>
 
-            <Card className="shadow-sm border-slate-200">
+            <Card className="shadow-sm border-slate-200 overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-slate-600">Valor Total</CardTitle>
-                <DollarSign className="h-4 w-4 text-slate-400" />
+                <DollarSign className="h-4 w-4 text-slate-400 shrink-0" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-emerald-600">
+                <div
+                  className="text-lg md:text-xl font-bold text-emerald-600 truncate"
+                  title={new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  }).format(totalRevenue)}
+                >
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                     totalRevenue,
                   )}
@@ -198,7 +236,7 @@ export default function Index() {
             <Card className="shadow-sm border-slate-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-slate-600">Em Andamento</CardTitle>
-                <Clock className="h-4 w-4 text-amber-500" />
+                <Clock className="h-4 w-4 text-amber-500 shrink-0" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-slate-900">{activeProjetos}</div>
@@ -208,12 +246,30 @@ export default function Index() {
             <Card className="shadow-sm border-slate-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-slate-600">Concluídos</CardTitle>
-                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-slate-900">{completedProjetos}</div>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+            {statusCards.map((card) => (
+              <Card key={card.label} className="shadow-sm border-slate-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
+                  <CardTitle
+                    className="text-xs font-medium text-slate-600 truncate pr-2"
+                    title={card.label}
+                  >
+                    {card.label}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className={`text-xl font-bold ${card.color}`}>{card.count}</div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
