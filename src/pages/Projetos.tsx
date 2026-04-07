@@ -1,6 +1,6 @@
 import { useEffect, useState, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getProjetos, type Projeto } from '@/services/projetos'
+import { getProjetos, updateProjeto, type Projeto } from '@/services/projetos'
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Loader2, Plus, FilterX } from 'lucide-react'
+import { Loader2, Plus, FilterX, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProjectActions } from '@/components/ProjectActions'
 import {
@@ -22,15 +22,24 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/hooks/use-toast'
 
 type ViewMode = 'resumida' | 'operacional' | 'completa'
 
 export default function Projetos() {
   const navigate = useNavigate()
+  const { toast } = useToast()
   const [projetos, setProjetos] = useState<Projeto[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('resumida')
   const [selectedProjeto, setSelectedProjeto] = useState<Projeto | null>(null)
+
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedProjeto, setEditedProjeto] = useState<Projeto | null>(null)
+  const [editedPagamentos, setEditedPagamentos] = useState<any[]>([])
+  const [saving, setSaving] = useState(false)
 
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterResponsavel, setFilterResponsavel] = useState('all')
@@ -147,6 +156,123 @@ export default function Projetos() {
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+  }
+
+  const startEditing = () => {
+    if (!selectedProjeto) return
+    setIsEditing(true)
+    setEditedProjeto({ ...selectedProjeto })
+
+    const pags = []
+    for (let i = 1; i <= 10; i++) {
+      const valor = (selectedProjeto as any)[`valor_fechado_${i}`]
+      const data = (selectedProjeto as any)[`data_fechamento_${i}`]
+      if (valor || data) {
+        pags.push({ id: i, valor: valor || '', data: data || '' })
+      }
+    }
+    setEditedPagamentos(pags)
+  }
+
+  const handleSave = async () => {
+    if (!editedProjeto || !selectedProjeto) return
+    setSaving(true)
+    try {
+      const dataToSave = { ...editedProjeto } as any
+      delete dataToSave.id // Evita atualizar a primary key auto-incrementável
+
+      // Limpa os pagamentos antigos
+      for (let i = 1; i <= 10; i++) {
+        dataToSave[`valor_fechado_${i}`] = null
+        dataToSave[`data_fechamento_${i}`] = null
+      }
+
+      // Remapeia os pagamentos editados
+      editedPagamentos.forEach((p, index) => {
+        const i = index + 1
+        if (i <= 10) {
+          dataToSave[`valor_fechado_${i}`] = p.valor
+          dataToSave[`data_fechamento_${i}`] = p.data
+        }
+      })
+
+      await updateProjeto(selectedProjeto.Codigo!, dataToSave)
+
+      toast({ title: 'Sucesso', description: 'Projeto atualizado com sucesso.' })
+      setSelectedProjeto(null)
+      setIsEditing(false)
+      loadProjetos()
+    } catch (err: any) {
+      console.error(err)
+      toast({
+        title: 'Erro',
+        description: err.message || 'Erro ao salvar projeto.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const renderField = (label: string, key: keyof Projeto, type: string = 'text') => {
+    if (isEditing && editedProjeto) {
+      return (
+        <div className="space-y-1">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            {label}
+          </span>
+          <Input
+            type={type}
+            value={(editedProjeto as any)[key] || ''}
+            onChange={(e) =>
+              setEditedProjeto({
+                ...editedProjeto,
+                [key]:
+                  type === 'number' && e.target.value ? Number(e.target.value) : e.target.value,
+              })
+            }
+          />
+        </div>
+      )
+    }
+
+    let val = selectedProjeto?.[key] as any
+    if (key === 'Codigo') val = formatCodigo(val)
+    if (key === 'Data_Entrada' && !isEditing) val = formatDate(val)
+
+    if (key === 'Status' && !isEditing) {
+      return (
+        <div className="space-y-1">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            {label}
+          </span>
+          <div>
+            {val ? (
+              <Badge
+                variant={
+                  val === 'Concluído' || val === 'Completo' || val === 'Finalizado'
+                    ? 'default'
+                    : 'secondary'
+                }
+              >
+                {String(val)}
+              </Badge>
+            ) : (
+              <span className="text-slate-400">-</span>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-1">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          {label}
+        </span>
+        <p className="text-slate-900 font-medium break-all">{val ? String(val) : '-'}</p>
+      </div>
+    )
   }
 
   return (
@@ -502,124 +628,39 @@ export default function Projetos() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!selectedProjeto} onOpenChange={(open) => !open && setSelectedProjeto(null)}>
+      <Dialog
+        open={!!selectedProjeto}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedProjeto(null)
+            setIsEditing(false)
+          }
+        }}
+      >
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl">Detalhes do Projeto</DialogTitle>
+            <DialogTitle className="text-xl">
+              {isEditing ? 'Editar Projeto' : 'Detalhes do Projeto'}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-4">
             {selectedProjeto && (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Código
-                    </span>
-                    <p className="text-slate-900 font-medium">
-                      {formatCodigo(selectedProjeto.Codigo)}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Nível Estratégico
-                    </span>
-                    <p className="text-slate-900 font-medium">
-                      {selectedProjeto.Nivel_Estrategico || '-'}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Projeto
-                    </span>
-                    <p className="text-slate-900 font-medium">{selectedProjeto.Projeto || '-'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Responsável
-                    </span>
-                    <p className="text-slate-900 font-medium">
-                      {selectedProjeto.Responsavel || '-'}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Data de Entrada
-                    </span>
-                    <p className="text-slate-900 font-medium">
-                      {formatDate(selectedProjeto.Data_Entrada)}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Status
-                    </span>
-                    <div>
-                      {selectedProjeto.Status ? (
-                        <Badge
-                          variant={
-                            selectedProjeto.Status === 'Concluído' ||
-                            selectedProjeto.Status === 'Completo' ||
-                            selectedProjeto.Status === 'Finalizado'
-                              ? 'default'
-                              : 'secondary'
-                          }
-                        >
-                          {selectedProjeto.Status}
-                        </Badge>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Arquiteto Responsável
-                    </span>
-                    <p className="text-slate-900 font-medium">
-                      {selectedProjeto.Arquiteto_Responsavel || '-'}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Responsável da Obra
-                    </span>
-                    <p className="text-slate-900 font-medium">
-                      {selectedProjeto.Responsavel_da_Obra || '-'}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Cidade
-                    </span>
-                    <p className="text-slate-900 font-medium">{selectedProjeto.Cidade || '-'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Estado
-                    </span>
-                    <p className="text-slate-900 font-medium">{selectedProjeto.Estado || '-'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Arquivado
-                    </span>
-                    <p className="text-slate-900 font-medium">{selectedProjeto.Arquivado || '-'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Tipo de Item
-                    </span>
-                    <p className="text-slate-900 font-medium">
-                      {selectedProjeto.Tipo_de_Item || '-'}
-                    </p>
-                  </div>
+                  {renderField('Código', 'Codigo', 'number')}
+                  {renderField('Nível Estratégico', 'Nivel_Estrategico')}
+                  {renderField('Projeto', 'Projeto')}
+                  {renderField('Responsável', 'Responsavel')}
+                  {renderField('Data de Entrada', 'Data_Entrada')}
+                  {renderField('Status', 'Status')}
+                  {renderField('Arquiteto Responsável', 'Arquiteto_Responsavel')}
+                  {renderField('Responsável da Obra', 'Responsavel_da_Obra')}
+                  {renderField('Cidade', 'Cidade')}
+                  {renderField('Estado', 'Estado')}
+                  {renderField('Arquivado', 'Arquivado')}
+                  {renderField('Tipo de Item', 'Tipo_de_Item')}
                   <div className="col-span-1 sm:col-span-2 md:col-span-3 space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Caminho
-                    </span>
-                    <p className="text-slate-900 font-medium break-all">
-                      {selectedProjeto.Caminho || '-'}
-                    </p>
+                    {renderField('Caminho', 'Caminho')}
                   </div>
                 </div>
 
@@ -627,67 +668,155 @@ export default function Projetos() {
                   <h4 className="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">
                     Pagamentos Registrados
                   </h4>
-                  {(() => {
-                    const pagamentos = []
-                    for (let i = 1; i <= 10; i++) {
-                      const valor = (selectedProjeto as any)[`valor_fechado_${i}`]
-                      const data = (selectedProjeto as any)[`data_fechamento_${i}`]
-                      if (valor || data) {
-                        pagamentos.push({
-                          i,
-                          valor: valor ? formatCurrency(parseValor(valor)) : '-',
-                          data: formatDate(data),
-                        })
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      {editedPagamentos.map((p, idx) => (
+                        <div
+                          key={p.id}
+                          className="flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-slate-50 p-3 rounded-md border border-slate-100"
+                        >
+                          <div className="w-full sm:w-1/2">
+                            <Label className="text-xs text-slate-500 mb-1 block">Valor Pago</Label>
+                            <Input
+                              value={p.valor}
+                              onChange={(e) => {
+                                const newPags = [...editedPagamentos]
+                                newPags[idx].valor = e.target.value
+                                setEditedPagamentos(newPags)
+                              }}
+                              placeholder="Ex: 1500,00"
+                            />
+                          </div>
+                          <div className="w-full sm:w-1/2">
+                            <Label className="text-xs text-slate-500 mb-1 block">Data</Label>
+                            <Input
+                              type="text"
+                              value={p.data}
+                              onChange={(e) => {
+                                const newPags = [...editedPagamentos]
+                                newPags[idx].data = e.target.value
+                                setEditedPagamentos(newPags)
+                              }}
+                              placeholder="DD/MM/AAAA"
+                            />
+                          </div>
+                          <div className="w-full sm:w-auto mt-2 sm:mt-0 flex justify-end">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const newPags = editedPagamentos.filter((_, i) => i !== idx)
+                                setEditedPagamentos(newPags)
+                              }}
+                            >
+                              <X className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {editedPagamentos.length < 10 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditedPagamentos([
+                              ...editedPagamentos,
+                              { id: Date.now(), valor: '', data: '' },
+                            ])
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-2" /> Adicionar Pagamento
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    (() => {
+                      const pagamentos = []
+                      for (let i = 1; i <= 10; i++) {
+                        const valor = (selectedProjeto as any)[`valor_fechado_${i}`]
+                        const data = (selectedProjeto as any)[`data_fechamento_${i}`]
+                        if (valor || data) {
+                          pagamentos.push({
+                            i,
+                            valor: valor ? formatCurrency(parseValor(valor)) : '-',
+                            data: formatDate(data),
+                          })
+                        }
                       }
-                    }
 
-                    if (pagamentos.length === 0) {
+                      if (pagamentos.length === 0) {
+                        return (
+                          <p className="text-slate-500 text-sm py-2">
+                            Nenhum pagamento registrado.
+                          </p>
+                        )
+                      }
+
                       return (
-                        <p className="text-slate-500 text-sm py-2">Nenhum pagamento registrado.</p>
-                      )
-                    }
-
-                    return (
-                      <div className="rounded-md border border-slate-200 overflow-hidden">
-                        <Table>
-                          <TableHeader className="bg-slate-50">
-                            <TableRow>
-                              <TableHead className="w-[80px]">Parcela</TableHead>
-                              <TableHead>Valor Pago</TableHead>
-                              <TableHead className="text-right">Data</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {pagamentos.map((p) => (
-                              <TableRow key={p.i}>
-                                <TableCell className="font-medium text-slate-500">{p.i}</TableCell>
-                                <TableCell className="font-semibold text-emerald-600">
-                                  {p.valor}
+                        <div className="rounded-md border border-slate-200 overflow-hidden">
+                          <Table>
+                            <TableHeader className="bg-slate-50">
+                              <TableRow>
+                                <TableHead className="w-[80px]">Parcela</TableHead>
+                                <TableHead>Valor Pago</TableHead>
+                                <TableHead className="text-right">Data</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {pagamentos.map((p) => (
+                                <TableRow key={p.i}>
+                                  <TableCell className="font-medium text-slate-500">
+                                    {p.i}
+                                  </TableCell>
+                                  <TableCell className="font-semibold text-emerald-600">
+                                    {p.valor}
+                                  </TableCell>
+                                  <TableCell className="text-right text-slate-600">
+                                    {p.data}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                              <TableRow className="bg-slate-50 font-bold">
+                                <TableCell colSpan={2} className="text-slate-700">
+                                  Valor Total
                                 </TableCell>
-                                <TableCell className="text-right text-slate-600">
-                                  {p.data}
+                                <TableCell className="text-right text-emerald-600">
+                                  {formatCurrency(getValorTotal(selectedProjeto))}
                                 </TableCell>
                               </TableRow>
-                            ))}
-                            <TableRow className="bg-slate-50 font-bold">
-                              <TableCell colSpan={2} className="text-slate-700">
-                                Valor Total
-                              </TableCell>
-                              <TableCell className="text-right text-emerald-600">
-                                {formatCurrency(getValorTotal(selectedProjeto))}
-                              </TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )
-                  })()}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )
+                    })()
+                  )}
                 </div>
 
-                <div className="flex justify-end pt-4">
-                  <Button onClick={() => setSelectedProjeto(null)} className="min-w-[100px]">
-                    Fechar
-                  </Button>
+                <div className="flex justify-end pt-6 gap-2">
+                  {isEditing ? (
+                    <>
+                      <Button variant="outline" onClick={() => setIsEditing(false)}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleSave} disabled={saving}>
+                        {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        Salvar
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => {
+                          setSelectedProjeto(null)
+                          setIsEditing(false)
+                        }}
+                        variant="outline"
+                      >
+                        Fechar
+                      </Button>
+                      <Button onClick={startEditing}>Editar</Button>
+                    </>
+                  )}
                 </div>
               </>
             )}
