@@ -41,3 +41,14 @@ export async function deleteProjeto(codigo: number) {
 
   if (error) throw error
 }
+
+export async function updateProjetoEdge(codigo: number, data: Partial<Projeto>) {
+  const { data: result, error } = await supabase.functions.invoke('update-project', {
+    body: { id: codigo, ...data },
+  })
+
+  if (error) throw error
+  if (result?.error) throw new Error(result.error)
+
+  return result?.data
+}
