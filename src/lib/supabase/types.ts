@@ -182,46 +182,49 @@ export type Database = {
       }
       Organizacao_projetos: {
         Row: {
-          arquiteto: string | null
+          Arquiteto_Responsavel: string | null
+          Arquivado: string | null
+          Caminho: string | null
           Cidade: string | null
-          Codigo: string | null
-          data_entrada: string | null
-          eletricista: string | null
-          engenheiro: string | null
+          Codigo: number | null
+          Data_Entrada: string | null
           Estado: string | null
-          id: number
-          nivel_estrategico: string | null
+          Nivel_Estrategico: string | null
           Projeto: string | null
-          responsavel: string | null
+          Responsavel: string | null
+          Responsavel_da_Obra: string | null
           Status: string | null
+          Tipo_de_Item: string | null
         }
         Insert: {
-          arquiteto?: string | null
+          Arquiteto_Responsavel?: string | null
+          Arquivado?: string | null
+          Caminho?: string | null
           Cidade?: string | null
-          Codigo?: string | null
-          data_entrada?: string | null
-          eletricista?: string | null
-          engenheiro?: string | null
+          Codigo?: number | null
+          Data_Entrada?: string | null
           Estado?: string | null
-          id?: number
-          nivel_estrategico?: string | null
+          Nivel_Estrategico?: string | null
           Projeto?: string | null
-          responsavel?: string | null
+          Responsavel?: string | null
+          Responsavel_da_Obra?: string | null
           Status?: string | null
+          Tipo_de_Item?: string | null
         }
         Update: {
-          arquiteto?: string | null
+          Arquiteto_Responsavel?: string | null
+          Arquivado?: string | null
+          Caminho?: string | null
           Cidade?: string | null
-          Codigo?: string | null
-          data_entrada?: string | null
-          eletricista?: string | null
-          engenheiro?: string | null
+          Codigo?: number | null
+          Data_Entrada?: string | null
           Estado?: string | null
-          id?: number
-          nivel_estrategico?: string | null
+          Nivel_Estrategico?: string | null
           Projeto?: string | null
-          responsavel?: string | null
+          Responsavel?: string | null
+          Responsavel_da_Obra?: string | null
           Status?: string | null
+          Tipo_de_Item?: string | null
         }
         Relationships: []
       }
@@ -398,18 +401,19 @@ export const Constants = {
 //   Observacoes: text (nullable)
 //   Email: text (nullable)
 // Table: Organizacao_projetos
-//   Codigo: text (nullable)
-//   nivel_estrategico: text (nullable)
+//   Codigo: double precision (nullable)
+//   Nivel_Estrategico: text (nullable)
 //   Projeto: text (nullable)
-//   responsavel: text (nullable)
-//   data_entrada: text (nullable)
+//   Responsavel: text (nullable)
+//   Data_Entrada: text (nullable)
 //   Status: text (nullable)
-//   arquiteto: text (nullable)
-//   engenheiro: text (nullable)
+//   Arquiteto_Responsavel: text (nullable)
+//   Responsavel_da_Obra: text (nullable)
 //   Cidade: text (nullable)
 //   Estado: text (nullable)
-//   eletricista: text (nullable)
-//   id: bigint (not null, default: nextval('"Organizacao_projetos_id_seq"'::regclass))
+//   Arquivado: text (nullable)
+//   Tipo_de_Item: text (nullable)
+//   Caminho: text (nullable)
 // Table: clientes_crm
 //   cod_cliente: bigint (nullable)
 //   nm_cliente: text (nullable)
@@ -444,8 +448,6 @@ export const Constants = {
 //   created_at: timestamp with time zone (not null, default: now())
 
 // --- CONSTRAINTS ---
-// Table: Organizacao_projetos
-//   PRIMARY KEY Organizacao_projetos_pkey: PRIMARY KEY (id)
 // Table: eletricistas_crm
 //   PRIMARY KEY eletricistas_crm_pkey: PRIMARY KEY (id)
 // Table: engenheiro_crm
@@ -460,16 +462,6 @@ export const Constants = {
 //   Policy "authenticated_select_arquitetos" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 //   Policy "authenticated_update_arquitetos" (UPDATE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//     WITH CHECK: true
-// Table: Organizacao_projetos
-//   Policy "authenticated_delete_projetos" (DELETE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_insert_projetos" (INSERT, PERMISSIVE) roles={authenticated}
-//     WITH CHECK: true
-//   Policy "authenticated_select_projetos" (SELECT, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_update_projetos" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 // Table: clientes_crm
@@ -502,6 +494,13 @@ export const Constants = {
 //   Policy "authenticated_update_engenheiros" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+
+// --- WARNING: TABLES WITH RLS ENABLED BUT NO POLICIES ---
+// These tables have Row Level Security enabled but NO policies defined.
+// This means ALL queries (SELECT, INSERT, UPDATE, DELETE) will return ZERO rows
+// for non-superuser roles (including the anon and authenticated roles used by the app).
+// You MUST create RLS policies for these tables to allow data access.
+//   - Organizacao_projetos
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION create_user(text, text, text, text)

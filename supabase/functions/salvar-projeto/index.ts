@@ -32,7 +32,6 @@ Deno.serve(async (req: Request) => {
       Estado,
       arquiteto,
       engenheiro,
-      eletricista,
       responsavel,
       data_entrada,
       nivel_estrategico,
@@ -79,17 +78,16 @@ Deno.serve(async (req: Request) => {
     }
 
     const payloadInsercao = {
-      Codigo: String(Codigo).trim(),
+      Codigo: Number(String(Codigo).trim()),
       Projeto,
       Status,
       Cidade,
       Estado,
-      arquiteto,
-      engenheiro,
-      eletricista,
-      responsavel,
-      data_entrada,
-      nivel_estrategico,
+      Arquiteto_Responsavel: arquiteto,
+      Responsavel_da_Obra: engenheiro,
+      Responsavel: responsavel,
+      Data_Entrada: data_entrada,
+      Nivel_Estrategico: nivel_estrategico,
     }
 
     console.log('[salvar-projeto] Confirmando formato dos dados antes do INSERT:')

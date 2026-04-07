@@ -34,7 +34,6 @@ export default function Projetos() {
   const [filterResponsavel, setFilterResponsavel] = useState('all')
   const [filterArquiteto, setFilterArquiteto] = useState('all')
   const [filterEngenheiro, setFilterEngenheiro] = useState('all')
-  const [filterEletricista, setFilterEletricista] = useState('all')
   const [filterCidade, setFilterCidade] = useState('all')
 
   const loadProjetos = () => {
@@ -55,20 +54,19 @@ export default function Projetos() {
       label: 'Responsável',
       state: filterResponsavel,
       set: setFilterResponsavel,
-      key: 'responsavel',
+      key: 'Responsavel',
     },
     {
       label: 'Arquiteto Responsável',
       state: filterArquiteto,
       set: setFilterArquiteto,
-      key: 'arquiteto',
+      key: 'Arquiteto_Responsavel',
     },
-    { label: 'Engenheiro', state: filterEngenheiro, set: setFilterEngenheiro, key: 'engenheiro' },
     {
-      label: 'Eletricista',
-      state: filterEletricista,
-      set: setFilterEletricista,
-      key: 'eletricista',
+      label: 'Engenheiro',
+      state: filterEngenheiro,
+      set: setFilterEngenheiro,
+      key: 'Responsavel_da_Obra',
     },
     { label: 'Cidade', state: filterCidade, set: setFilterCidade, key: 'Cidade' },
   ]
@@ -92,7 +90,7 @@ export default function Projetos() {
   const getColSpan = () => {
     if (viewMode === 'resumida') return 5
     if (viewMode === 'operacional') return 7
-    return 11
+    return 10
   }
 
   const formatDate = (dateStr: string | null) => {
@@ -230,9 +228,6 @@ export default function Projetos() {
                   {viewMode === 'completa' && (
                     <TableHead className="py-4 text-slate-600 font-semibold">Engenheiro</TableHead>
                   )}
-                  {viewMode === 'completa' && (
-                    <TableHead className="py-4 text-slate-600 font-semibold">Eletricista</TableHead>
-                  )}
                   {(viewMode === 'completa' || viewMode === 'resumida') && (
                     <TableHead className="py-4 text-slate-600 font-semibold">Localização</TableHead>
                   )}
@@ -268,9 +263,9 @@ export default function Projetos() {
 
                       {(viewMode === 'completa' || viewMode === 'operacional') && (
                         <TableCell className="py-4">
-                          {projeto.nivel_estrategico ? (
+                          {projeto.Nivel_Estrategico ? (
                             <Badge variant="outline" className="bg-slate-50">
-                              {projeto.nivel_estrategico}
+                              {projeto.Nivel_Estrategico}
                             </Badge>
                           ) : (
                             <span className="text-slate-400 text-sm">-</span>
@@ -288,15 +283,15 @@ export default function Projetos() {
                       {(viewMode === 'completa' || viewMode === 'operacional') && (
                         <TableCell
                           className="py-4 max-w-[120px] truncate text-slate-600"
-                          title={projeto.responsavel || ''}
+                          title={projeto.Responsavel || ''}
                         >
-                          {projeto.responsavel || '-'}
+                          {projeto.Responsavel || '-'}
                         </TableCell>
                       )}
 
                       {(viewMode === 'completa' || viewMode === 'operacional') && (
                         <TableCell className="py-4 whitespace-nowrap text-slate-500">
-                          {formatDate(projeto.data_entrada)}
+                          {formatDate(projeto.Data_Entrada)}
                         </TableCell>
                       )}
 
@@ -316,27 +311,18 @@ export default function Projetos() {
                       {viewMode === 'completa' && (
                         <TableCell
                           className="py-4 max-w-[150px] truncate text-slate-600"
-                          title={projeto.arquiteto || ''}
+                          title={projeto.Arquiteto_Responsavel || ''}
                         >
-                          {projeto.arquiteto || '-'}
+                          {projeto.Arquiteto_Responsavel || '-'}
                         </TableCell>
                       )}
 
                       {viewMode === 'completa' && (
                         <TableCell
                           className="py-4 max-w-[150px] truncate text-slate-600"
-                          title={projeto.engenheiro || ''}
+                          title={projeto.Responsavel_da_Obra || ''}
                         >
-                          {projeto.engenheiro || '-'}
-                        </TableCell>
-                      )}
-
-                      {viewMode === 'completa' && (
-                        <TableCell
-                          className="py-4 max-w-[150px] truncate text-slate-600"
-                          title={(projeto as any).eletricista || ''}
-                        >
-                          {(projeto as any).eletricista || '-'}
+                          {projeto.Responsavel_da_Obra || '-'}
                         </TableCell>
                       )}
 
