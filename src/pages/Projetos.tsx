@@ -236,25 +236,66 @@ export default function Projetos() {
                   <TableHead className="w-[100px] py-4 text-slate-600 font-semibold">
                     Código
                   </TableHead>
+                  {viewMode === 'completa' && (
+                    <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                      Nível Estratégico
+                    </TableHead>
+                  )}
                   <TableHead className="py-4 text-slate-600 font-semibold">Projeto</TableHead>
-                  <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
-                  <TableHead className="py-4 text-slate-600 font-semibold">Responsável</TableHead>
-                  <TableHead className="py-4 text-slate-600 font-semibold">Data Entrada</TableHead>
-                  <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
-                  <TableHead className="py-4 text-slate-600 font-semibold">Valor Total</TableHead>
+
+                  {viewMode === 'completa' ? (
+                    <>
+                      <TableHead className="py-4 text-slate-600 font-semibold">
+                        Responsável
+                      </TableHead>
+                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                        Data Entrada
+                      </TableHead>
+                      <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
+                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                        Arquiteto Responsável
+                      </TableHead>
+                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                        Responsável da Obra
+                      </TableHead>
+                      <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
+                      <TableHead className="py-4 text-slate-600 font-semibold">Estado</TableHead>
+                    </>
+                  ) : (
+                    <>
+                      <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
+                      <TableHead className="py-4 text-slate-600 font-semibold">
+                        Responsável
+                      </TableHead>
+                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                        Data Entrada
+                      </TableHead>
+                      <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
+                    </>
+                  )}
+
+                  <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                    Valor Total
+                  </TableHead>
                   <TableHead className="w-[50px] py-4"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center">
+                    <TableCell
+                      colSpan={viewMode === 'completa' ? 12 : 8}
+                      className="h-32 text-center"
+                    >
                       <Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" />
                     </TableCell>
                   </TableRow>
                 ) : filteredProjetos.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center text-slate-500 font-medium">
+                    <TableCell
+                      colSpan={viewMode === 'completa' ? 12 : 8}
+                      className="h-32 text-center text-slate-500 font-medium"
+                    >
                       Nenhum projeto encontrado com os filtros atuais.
                     </TableCell>
                   </TableRow>
@@ -266,17 +307,17 @@ export default function Projetos() {
                       <TableRow
                         key={projeto.Codigo || Math.random().toString()}
                         className="cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
-                        onClick={() => {
-                          if (viewMode === 'completa') {
-                            setSelectedProjeto(projeto)
-                          } else {
-                            navigate(`/projeto/${projeto.Codigo}`)
-                          }
-                        }}
+                        onClick={() => setSelectedProjeto(projeto)}
                       >
                         <TableCell className="py-4 font-medium text-slate-900">
                           {formatCodigo(projeto.Codigo)}
                         </TableCell>
+
+                        {viewMode === 'completa' && (
+                          <TableCell className="py-4 text-slate-600">
+                            {projeto.Nivel_Estrategico || '-'}
+                          </TableCell>
+                        )}
 
                         <TableCell
                           className="py-4 font-semibold text-slate-900 max-w-[200px] truncate"
@@ -285,50 +326,102 @@ export default function Projetos() {
                           {projeto.Projeto || 'Sem nome'}
                         </TableCell>
 
-                        <TableCell className="py-4">
-                          {projeto.Status ? (
-                            <Badge
-                              variant={
-                                projeto.Status === 'Concluído' ||
-                                projeto.Status === 'Completo' ||
-                                projeto.Status === 'Finalizado'
-                                  ? 'default'
-                                  : 'secondary'
-                              }
-                              className="font-medium shadow-sm"
+                        {viewMode === 'completa' ? (
+                          <>
+                            <TableCell
+                              className="py-4 text-slate-600 max-w-[150px] truncate"
+                              title={projeto.Responsavel || ''}
                             >
-                              {projeto.Status}
-                            </Badge>
-                          ) : (
-                            <span className="text-slate-400 text-sm">-</span>
-                          )}
-                        </TableCell>
-
-                        <TableCell
-                          className="py-4 max-w-[150px] truncate text-slate-600"
-                          title={projeto.Responsavel || ''}
-                        >
-                          {projeto.Responsavel || '-'}
-                        </TableCell>
-
-                        <TableCell className="py-4 whitespace-nowrap text-slate-500">
-                          {formatDate(projeto.Data_Entrada)}
-                        </TableCell>
-
-                        <TableCell className="py-4">
-                          <div
-                            className="flex flex-col max-w-[150px] truncate"
-                            title={`${projeto.Cidade || ''} - ${projeto.Estado || ''}`}
-                          >
-                            <span className="text-slate-700 font-medium">
+                              {projeto.Responsavel || '-'}
+                            </TableCell>
+                            <TableCell className="py-4 whitespace-nowrap text-slate-500">
+                              {formatDate(projeto.Data_Entrada)}
+                            </TableCell>
+                            <TableCell className="py-4">
+                              {projeto.Status ? (
+                                <Badge
+                                  variant={
+                                    projeto.Status === 'Concluído' ||
+                                    projeto.Status === 'Completo' ||
+                                    projeto.Status === 'Finalizado'
+                                      ? 'default'
+                                      : 'secondary'
+                                  }
+                                  className="font-medium shadow-sm"
+                                >
+                                  {projeto.Status}
+                                </Badge>
+                              ) : (
+                                <span className="text-slate-400 text-sm">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell
+                              className="py-4 text-slate-600 max-w-[150px] truncate"
+                              title={projeto.Arquiteto_Responsavel || ''}
+                            >
+                              {projeto.Arquiteto_Responsavel || '-'}
+                            </TableCell>
+                            <TableCell
+                              className="py-4 text-slate-600 max-w-[150px] truncate"
+                              title={projeto.Responsavel_da_Obra || ''}
+                            >
+                              {projeto.Responsavel_da_Obra || '-'}
+                            </TableCell>
+                            <TableCell
+                              className="py-4 text-slate-700 max-w-[150px] truncate"
+                              title={projeto.Cidade || ''}
+                            >
                               {projeto.Cidade || '-'}
-                            </span>
-                            <span className="text-xs text-slate-500">{projeto.Estado || '-'}</span>
-                          </div>
-                        </TableCell>
+                            </TableCell>
+                            <TableCell className="py-4 text-slate-600">
+                              {projeto.Estado || '-'}
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="py-4">
+                              {projeto.Status ? (
+                                <Badge
+                                  variant={
+                                    projeto.Status === 'Concluído' ||
+                                    projeto.Status === 'Completo' ||
+                                    projeto.Status === 'Finalizado'
+                                      ? 'default'
+                                      : 'secondary'
+                                  }
+                                  className="font-medium shadow-sm"
+                                >
+                                  {projeto.Status}
+                                </Badge>
+                              ) : (
+                                <span className="text-slate-400 text-sm">-</span>
+                              )}
+                            </TableCell>
+
+                            <TableCell
+                              className="py-4 max-w-[150px] truncate text-slate-600"
+                              title={projeto.Responsavel || ''}
+                            >
+                              {projeto.Responsavel || '-'}
+                            </TableCell>
+
+                            <TableCell className="py-4 whitespace-nowrap text-slate-500">
+                              {formatDate(projeto.Data_Entrada)}
+                            </TableCell>
+
+                            <TableCell className="py-4">
+                              <span
+                                className="text-slate-700 font-medium truncate max-w-[150px] block"
+                                title={projeto.Cidade || ''}
+                              >
+                                {projeto.Cidade || '-'}
+                              </span>
+                            </TableCell>
+                          </>
+                        )}
 
                         <TableCell className="py-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm whitespace-nowrap">
                             {formatCurrency(valorTotal)}
                           </span>
                         </TableCell>
@@ -347,65 +440,194 @@ export default function Projetos() {
       </Card>
 
       <Dialog open={!!selectedProjeto} onOpenChange={(open) => !open && setSelectedProjeto(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalhes de Pagamentos - {selectedProjeto?.Projeto}</DialogTitle>
+            <DialogTitle className="text-xl">Detalhes do Projeto</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            {selectedProjeto &&
-              (() => {
-                const pagamentos = []
-                for (let i = 1; i <= 10; i++) {
-                  const valor = (selectedProjeto as any)[`valor_fechado_${i}`]
-                  const data = (selectedProjeto as any)[`data_fechamento_${i}`]
-                  if (valor || data) {
-                    pagamentos.push({
-                      i,
-                      valor: valor ? formatCurrency(parseValor(valor)) : '-',
-                      data: formatDate(data),
-                    })
-                  }
-                }
-
-                if (pagamentos.length === 0) {
-                  return (
-                    <p className="text-slate-500 text-center py-4">Nenhum pagamento registrado.</p>
-                  )
-                }
-
-                return (
-                  <div className="rounded-md border border-slate-200 overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-slate-50">
-                        <TableRow>
-                          <TableHead className="w-[80px]">Parcela</TableHead>
-                          <TableHead>Valor Pago</TableHead>
-                          <TableHead className="text-right">Data</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {pagamentos.map((p) => (
-                          <TableRow key={p.i}>
-                            <TableCell className="font-medium text-slate-500">{p.i}</TableCell>
-                            <TableCell className="font-semibold text-emerald-600">
-                              {p.valor}
-                            </TableCell>
-                            <TableCell className="text-right text-slate-600">{p.data}</TableCell>
-                          </TableRow>
-                        ))}
-                        <TableRow className="bg-slate-50 font-bold">
-                          <TableCell colSpan={2} className="text-slate-700">
-                            Valor Total
-                          </TableCell>
-                          <TableCell className="text-right text-emerald-600">
-                            {formatCurrency(getValorTotal(selectedProjeto))}
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
+          <div className="space-y-6 py-4">
+            {selectedProjeto && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Código
+                    </span>
+                    <p className="text-slate-900 font-medium">
+                      {formatCodigo(selectedProjeto.Codigo)}
+                    </p>
                   </div>
-                )
-              })()}
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Nível Estratégico
+                    </span>
+                    <p className="text-slate-900 font-medium">
+                      {selectedProjeto.Nivel_Estrategico || '-'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Projeto
+                    </span>
+                    <p className="text-slate-900 font-medium">{selectedProjeto.Projeto || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Responsável
+                    </span>
+                    <p className="text-slate-900 font-medium">
+                      {selectedProjeto.Responsavel || '-'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Data de Entrada
+                    </span>
+                    <p className="text-slate-900 font-medium">
+                      {formatDate(selectedProjeto.Data_Entrada)}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Status
+                    </span>
+                    <div>
+                      {selectedProjeto.Status ? (
+                        <Badge
+                          variant={
+                            selectedProjeto.Status === 'Concluído' ||
+                            selectedProjeto.Status === 'Completo' ||
+                            selectedProjeto.Status === 'Finalizado'
+                              ? 'default'
+                              : 'secondary'
+                          }
+                        >
+                          {selectedProjeto.Status}
+                        </Badge>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Arquiteto Responsável
+                    </span>
+                    <p className="text-slate-900 font-medium">
+                      {selectedProjeto.Arquiteto_Responsavel || '-'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Responsável da Obra
+                    </span>
+                    <p className="text-slate-900 font-medium">
+                      {selectedProjeto.Responsavel_da_Obra || '-'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Cidade
+                    </span>
+                    <p className="text-slate-900 font-medium">{selectedProjeto.Cidade || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Estado
+                    </span>
+                    <p className="text-slate-900 font-medium">{selectedProjeto.Estado || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Arquivado
+                    </span>
+                    <p className="text-slate-900 font-medium">{selectedProjeto.Arquivado || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Tipo de Item
+                    </span>
+                    <p className="text-slate-900 font-medium">
+                      {selectedProjeto.Tipo_de_Item || '-'}
+                    </p>
+                  </div>
+                  <div className="col-span-1 sm:col-span-2 md:col-span-3 space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Caminho
+                    </span>
+                    <p className="text-slate-900 font-medium break-all">
+                      {selectedProjeto.Caminho || '-'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-200 mt-6">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">
+                    Pagamentos Registrados
+                  </h4>
+                  {(() => {
+                    const pagamentos = []
+                    for (let i = 1; i <= 10; i++) {
+                      const valor = (selectedProjeto as any)[`valor_fechado_${i}`]
+                      const data = (selectedProjeto as any)[`data_fechamento_${i}`]
+                      if (valor || data) {
+                        pagamentos.push({
+                          i,
+                          valor: valor ? formatCurrency(parseValor(valor)) : '-',
+                          data: formatDate(data),
+                        })
+                      }
+                    }
+
+                    if (pagamentos.length === 0) {
+                      return (
+                        <p className="text-slate-500 text-sm py-2">Nenhum pagamento registrado.</p>
+                      )
+                    }
+
+                    return (
+                      <div className="rounded-md border border-slate-200 overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-slate-50">
+                            <TableRow>
+                              <TableHead className="w-[80px]">Parcela</TableHead>
+                              <TableHead>Valor Pago</TableHead>
+                              <TableHead className="text-right">Data</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {pagamentos.map((p) => (
+                              <TableRow key={p.i}>
+                                <TableCell className="font-medium text-slate-500">{p.i}</TableCell>
+                                <TableCell className="font-semibold text-emerald-600">
+                                  {p.valor}
+                                </TableCell>
+                                <TableCell className="text-right text-slate-600">
+                                  {p.data}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow className="bg-slate-50 font-bold">
+                              <TableCell colSpan={2} className="text-slate-700">
+                                Valor Total
+                              </TableCell>
+                              <TableCell className="text-right text-emerald-600">
+                                {formatCurrency(getValorTotal(selectedProjeto))}
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                <div className="flex justify-end pt-4">
+                  <Button onClick={() => setSelectedProjeto(null)} className="min-w-[100px]">
+                    Fechar
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
