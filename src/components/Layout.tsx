@@ -9,7 +9,6 @@ import {
   HardHat,
   Zap,
 } from 'lucide-react'
-import logoUrl from '@/assets/img_0775-2f8f9.jpeg'
 import {
   Sidebar,
   SidebarContent,
@@ -45,7 +44,7 @@ export default function Layout() {
         <SidebarHeader className="flex h-16 items-center border-b border-sidebar-border px-4 justify-center">
           <Link to="/" className="flex items-center gap-3 w-full overflow-hidden">
             <img
-              src={logoUrl}
+              src="https://vcvcwzmbiftcawncibke.supabase.co/storage/v1/object/public/Logo/lucenera-vertical.png"
               alt="Lucenera"
               className="h-8 shrink-0 object-contain brightness-0 invert opacity-90"
             />
