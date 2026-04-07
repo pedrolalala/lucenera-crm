@@ -37,6 +37,7 @@ export default function Projetos() {
   const [filterArquiteto, setFilterArquiteto] = useState('all')
   const [filterEngenheiro, setFilterEngenheiro] = useState('all')
   const [filterCidade, setFilterCidade] = useState('all')
+  const [filterValorTotal, setFilterValorTotal] = useState('all')
 
   const loadProjetos = () => {
     setLoading(true)
@@ -83,6 +84,12 @@ export default function Projetos() {
       const status = p.Status || ''
       if (status === 'Completo' || status === 'Finalizado' || status === 'Concluído') return false
     }
+
+    if (filterValorTotal === '>0') {
+      const total = getValorTotal(p)
+      if (total <= 0) return false
+    }
+
     return filterConfigs.every((config) => {
       if (config.state === 'all') return true
       return (p as any)[config.key] === config.state
@@ -91,6 +98,7 @@ export default function Projetos() {
 
   const clearFilters = () => {
     filterConfigs.forEach((c) => c.set('all'))
+    setFilterValorTotal('all')
   }
 
   const formatDate = (dateStr: string | null) => {
@@ -213,6 +221,20 @@ export default function Projetos() {
                 </Select>
               </div>
             ))}
+            <div className="space-y-2 flex-1 min-w-[150px]">
+              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                Valor Total
+              </label>
+              <Select value={filterValorTotal} onValueChange={setFilterValorTotal}>
+                <SelectTrigger className="bg-white border-slate-200 shadow-sm focus:ring-primary/20 transition-all">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value=">0">Maior que 0</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex-none w-full sm:w-auto mt-2 sm:mt-0">
               <Button
                 variant="outline"
@@ -243,7 +265,7 @@ export default function Projetos() {
                   )}
                   <TableHead className="py-4 text-slate-600 font-semibold">Projeto</TableHead>
 
-                  {viewMode === 'completa' ? (
+                  {viewMode === 'completa' && (
                     <>
                       <TableHead className="py-4 text-slate-600 font-semibold">
                         Responsável
@@ -261,7 +283,8 @@ export default function Projetos() {
                       <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
                       <TableHead className="py-4 text-slate-600 font-semibold">Estado</TableHead>
                     </>
-                  ) : (
+                  )}
+                  {viewMode === 'operacional' && (
                     <>
                       <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
                       <TableHead className="py-4 text-slate-600 font-semibold">
@@ -271,6 +294,14 @@ export default function Projetos() {
                         Data Entrada
                       </TableHead>
                       <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
+                    </>
+                  )}
+                  {viewMode === 'resumida' && (
+                    <>
+                      <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
+                      <TableHead className="py-4 text-slate-600 font-semibold">
+                        Responsável
+                      </TableHead>
                     </>
                   )}
 
@@ -284,7 +315,7 @@ export default function Projetos() {
                 {loading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={viewMode === 'completa' ? 12 : 8}
+                      colSpan={viewMode === 'completa' ? 12 : viewMode === 'operacional' ? 8 : 6}
                       className="h-32 text-center"
                     >
                       <Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" />
@@ -293,7 +324,7 @@ export default function Projetos() {
                 ) : filteredProjetos.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={viewMode === 'completa' ? 12 : 8}
+                      colSpan={viewMode === 'completa' ? 12 : viewMode === 'operacional' ? 8 : 6}
                       className="h-32 text-center text-slate-500 font-medium"
                     >
                       Nenhum projeto encontrado com os filtros atuais.
@@ -326,7 +357,7 @@ export default function Projetos() {
                           {projeto.Projeto || 'Sem nome'}
                         </TableCell>
 
-                        {viewMode === 'completa' ? (
+                        {viewMode === 'completa' && (
                           <>
                             <TableCell
                               className="py-4 text-slate-600 max-w-[150px] truncate"
@@ -377,7 +408,9 @@ export default function Projetos() {
                               {projeto.Estado || '-'}
                             </TableCell>
                           </>
-                        ) : (
+                        )}
+
+                        {viewMode === 'operacional' && (
                           <>
                             <TableCell className="py-4">
                               {projeto.Status ? (
@@ -416,6 +449,36 @@ export default function Projetos() {
                               >
                                 {projeto.Cidade || '-'}
                               </span>
+                            </TableCell>
+                          </>
+                        )}
+
+                        {viewMode === 'resumida' && (
+                          <>
+                            <TableCell className="py-4">
+                              {projeto.Status ? (
+                                <Badge
+                                  variant={
+                                    projeto.Status === 'Concluído' ||
+                                    projeto.Status === 'Completo' ||
+                                    projeto.Status === 'Finalizado'
+                                      ? 'default'
+                                      : 'secondary'
+                                  }
+                                  className="font-medium shadow-sm"
+                                >
+                                  {projeto.Status}
+                                </Badge>
+                              ) : (
+                                <span className="text-slate-400 text-sm">-</span>
+                              )}
+                            </TableCell>
+
+                            <TableCell
+                              className="py-4 max-w-[150px] truncate text-slate-600"
+                              title={projeto.Responsavel || ''}
+                            >
+                              {projeto.Responsavel || '-'}
                             </TableCell>
                           </>
                         )}
