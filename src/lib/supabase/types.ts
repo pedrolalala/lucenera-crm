@@ -228,6 +228,45 @@ export type Database = {
         }
         Relationships: []
       }
+      projetos_fechados: {
+        Row: {
+          arquiteto: string | null
+          causa_pagamento: string | null
+          cliente: string | null
+          cod: string | null
+          coluna1: string | null
+          data: string | null
+          data_fechamento: string | null
+          forma_pagamento: string | null
+          projetista: string | null
+          valor_fechado: string | null
+        }
+        Insert: {
+          arquiteto?: string | null
+          causa_pagamento?: string | null
+          cliente?: string | null
+          cod?: string | null
+          coluna1?: string | null
+          data?: string | null
+          data_fechamento?: string | null
+          forma_pagamento?: string | null
+          projetista?: string | null
+          valor_fechado?: string | null
+        }
+        Update: {
+          arquiteto?: string | null
+          causa_pagamento?: string | null
+          cliente?: string | null
+          cod?: string | null
+          coluna1?: string | null
+          data?: string | null
+          data_fechamento?: string | null
+          forma_pagamento?: string | null
+          projetista?: string | null
+          valor_fechado?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -446,6 +485,17 @@ export const Constants = {
 //   empresa: text (nullable)
 //   endereco_comercial: text (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
+// Table: projetos_fechados
+//   cod: text (nullable)
+//   cliente: text (nullable)
+//   coluna1: text (nullable)
+//   data: text (nullable)
+//   projetista: text (nullable)
+//   valor_fechado: text (nullable)
+//   causa_pagamento: text (nullable)
+//   forma_pagamento: text (nullable)
+//   data_fechamento: text (nullable)
+//   arquiteto: text (nullable)
 
 // --- CONSTRAINTS ---
 // Table: eletricistas_crm
@@ -462,6 +512,16 @@ export const Constants = {
 //   Policy "authenticated_select_arquitetos" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 //   Policy "authenticated_update_arquitetos" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: Organizacao_projetos
+//   Policy "authenticated_delete_projetos" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_insert_projetos" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_projetos" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_update_projetos" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 // Table: clientes_crm
@@ -500,7 +560,7 @@ export const Constants = {
 // This means ALL queries (SELECT, INSERT, UPDATE, DELETE) will return ZERO rows
 // for non-superuser roles (including the anon and authenticated roles used by the app).
 // You MUST create RLS policies for these tables to allow data access.
-//   - Organizacao_projetos
+//   - projetos_fechados
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION create_user(text, text, text, text)

@@ -90,7 +90,7 @@ export default function Projetos() {
   const getColSpan = () => {
     if (viewMode === 'resumida') return 5
     if (viewMode === 'operacional') return 7
-    return 10
+    return 11
   }
 
   const formatDate = (dateStr: string | null) => {
@@ -228,6 +228,9 @@ export default function Projetos() {
                   {viewMode === 'completa' && (
                     <TableHead className="py-4 text-slate-600 font-semibold">Engenheiro</TableHead>
                   )}
+                  {viewMode === 'completa' && (
+                    <TableHead className="py-4 text-slate-600 font-semibold">Valor</TableHead>
+                  )}
                   {(viewMode === 'completa' || viewMode === 'resumida') && (
                     <TableHead className="py-4 text-slate-600 font-semibold">Localização</TableHead>
                   )}
@@ -323,6 +326,15 @@ export default function Projetos() {
                           title={projeto.Responsavel_da_Obra || ''}
                         >
                           {projeto.Responsavel_da_Obra || '-'}
+                        </TableCell>
+                      )}
+
+                      {viewMode === 'completa' && (
+                        <TableCell
+                          className="py-4 max-w-[120px] truncate text-slate-700 font-medium"
+                          title={(projeto as any).valor_fechado || ''}
+                        >
+                          {(projeto as any).valor_fechado || '-'}
                         </TableCell>
                       )}
 
