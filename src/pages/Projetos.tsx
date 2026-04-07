@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 type ViewMode = 'resumida' | 'operacional' | 'completa'
 
@@ -29,6 +30,7 @@ export default function Projetos() {
   const [projetos, setProjetos] = useState<Projeto[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('resumida')
+  const [selectedProjeto, setSelectedProjeto] = useState<Projeto | null>(null)
 
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterResponsavel, setFilterResponsavel] = useState('all')
@@ -77,6 +79,10 @@ export default function Projetos() {
   }
 
   const filteredProjetos = projetos.filter((p) => {
+    if (viewMode === 'operacional') {
+      const status = p.Status || ''
+      if (status === 'Completo' || status === 'Finalizado' || status === 'Concluído') return false
+    }
     return filterConfigs.every((config) => {
       if (config.state === 'all') return true
       return (p as any)[config.key] === config.state
@@ -85,13 +91,6 @@ export default function Projetos() {
 
   const clearFilters = () => {
     filterConfigs.forEach((c) => c.set('all'))
-  }
-
-  const getColSpan = () => {
-    let base = 5
-    if (viewMode === 'operacional') base = 7
-    if (viewMode === 'completa') base = 11
-    return base + 20
   }
 
   const formatDate = (dateStr: string | null) => {
@@ -113,6 +112,33 @@ export default function Projetos() {
       return `${codStr.substring(0, 2)}.${codStr.substring(2)}`
     }
     return codStr
+  }
+
+  const parseValor = (val: any) => {
+    if (!val) return 0
+    if (typeof val === 'number') return val
+    const str = String(val).trim()
+    if (str.includes(',')) {
+      const clean = str
+        .replace(/\./g, '')
+        .replace(',', '.')
+        .replace(/[^\d.-]/g, '')
+      return parseFloat(clean) || 0
+    }
+    const clean = str.replace(/[^\d.-]/g, '')
+    return parseFloat(clean) || 0
+  }
+
+  const getValorTotal = (projeto: any) => {
+    let total = 0
+    for (let i = 1; i <= 10; i++) {
+      total += parseValor(projeto[`valor_fechado_${i}`])
+    }
+    return total
+  }
+
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
   }
 
   return (
@@ -210,154 +236,85 @@ export default function Projetos() {
                   <TableHead className="w-[100px] py-4 text-slate-600 font-semibold">
                     Código
                   </TableHead>
-                  {(viewMode === 'completa' || viewMode === 'operacional') && (
-                    <TableHead className="py-4 text-slate-600 font-semibold">Nível</TableHead>
-                  )}
                   <TableHead className="py-4 text-slate-600 font-semibold">Projeto</TableHead>
-                  {(viewMode === 'completa' || viewMode === 'operacional') && (
-                    <TableHead className="py-4 text-slate-600 font-semibold">Responsável</TableHead>
-                  )}
-                  {(viewMode === 'completa' || viewMode === 'operacional') && (
-                    <TableHead className="py-4 text-slate-600 font-semibold">
-                      Data Entrada
-                    </TableHead>
-                  )}
                   <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
-                  {viewMode === 'completa' && (
-                    <TableHead className="py-4 text-slate-600 font-semibold">Arquiteto</TableHead>
-                  )}
-                  {viewMode === 'completa' && (
-                    <TableHead className="py-4 text-slate-600 font-semibold">Engenheiro</TableHead>
-                  )}
-                  {viewMode === 'completa' && (
-                    <TableHead className="py-4 text-slate-600 font-semibold">
-                      Valor Fechado
-                    </TableHead>
-                  )}
-                  {(viewMode === 'completa' || viewMode === 'resumida') && (
-                    <TableHead className="py-4 text-slate-600 font-semibold">Localização</TableHead>
-                  )}
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-                    <Fragment key={`head-${i}`}>
-                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                        Valor {i}
-                      </TableHead>
-                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                        Data {i}
-                      </TableHead>
-                    </Fragment>
-                  ))}
+                  <TableHead className="py-4 text-slate-600 font-semibold">Responsável</TableHead>
+                  <TableHead className="py-4 text-slate-600 font-semibold">Data Entrada</TableHead>
+                  <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
+                  <TableHead className="py-4 text-slate-600 font-semibold">Valor Total</TableHead>
                   <TableHead className="w-[50px] py-4"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={getColSpan()} className="h-32 text-center">
+                    <TableCell colSpan={8} className="h-32 text-center">
                       <Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" />
                     </TableCell>
                   </TableRow>
                 ) : filteredProjetos.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={getColSpan()}
-                      className="h-32 text-center text-slate-500 font-medium"
-                    >
+                    <TableCell colSpan={8} className="h-32 text-center text-slate-500 font-medium">
                       Nenhum projeto encontrado com os filtros atuais.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredProjetos.map((projeto) => (
-                    <TableRow
-                      key={projeto.Codigo || Math.random().toString()}
-                      className="cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
-                      onClick={() => navigate(`/projeto/${projeto.Codigo}`)}
-                    >
-                      <TableCell className="py-4 font-medium text-slate-900">
-                        {formatCodigo(projeto.Codigo)}
-                      </TableCell>
+                  filteredProjetos.map((projeto) => {
+                    const valorTotal = getValorTotal(projeto)
 
-                      {(viewMode === 'completa' || viewMode === 'operacional') && (
+                    return (
+                      <TableRow
+                        key={projeto.Codigo || Math.random().toString()}
+                        className="cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
+                        onClick={() => {
+                          if (viewMode === 'completa') {
+                            setSelectedProjeto(projeto)
+                          } else {
+                            navigate(`/projeto/${projeto.Codigo}`)
+                          }
+                        }}
+                      >
+                        <TableCell className="py-4 font-medium text-slate-900">
+                          {formatCodigo(projeto.Codigo)}
+                        </TableCell>
+
+                        <TableCell
+                          className="py-4 font-semibold text-slate-900 max-w-[200px] truncate"
+                          title={projeto.Projeto || ''}
+                        >
+                          {projeto.Projeto || 'Sem nome'}
+                        </TableCell>
+
                         <TableCell className="py-4">
-                          {projeto.Nivel_Estrategico ? (
-                            <Badge variant="outline" className="bg-slate-50">
-                              {projeto.Nivel_Estrategico}
+                          {projeto.Status ? (
+                            <Badge
+                              variant={
+                                projeto.Status === 'Concluído' ||
+                                projeto.Status === 'Completo' ||
+                                projeto.Status === 'Finalizado'
+                                  ? 'default'
+                                  : 'secondary'
+                              }
+                              className="font-medium shadow-sm"
+                            >
+                              {projeto.Status}
                             </Badge>
                           ) : (
                             <span className="text-slate-400 text-sm">-</span>
                           )}
                         </TableCell>
-                      )}
 
-                      <TableCell
-                        className="py-4 font-semibold text-slate-900 max-w-[200px] truncate"
-                        title={projeto.Projeto || ''}
-                      >
-                        {projeto.Projeto || 'Sem nome'}
-                      </TableCell>
-
-                      {(viewMode === 'completa' || viewMode === 'operacional') && (
                         <TableCell
-                          className="py-4 max-w-[120px] truncate text-slate-600"
+                          className="py-4 max-w-[150px] truncate text-slate-600"
                           title={projeto.Responsavel || ''}
                         >
                           {projeto.Responsavel || '-'}
                         </TableCell>
-                      )}
 
-                      {(viewMode === 'completa' || viewMode === 'operacional') && (
                         <TableCell className="py-4 whitespace-nowrap text-slate-500">
                           {formatDate(projeto.Data_Entrada)}
                         </TableCell>
-                      )}
 
-                      <TableCell className="py-4">
-                        {projeto.Status ? (
-                          <Badge
-                            variant={projeto.Status === 'Concluído' ? 'default' : 'secondary'}
-                            className="font-medium shadow-sm"
-                          >
-                            {projeto.Status}
-                          </Badge>
-                        ) : (
-                          <span className="text-slate-400 text-sm">-</span>
-                        )}
-                      </TableCell>
-
-                      {viewMode === 'completa' && (
-                        <TableCell
-                          className="py-4 max-w-[150px] truncate text-slate-600"
-                          title={projeto.Arquiteto_Responsavel || ''}
-                        >
-                          {projeto.Arquiteto_Responsavel || '-'}
-                        </TableCell>
-                      )}
-
-                      {viewMode === 'completa' && (
-                        <TableCell
-                          className="py-4 max-w-[150px] truncate text-slate-600"
-                          title={projeto.Responsavel_da_Obra || ''}
-                        >
-                          {projeto.Responsavel_da_Obra || '-'}
-                        </TableCell>
-                      )}
-
-                      {viewMode === 'completa' && (
-                        <TableCell
-                          className="py-4 max-w-[150px] truncate"
-                          title={projeto.valor_fechado || ''}
-                        >
-                          {projeto.valor_fechado ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
-                              {projeto.valor_fechado}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 font-medium text-sm">-</span>
-                          )}
-                        </TableCell>
-                      )}
-
-                      {(viewMode === 'completa' || viewMode === 'resumida') && (
                         <TableCell className="py-4">
                           <div
                             className="flex flex-col max-w-[150px] truncate"
@@ -369,40 +326,89 @@ export default function Projetos() {
                             <span className="text-xs text-slate-500">{projeto.Estado || '-'}</span>
                           </div>
                         </TableCell>
-                      )}
 
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => {
-                        const valor = (projeto as any)[`valor_fechado_${i}`]
-                        const data = (projeto as any)[`data_fechamento_${i}`]
-                        return (
-                          <Fragment key={`pagamento-${i}`}>
-                            <TableCell className="py-4 whitespace-nowrap">
-                              {valor ? (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
-                                  {valor}
-                                </span>
-                              ) : (
-                                <span className="text-slate-400 font-medium text-sm">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-4 whitespace-nowrap text-slate-500">
-                              {formatDate(data)}
-                            </TableCell>
-                          </Fragment>
-                        )
-                      })}
+                        <TableCell className="py-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
+                            {formatCurrency(valorTotal)}
+                          </span>
+                        </TableCell>
 
-                      <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
-                        <ProjectActions projeto={projeto} onChange={loadProjetos} />
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
+                          <ProjectActions projeto={projeto} onChange={loadProjetos} />
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={!!selectedProjeto} onOpenChange={(open) => !open && setSelectedProjeto(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalhes de Pagamentos - {selectedProjeto?.Projeto}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {selectedProjeto &&
+              (() => {
+                const pagamentos = []
+                for (let i = 1; i <= 10; i++) {
+                  const valor = (selectedProjeto as any)[`valor_fechado_${i}`]
+                  const data = (selectedProjeto as any)[`data_fechamento_${i}`]
+                  if (valor || data) {
+                    pagamentos.push({
+                      i,
+                      valor: valor ? formatCurrency(parseValor(valor)) : '-',
+                      data: formatDate(data),
+                    })
+                  }
+                }
+
+                if (pagamentos.length === 0) {
+                  return (
+                    <p className="text-slate-500 text-center py-4">Nenhum pagamento registrado.</p>
+                  )
+                }
+
+                return (
+                  <div className="rounded-md border border-slate-200 overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-slate-50">
+                        <TableRow>
+                          <TableHead className="w-[80px]">Parcela</TableHead>
+                          <TableHead>Valor Pago</TableHead>
+                          <TableHead className="text-right">Data</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pagamentos.map((p) => (
+                          <TableRow key={p.i}>
+                            <TableCell className="font-medium text-slate-500">{p.i}</TableCell>
+                            <TableCell className="font-semibold text-emerald-600">
+                              {p.valor}
+                            </TableCell>
+                            <TableCell className="text-right text-slate-600">{p.data}</TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow className="bg-slate-50 font-bold">
+                          <TableCell colSpan={2} className="text-slate-700">
+                            Valor Total
+                          </TableCell>
+                          <TableCell className="text-right text-emerald-600">
+                            {formatCurrency(getValorTotal(selectedProjeto))}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                )
+              })()}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -199,6 +199,7 @@ export type Database = {
           data_fechamento_8: string | null
           data_fechamento_9: string | null
           Estado: string | null
+          id: number
           Nivel_Estrategico: string | null
           Projeto: string | null
           Responsavel: string | null
@@ -235,6 +236,7 @@ export type Database = {
           data_fechamento_8?: string | null
           data_fechamento_9?: string | null
           Estado?: string | null
+          id?: never
           Nivel_Estrategico?: string | null
           Projeto?: string | null
           Responsavel?: string | null
@@ -271,6 +273,7 @@ export type Database = {
           data_fechamento_8?: string | null
           data_fechamento_9?: string | null
           Estado?: string | null
+          id?: never
           Nivel_Estrategico?: string | null
           Projeto?: string | null
           Responsavel?: string | null
@@ -564,6 +567,7 @@ export const Constants = {
 //   data_fechamento_9: text (nullable)
 //   valor_fechado_10: text (nullable)
 //   data_fechamento_10: text (nullable)
+//   id: bigint (not null)
 // Table: clientes_crm
 //   cod_cliente: bigint (nullable)
 //   nm_cliente: text (nullable)
@@ -616,6 +620,8 @@ export const Constants = {
 //   created_at: timestamp without time zone (nullable, default: now())
 
 // --- CONSTRAINTS ---
+// Table: Organizacao_projetos
+//   PRIMARY KEY Organizacao_projetos_pkey: PRIMARY KEY (id)
 // Table: eletricistas_crm
 //   PRIMARY KEY eletricistas_crm_pkey: PRIMARY KEY (id)
 // Table: engenheiro_crm
