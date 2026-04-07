@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   Search,
   MapPin,
@@ -149,6 +149,8 @@ export default function Arquitetos() {
   const [editingArquiteto, setEditingArquiteto] = useState<Arquiteto | null>(null)
   const [arquitetoToDelete, setArquitetoToDelete] = useState<Arquiteto | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const [cameFromView, setCameFromView] = useState(false)
 
   const form = useForm<ArquitetoFormValues>({
     resolver: zodResolver(arquitetoSchema),
@@ -227,6 +229,7 @@ export default function Arquitetos() {
 
       if (match) {
         setSelectedArquiteto(match)
+        setCameFromView(true)
       } else {
         setSearchName(viewName)
       }
@@ -312,6 +315,20 @@ export default function Arquitetos() {
       numero_de_arquitetos: null,
     })
     setIsEditModalOpen(true)
+  }
+
+  const openViewModal = (arquiteto: Arquiteto) => {
+    setSelectedArquiteto(arquiteto)
+    setCameFromView(false)
+  }
+
+  const handleCloseViewModal = (open: boolean) => {
+    if (!open) {
+      setSelectedArquiteto(null)
+      if (cameFromView) {
+        navigate(-1)
+      }
+    }
   }
 
   const openEditModal = (arquiteto: Arquiteto) => {
@@ -418,7 +435,7 @@ export default function Arquitetos() {
                   <TableRow
                     key={arquiteto.codigo_do_arquiteto || idx}
                     className="hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => setSelectedArquiteto(arquiteto)}
+                    onClick={() => openViewModal(arquiteto)}
                   >
                     <TableCell className="font-medium text-foreground">
                       {arquiteto['Nome do Arquiteto'] || '-'}
@@ -448,7 +465,7 @@ export default function Arquitetos() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setSelectedArquiteto(arquiteto)}
+                        onClick={() => openViewModal(arquiteto)}
                         title="Ver Detalhes"
                       >
                         <Eye className="h-4 w-4 text-muted-foreground" />
@@ -672,10 +689,7 @@ export default function Arquitetos() {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={!!selectedArquiteto && !isEditModalOpen}
-        onOpenChange={(open) => !open && setSelectedArquiteto(null)}
-      >
+      <Dialog open={!!selectedArquiteto && !isEditModalOpen} onOpenChange={handleCloseViewModal}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
@@ -685,6 +699,11 @@ export default function Arquitetos() {
             <DialogDescription>Informações completas do arquiteto e empresa.</DialogDescription>
           </DialogHeader>
           {selectedArquiteto && <ArquitetoDetails arquiteto={selectedArquiteto} />}
+          <div className="flex justify-end pt-4 border-t mt-4">
+            <Button variant="outline" onClick={() => handleCloseViewModal(false)}>
+              Fechar
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

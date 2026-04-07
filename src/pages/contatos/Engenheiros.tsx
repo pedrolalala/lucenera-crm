@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Plus, Search, Edit2, Trash2, Eye } from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -88,6 +88,8 @@ export default function Engenheiros() {
   const [viewingEngineer, setViewingEngineer] = useState<EngineerRow | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const [cameFromView, setCameFromView] = useState(false)
 
   const form = useForm<EngineerFormValues>({
     resolver: zodResolver(engineerSchema),
@@ -143,6 +145,7 @@ export default function Engenheiros() {
       if (match) {
         setViewingEngineer(match)
         setIsViewModalOpen(true)
+        setCameFromView(true)
       } else {
         setSearch(viewName)
       }
@@ -226,6 +229,23 @@ export default function Engenheiros() {
     setIsModalOpen(true)
   }
 
+  const openViewModal = (engineer: EngineerRow) => {
+    setViewingEngineer(engineer)
+    setIsViewModalOpen(true)
+    setCameFromView(false)
+  }
+
+  const handleCloseViewModal = (open: boolean) => {
+    if (!open) {
+      setIsViewModalOpen(false)
+      if (cameFromView) {
+        navigate(-1)
+      }
+    } else {
+      setIsViewModalOpen(true)
+    }
+  }
+
   const openEditModal = (engineer: EngineerRow) => {
     setEditingEngineer(engineer)
     setIsModalOpen(true)
@@ -305,10 +325,7 @@ export default function Engenheiros() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => {
-                          setViewingEngineer(engineer)
-                          setIsViewModalOpen(true)
-                        }}
+                        onClick={() => openViewModal(engineer)}
                         title="Ver Detalhes"
                       >
                         <Eye className="h-4 w-4 text-muted-foreground" />
@@ -472,7 +489,7 @@ export default function Engenheiros() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+      <Dialog open={isViewModalOpen} onOpenChange={handleCloseViewModal}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Detalhes do Engenheiro</DialogTitle>
@@ -509,7 +526,7 @@ export default function Engenheiros() {
             </div>
           )}
           <div className="flex justify-end pt-4 border-t mt-4">
-            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+            <Button variant="outline" onClick={() => handleCloseViewModal(false)}>
               Fechar
             </Button>
           </div>

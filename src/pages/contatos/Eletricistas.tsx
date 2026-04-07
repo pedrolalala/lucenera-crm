@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,6 +31,8 @@ export default function Eletricistas() {
   const [viewingEletricista, setViewingEletricista] = useState<any | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const [cameFromView, setCameFromView] = useState(false)
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -68,6 +70,7 @@ export default function Eletricistas() {
       if (match) {
         setViewingEletricista(match)
         setIsViewModalOpen(true)
+        setCameFromView(true)
       } else {
         setSearchTerm(viewName)
       }
@@ -92,6 +95,23 @@ export default function Eletricistas() {
       setOpen(false)
       setFormData({ nome: '', telefone: '', email: '', cidade: '', estado: '' })
       fetchEletricistas()
+    }
+  }
+
+  const openViewModal = (el: any) => {
+    setViewingEletricista(el)
+    setIsViewModalOpen(true)
+    setCameFromView(false)
+  }
+
+  const handleCloseViewModal = (open: boolean) => {
+    if (!open) {
+      setIsViewModalOpen(false)
+      if (cameFromView) {
+        navigate(-1)
+      }
+    } else {
+      setIsViewModalOpen(true)
     }
   }
 
@@ -234,10 +254,7 @@ export default function Eletricistas() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                              setViewingEletricista(el)
-                              setIsViewModalOpen(true)
-                            }}
+                            onClick={() => openViewModal(el)}
                             title="Ver Detalhes"
                           >
                             <Eye className="h-4 w-4 text-muted-foreground" />
@@ -253,7 +270,7 @@ export default function Eletricistas() {
         </CardContent>
       </Card>
 
-      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+      <Dialog open={isViewModalOpen} onOpenChange={handleCloseViewModal}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Detalhes do Eletricista</DialogTitle>
@@ -291,7 +308,7 @@ export default function Eletricistas() {
             </div>
           )}
           <div className="flex justify-end pt-4 border-t mt-4">
-            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+            <Button variant="outline" onClick={() => handleCloseViewModal(false)}>
               Fechar
             </Button>
           </div>

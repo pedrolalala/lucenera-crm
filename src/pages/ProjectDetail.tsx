@@ -57,7 +57,7 @@ export default function ProjectDetail() {
     return (
       <div className="flex h-[50vh] flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Projeto não encontrado.</p>
-        <Button variant="outline" onClick={() => navigate('/')}>
+        <Button variant="outline" onClick={() => navigate('/projetos')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar para Projetos
         </Button>
@@ -101,7 +101,7 @@ export default function ProjectDetail() {
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/projetos')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

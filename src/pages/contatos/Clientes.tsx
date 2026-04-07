@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Plus, Search, Edit2, Trash2, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -84,6 +84,8 @@ export default function Clientes() {
   const [selectedClient, setSelectedClient] = useState<ClientRow | null>(null)
   const [clientToDelete, setClientToDelete] = useState<ClientRow | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const [cameFromView, setCameFromView] = useState(false)
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
@@ -143,6 +145,7 @@ export default function Clientes() {
       if (match) {
         setSelectedClient(match)
         setIsViewModalOpen(true)
+        setCameFromView(true)
       } else {
         setSearchName(viewName)
       }
@@ -263,6 +266,18 @@ export default function Clientes() {
   const openViewModal = (client: ClientRow) => {
     setSelectedClient(client)
     setIsViewModalOpen(true)
+    setCameFromView(false)
+  }
+
+  const handleCloseViewModal = (open: boolean) => {
+    if (!open) {
+      setIsViewModalOpen(false)
+      if (cameFromView) {
+        navigate(-1)
+      }
+    } else {
+      setIsViewModalOpen(true)
+    }
   }
 
   return (
@@ -580,7 +595,7 @@ export default function Clientes() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+      <Dialog open={isViewModalOpen} onOpenChange={handleCloseViewModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalhes do Cliente</DialogTitle>
@@ -649,7 +664,7 @@ export default function Clientes() {
             </div>
           )}
           <div className="flex justify-end pt-4 border-t mt-4">
-            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+            <Button variant="outline" onClick={() => handleCloseViewModal(false)}>
               Fechar
             </Button>
           </div>
