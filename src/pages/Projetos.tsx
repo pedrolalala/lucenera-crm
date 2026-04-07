@@ -229,7 +229,9 @@ export default function Projetos() {
                     <TableHead className="py-4 text-slate-600 font-semibold">Engenheiro</TableHead>
                   )}
                   {viewMode === 'completa' && (
-                    <TableHead className="py-4 text-slate-600 font-semibold">Valor</TableHead>
+                    <TableHead className="py-4 text-slate-600 font-semibold">
+                      Valor Fechado
+                    </TableHead>
                   )}
                   {(viewMode === 'completa' || viewMode === 'resumida') && (
                     <TableHead className="py-4 text-slate-600 font-semibold">Localização</TableHead>
@@ -331,10 +333,16 @@ export default function Projetos() {
 
                       {viewMode === 'completa' && (
                         <TableCell
-                          className="py-4 max-w-[120px] truncate text-slate-700 font-medium"
-                          title={(projeto as any).valor_fechado || ''}
+                          className="py-4 max-w-[150px] truncate"
+                          title={projeto.valor_fechado || ''}
                         >
-                          {(projeto as any).valor_fechado || '-'}
+                          {projeto.valor_fechado ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
+                              {projeto.valor_fechado}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 font-medium text-sm">-</span>
+                          )}
                         </TableCell>
                       )}
 

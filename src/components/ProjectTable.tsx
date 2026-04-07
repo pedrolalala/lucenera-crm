@@ -40,7 +40,7 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
               Engenheiro
             </TableHead>
             <TableHead className="hidden xl:table-cell font-semibold min-w-[150px]">
-              Valor
+              Valor Fechado
             </TableHead>
             <TableHead className="hidden xl:table-cell font-semibold min-w-[150px]">
               Eletricista
@@ -119,8 +119,14 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
                   '-'
                 )}
               </TableCell>
-              <TableCell className="hidden xl:table-cell font-medium">
-                {(p as any).valor_fechado || '-'}
+              <TableCell className="hidden xl:table-cell">
+                {(p as any).valor_fechado ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
+                    {(p as any).valor_fechado}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground font-medium text-sm">-</span>
+                )}
               </TableCell>
               <TableCell
                 className="hidden xl:table-cell max-w-[150px] truncate text-muted-foreground"

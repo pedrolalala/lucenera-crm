@@ -119,6 +119,17 @@ export function ProjectMobileCards({ projects }: { projects: Project[] }) {
                   {p.city} - {p.state}
                 </span>
               </div>
+
+              {(p as any).valor_fechado && (
+                <div className="flex items-center justify-between col-span-2 mt-1 pt-2 border-t">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Valor Fechado
+                  </span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    {(p as any).valor_fechado}
+                  </span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

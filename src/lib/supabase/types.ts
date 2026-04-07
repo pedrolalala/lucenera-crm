@@ -195,6 +195,7 @@ export type Database = {
           Responsavel_da_Obra: string | null
           Status: string | null
           Tipo_de_Item: string | null
+          valor_fechado: string | null
         }
         Insert: {
           Arquiteto_Responsavel?: string | null
@@ -210,6 +211,7 @@ export type Database = {
           Responsavel_da_Obra?: string | null
           Status?: string | null
           Tipo_de_Item?: string | null
+          valor_fechado?: string | null
         }
         Update: {
           Arquiteto_Responsavel?: string | null
@@ -225,6 +227,7 @@ export type Database = {
           Responsavel_da_Obra?: string | null
           Status?: string | null
           Tipo_de_Item?: string | null
+          valor_fechado?: string | null
         }
         Relationships: []
       }
@@ -453,6 +456,7 @@ export const Constants = {
 //   Arquivado: text (nullable)
 //   Tipo_de_Item: text (nullable)
 //   Caminho: text (nullable)
+//   valor_fechado: text (nullable)
 // Table: clientes_crm
 //   cod_cliente: bigint (nullable)
 //   nm_cliente: text (nullable)
@@ -554,13 +558,16 @@ export const Constants = {
 //   Policy "authenticated_update_engenheiros" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
-
-// --- WARNING: TABLES WITH RLS ENABLED BUT NO POLICIES ---
-// These tables have Row Level Security enabled but NO policies defined.
-// This means ALL queries (SELECT, INSERT, UPDATE, DELETE) will return ZERO rows
-// for non-superuser roles (including the anon and authenticated roles used by the app).
-// You MUST create RLS policies for these tables to allow data access.
-//   - projetos_fechados
+// Table: projetos_fechados
+//   Policy "authenticated_delete_projetos_fechados" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_insert_projetos_fechados" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_projetos_fechados" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_update_projetos_fechados" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION create_user(text, text, text, text)
@@ -609,3 +616,40 @@ export const Constants = {
 //   END;
 //   $function$
 //
+// FUNCTION sync_valor_fechado_from_projetos()
+//   CREATE OR REPLACE FUNCTION public.sync_valor_fechado_from_projetos()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//   AS $function$
+//   BEGIN
+//     IF NEW."Codigo" IS NOT NULL THEN
+//       NEW.valor_fechado := COALESCE(NEW.valor_fechado, (
+//         SELECT valor_fechado
+//         FROM public.projetos_fechados
+//         WHERE cod = NEW."Codigo"::text OR replace(cod, '.', '') = replace(NEW."Codigo"::text, '.', '')
+//         LIMIT 1
+//       ));
+//     END IF;
+//     RETURN NEW;
+//   END;
+//   $function$
+//
+// FUNCTION sync_valor_fechado_to_organizacao()
+//   CREATE OR REPLACE FUNCTION public.sync_valor_fechado_to_organizacao()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//   AS $function$
+//   BEGIN
+//     UPDATE public."Organizacao_projetos"
+//     SET valor_fechado = NEW.valor_fechado
+//     WHERE "Codigo"::text = NEW.cod OR replace("Codigo"::text, '.', '') = replace(NEW.cod, '.', '');
+//     RETURN NEW;
+//   END;
+//   $function$
+//
+
+// --- TRIGGERS ---
+// Table: Organizacao_projetos
+//   sync_valor_fechado_org_trigger: CREATE TRIGGER sync_valor_fechado_org_trigger BEFORE INSERT OR UPDATE OF "Codigo" ON public."Organizacao_projetos" FOR EACH ROW EXECUTE FUNCTION sync_valor_fechado_from_projetos()
+// Table: projetos_fechados
+//   sync_valor_fechado_trigger: CREATE TRIGGER sync_valor_fechado_trigger AFTER INSERT OR UPDATE OF cod, valor_fechado ON public.projetos_fechados FOR EACH ROW EXECUTE FUNCTION sync_valor_fechado_to_organizacao()
