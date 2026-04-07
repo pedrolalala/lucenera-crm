@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getProjetos, type Projeto } from '@/services/projetos'
 import {
@@ -88,9 +88,10 @@ export default function Projetos() {
   }
 
   const getColSpan = () => {
-    if (viewMode === 'resumida') return 5
-    if (viewMode === 'operacional') return 7
-    return 11
+    let base = 5
+    if (viewMode === 'operacional') base = 7
+    if (viewMode === 'completa') base = 11
+    return base + 20
   }
 
   const formatDate = (dateStr: string | null) => {
@@ -236,6 +237,16 @@ export default function Projetos() {
                   {(viewMode === 'completa' || viewMode === 'resumida') && (
                     <TableHead className="py-4 text-slate-600 font-semibold">Localização</TableHead>
                   )}
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+                    <Fragment key={`head-${i}`}>
+                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                        Valor {i}
+                      </TableHead>
+                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                        Data {i}
+                      </TableHead>
+                    </Fragment>
+                  ))}
                   <TableHead className="w-[50px] py-4"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -359,6 +370,27 @@ export default function Projetos() {
                           </div>
                         </TableCell>
                       )}
+
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => {
+                        const valor = (projeto as any)[`valor_fechado_${i}`]
+                        const data = (projeto as any)[`data_fechamento_${i}`]
+                        return (
+                          <Fragment key={`pagamento-${i}`}>
+                            <TableCell className="py-4 whitespace-nowrap">
+                              {valor ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
+                                  {valor}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 font-medium text-sm">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-4 whitespace-nowrap text-slate-500">
+                              {formatDate(data)}
+                            </TableCell>
+                          </Fragment>
+                        )
+                      })}
 
                       <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
                         <ProjectActions projeto={projeto} onChange={loadProjetos} />

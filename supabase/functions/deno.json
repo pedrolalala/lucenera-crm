@@ -1,6 +1,7 @@
 {
   "_versions": {
     "salvar-projeto": 9,
-    "update-project": 1
+    "update-project": 1,
+    "sync-fechamentos-automatica": 2
   }
 }

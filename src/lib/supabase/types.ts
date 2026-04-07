@@ -188,6 +188,16 @@ export type Database = {
           Cidade: string | null
           Codigo: number | null
           Data_Entrada: string | null
+          data_fechamento_1: string | null
+          data_fechamento_10: string | null
+          data_fechamento_2: string | null
+          data_fechamento_3: string | null
+          data_fechamento_4: string | null
+          data_fechamento_5: string | null
+          data_fechamento_6: string | null
+          data_fechamento_7: string | null
+          data_fechamento_8: string | null
+          data_fechamento_9: string | null
           Estado: string | null
           Nivel_Estrategico: string | null
           Projeto: string | null
@@ -196,6 +206,16 @@ export type Database = {
           Status: string | null
           Tipo_de_Item: string | null
           valor_fechado: string | null
+          valor_fechado_1: string | null
+          valor_fechado_10: string | null
+          valor_fechado_2: string | null
+          valor_fechado_3: string | null
+          valor_fechado_4: string | null
+          valor_fechado_5: string | null
+          valor_fechado_6: string | null
+          valor_fechado_7: string | null
+          valor_fechado_8: string | null
+          valor_fechado_9: string | null
         }
         Insert: {
           Arquiteto_Responsavel?: string | null
@@ -204,6 +224,16 @@ export type Database = {
           Cidade?: string | null
           Codigo?: number | null
           Data_Entrada?: string | null
+          data_fechamento_1?: string | null
+          data_fechamento_10?: string | null
+          data_fechamento_2?: string | null
+          data_fechamento_3?: string | null
+          data_fechamento_4?: string | null
+          data_fechamento_5?: string | null
+          data_fechamento_6?: string | null
+          data_fechamento_7?: string | null
+          data_fechamento_8?: string | null
+          data_fechamento_9?: string | null
           Estado?: string | null
           Nivel_Estrategico?: string | null
           Projeto?: string | null
@@ -212,6 +242,16 @@ export type Database = {
           Status?: string | null
           Tipo_de_Item?: string | null
           valor_fechado?: string | null
+          valor_fechado_1?: string | null
+          valor_fechado_10?: string | null
+          valor_fechado_2?: string | null
+          valor_fechado_3?: string | null
+          valor_fechado_4?: string | null
+          valor_fechado_5?: string | null
+          valor_fechado_6?: string | null
+          valor_fechado_7?: string | null
+          valor_fechado_8?: string | null
+          valor_fechado_9?: string | null
         }
         Update: {
           Arquiteto_Responsavel?: string | null
@@ -220,6 +260,16 @@ export type Database = {
           Cidade?: string | null
           Codigo?: number | null
           Data_Entrada?: string | null
+          data_fechamento_1?: string | null
+          data_fechamento_10?: string | null
+          data_fechamento_2?: string | null
+          data_fechamento_3?: string | null
+          data_fechamento_4?: string | null
+          data_fechamento_5?: string | null
+          data_fechamento_6?: string | null
+          data_fechamento_7?: string | null
+          data_fechamento_8?: string | null
+          data_fechamento_9?: string | null
           Estado?: string | null
           Nivel_Estrategico?: string | null
           Projeto?: string | null
@@ -228,6 +278,16 @@ export type Database = {
           Status?: string | null
           Tipo_de_Item?: string | null
           valor_fechado?: string | null
+          valor_fechado_1?: string | null
+          valor_fechado_10?: string | null
+          valor_fechado_2?: string | null
+          valor_fechado_3?: string | null
+          valor_fechado_4?: string | null
+          valor_fechado_5?: string | null
+          valor_fechado_6?: string | null
+          valor_fechado_7?: string | null
+          valor_fechado_8?: string | null
+          valor_fechado_9?: string | null
         }
         Relationships: []
       }
@@ -267,6 +327,33 @@ export type Database = {
           forma_pagamento?: string | null
           projetista?: string | null
           valor_fechado?: string | null
+        }
+        Relationships: []
+      }
+      sync_history: {
+        Row: {
+          created_at: string | null
+          data_sincronizacao: string | null
+          id: number
+          mensagem: string | null
+          projetos_atualizados: number | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_sincronizacao?: string | null
+          id?: never
+          mensagem?: string | null
+          projetos_atualizados?: number | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_sincronizacao?: string | null
+          id?: never
+          mensagem?: string | null
+          projetos_atualizados?: number | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -457,6 +544,26 @@ export const Constants = {
 //   Tipo_de_Item: text (nullable)
 //   Caminho: text (nullable)
 //   valor_fechado: text (nullable)
+//   valor_fechado_1: text (nullable)
+//   data_fechamento_1: text (nullable)
+//   valor_fechado_2: text (nullable)
+//   data_fechamento_2: text (nullable)
+//   valor_fechado_3: text (nullable)
+//   data_fechamento_3: text (nullable)
+//   valor_fechado_4: text (nullable)
+//   data_fechamento_4: text (nullable)
+//   valor_fechado_5: text (nullable)
+//   data_fechamento_5: text (nullable)
+//   valor_fechado_6: text (nullable)
+//   data_fechamento_6: text (nullable)
+//   valor_fechado_7: text (nullable)
+//   data_fechamento_7: text (nullable)
+//   valor_fechado_8: text (nullable)
+//   data_fechamento_8: text (nullable)
+//   valor_fechado_9: text (nullable)
+//   data_fechamento_9: text (nullable)
+//   valor_fechado_10: text (nullable)
+//   data_fechamento_10: text (nullable)
 // Table: clientes_crm
 //   cod_cliente: bigint (nullable)
 //   nm_cliente: text (nullable)
@@ -500,12 +607,21 @@ export const Constants = {
 //   forma_pagamento: text (nullable)
 //   data_fechamento: text (nullable)
 //   arquiteto: text (nullable)
+// Table: sync_history
+//   id: bigint (not null)
+//   data_sincronizacao: timestamp without time zone (nullable, default: now())
+//   projetos_atualizados: integer (nullable)
+//   status: text (nullable)
+//   mensagem: text (nullable)
+//   created_at: timestamp without time zone (nullable, default: now())
 
 // --- CONSTRAINTS ---
 // Table: eletricistas_crm
 //   PRIMARY KEY eletricistas_crm_pkey: PRIMARY KEY (id)
 // Table: engenheiro_crm
 //   PRIMARY KEY engenheiro_crm_pkey: PRIMARY KEY (id)
+// Table: sync_history
+//   PRIMARY KEY sync_history_pkey: PRIMARY KEY (id)
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: Arquitetos_empresas_crm
@@ -568,6 +684,9 @@ export const Constants = {
 //   Policy "authenticated_update_projetos_fechados" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: sync_history
+//   Policy "Allow all" (ALL, PERMISSIVE) roles={public}
+//     USING: true
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION create_user(text, text, text, text)
