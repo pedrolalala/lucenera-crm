@@ -97,10 +97,10 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
             >
               <TableCell className="font-medium text-foreground">
                 {p.id !== undefined && p.id !== null
-                  ? Number(p.id).toLocaleString('pt-BR', {
-                      minimumFractionDigits: 3,
-                      maximumFractionDigits: 3,
-                    })
+                  ? (p.id + '').replace(
+                      /(\d+)\.?(\d*)/,
+                      (match, p1, p2) => p1 + '.' + (p2 + '000').substring(0, 3),
+                    )
                   : p.id}
               </TableCell>
               <TableCell>

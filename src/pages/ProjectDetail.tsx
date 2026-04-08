@@ -112,10 +112,10 @@ export default function ProjectDetail() {
               <Badge variant="secondary" className="text-sm">
                 #
                 {projeto.Codigo !== undefined && projeto.Codigo !== null
-                  ? Number(projeto.Codigo).toLocaleString('pt-BR', {
-                      minimumFractionDigits: 3,
-                      maximumFractionDigits: 3,
-                    })
+                  ? (projeto.Codigo + '').replace(
+                      /(\d+)\.?(\d*)/,
+                      (match, p1, p2) => p1 + '.' + (p2 + '000').substring(0, 3),
+                    )
                   : projeto.Codigo}
               </Badge>
             </div>

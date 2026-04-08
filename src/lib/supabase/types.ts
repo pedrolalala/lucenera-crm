@@ -557,7 +557,7 @@ export const Constants = {
 //   Observacoes: text (nullable)
 //   Email: text (nullable)
 // Table: Organizacao_projetos
-//   Codigo: text (nullable)
+//   Codigo: character varying (nullable)
 //   Nivel_Estrategico: text (nullable)
 //   Projeto: text (nullable)
 //   Responsavel: text (nullable)
@@ -807,24 +807,6 @@ export const Constants = {
 //   END;
 //   $function$
 //
-// FUNCTION sync_valor_fechado_from_projetos()
-//   CREATE OR REPLACE FUNCTION public.sync_valor_fechado_from_projetos()
-//    RETURNS trigger
-//    LANGUAGE plpgsql
-//   AS $function$
-//   BEGIN
-//     IF NEW."Codigo" IS NOT NULL THEN
-//       NEW.valor_fechado := COALESCE(NEW.valor_fechado, (
-//         SELECT valor_fechado
-//         FROM public.projetos_fechados
-//         WHERE cod = NEW."Codigo"::text OR replace(cod, '.', '') = replace(NEW."Codigo"::text, '.', '')
-//         LIMIT 1
-//       ));
-//     END IF;
-//     RETURN NEW;
-//   END;
-//   $function$
-//
 // FUNCTION sync_valor_fechado_to_organizacao()
 //   CREATE OR REPLACE FUNCTION public.sync_valor_fechado_to_organizacao()
 //    RETURNS trigger
@@ -840,7 +822,5 @@ export const Constants = {
 //
 
 // --- TRIGGERS ---
-// Table: Organizacao_projetos
-//   sync_valor_fechado_org_trigger: CREATE TRIGGER sync_valor_fechado_org_trigger BEFORE INSERT OR UPDATE OF "Codigo" ON public."Organizacao_projetos" FOR EACH ROW EXECUTE FUNCTION sync_valor_fechado_from_projetos()
 // Table: projetos_fechados
 //   sync_valor_fechado_trigger: CREATE TRIGGER sync_valor_fechado_trigger AFTER INSERT OR UPDATE OF cod, valor_fechado ON public.projetos_fechados FOR EACH ROW EXECUTE FUNCTION sync_valor_fechado_to_organizacao()
