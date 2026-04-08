@@ -43,7 +43,11 @@ DECLARE
   is_admin boolean;
 BEGIN
   -- Verify caller is an Admin using usuarios_crm
-  SELECT role = 'Admin' INTO is_admin FROM public.usuarios_crm WHERE id = auth.uid();
+  is_admin := EXISTS (
+    SELECT 1 
+    FROM public.usuarios_crm 
+    WHERE id = auth.uid() AND role = 'Admin'
+  );
 
   -- Fallback if the user is not admin and the table is not empty (for bootstrap)
   IF NOT is_admin AND EXISTS (SELECT 1 FROM public.usuarios_crm) THEN
@@ -65,10 +69,10 @@ BEGIN
     confirmation_token, recovery_token, email_change_token_new,
     email_change, email_change_token_current, phone, phone_change, phone_change_token, reauthentication_token
   ) VALUES (
-    new_user_id, '00000000-0000-0000-0000-000000000000', p_email,
+    new_user_id, '00000000-0000-0000-0000-000000000000'::uuid, p_email,
     crypt(p_password, gen_salt('bf')), NOW(), NOW(), NOW(),
-    '{"provider": "email", "providers": ["email"]}',
-    json_build_object('name', p_name),
+    '{"provider": "email", "providers": ["email"]}'::jsonb,
+    json_build_object('name', p_name)::jsonb,
     false, 'authenticated', 'authenticated',
     '', '', '', '', '', NULL, '', '', ''
   );
@@ -81,4 +85,4 @@ BEGIN
 
   RETURN new_user_id;
 END;
-$;
+$$;
