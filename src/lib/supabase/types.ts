@@ -186,7 +186,7 @@ export type Database = {
           Arquivado: string | null
           Caminho: string | null
           Cidade: string | null
-          Codigo: number | null
+          Codigo: string | null
           Data_Entrada: string | null
           data_fechamento_1: string | null
           data_fechamento_10: string | null
@@ -223,7 +223,7 @@ export type Database = {
           Arquivado?: string | null
           Caminho?: string | null
           Cidade?: string | null
-          Codigo?: number | null
+          Codigo?: string | null
           Data_Entrada?: string | null
           data_fechamento_1?: string | null
           data_fechamento_10?: string | null
@@ -260,7 +260,7 @@ export type Database = {
           Arquivado?: string | null
           Caminho?: string | null
           Cidade?: string | null
-          Codigo?: number | null
+          Codigo?: string | null
           Data_Entrada?: string | null
           data_fechamento_1?: string | null
           data_fechamento_10?: string | null
@@ -557,7 +557,7 @@ export const Constants = {
 //   Observacoes: text (nullable)
 //   Email: text (nullable)
 // Table: Organizacao_projetos
-//   Codigo: double precision (nullable)
+//   Codigo: text (nullable)
 //   Nivel_Estrategico: text (nullable)
 //   Projeto: text (nullable)
 //   Responsavel: text (nullable)

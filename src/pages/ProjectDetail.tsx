@@ -110,7 +110,13 @@ export default function ProjectDetail() {
                 {projeto.Projeto || 'Projeto sem nome'}
               </h1>
               <Badge variant="secondary" className="text-sm">
-                #{projeto.Codigo}
+                #
+                {projeto.Codigo !== undefined && projeto.Codigo !== null
+                  ? Number(projeto.Codigo).toLocaleString('pt-BR', {
+                      minimumFractionDigits: 3,
+                      maximumFractionDigits: 3,
+                    })
+                  : projeto.Codigo}
               </Badge>
             </div>
             <p className="text-muted-foreground mt-1">Visualizando detalhes completos do projeto</p>

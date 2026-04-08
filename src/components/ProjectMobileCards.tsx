@@ -22,7 +22,14 @@ export function ProjectMobileCards({ projects }: { projects: Project[] }) {
             <div className="flex justify-between items-start mb-1">
               <div className="flex-1 pr-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-bold text-primary">{p.id}</span>
+                  <span className="text-xs font-bold text-primary">
+                    {p.id !== undefined && p.id !== null
+                      ? Number(p.id).toLocaleString('pt-BR', {
+                          minimumFractionDigits: 3,
+                          maximumFractionDigits: 3,
+                        })
+                      : p.id}
+                  </span>
                   <StrategicBadge level={p.strategicLevel} />
                 </div>
                 <h3 className="font-bold text-base leading-tight mt-2">{p.name}</h3>

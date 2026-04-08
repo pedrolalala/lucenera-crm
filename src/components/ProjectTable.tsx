@@ -95,7 +95,14 @@ export function ProjectTable({ projects }: { projects: Project[] }) {
               className="cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => navigate(`/projeto/${p.id}`)}
             >
-              <TableCell className="font-medium text-foreground">{p.id}</TableCell>
+              <TableCell className="font-medium text-foreground">
+                {p.id !== undefined && p.id !== null
+                  ? Number(p.id).toLocaleString('pt-BR', {
+                      minimumFractionDigits: 3,
+                      maximumFractionDigits: 3,
+                    })
+                  : p.id}
+              </TableCell>
               <TableCell>
                 <StrategicBadge level={p.strategicLevel} />
               </TableCell>

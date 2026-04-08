@@ -135,20 +135,29 @@ export function ProjectActions({ projeto, onChange }: ProjectActionsProps) {
                   <Input
                     id="Codigo"
                     value={
-                      formData.Codigo
-                        ? formData.Codigo.toString().length > 2
-                          ? `${formData.Codigo.toString().slice(0, 2)}.${formData.Codigo.toString().slice(2)}`
-                          : formData.Codigo.toString()
+                      formData.Codigo !== undefined && formData.Codigo !== null
+                        ? Number(formData.Codigo).toLocaleString('pt-BR', {
+                            minimumFractionDigits: 3,
+                            maximumFractionDigits: 3,
+                          })
                         : ''
                     }
                     onChange={(e) => {
-                      const numbersOnly = e.target.value.replace(/\D/g, '').slice(0, 5)
+                      const numbersOnly = e.target.value.replace(/\D/g, '')
+                      if (!numbersOnly) {
+                        setFormData({
+                          ...formData,
+                          Codigo: null,
+                        })
+                        return
+                      }
+                      const numericVal = parseInt(numbersOnly, 10) / 1000
                       setFormData({
                         ...formData,
-                        Codigo: numbersOnly ? parseInt(numbersOnly, 10) : null,
+                        Codigo: numericVal,
                       })
                     }}
-                    placeholder="XX.XXX"
+                    placeholder="0,000"
                   />
                 </div>
                 <div className="grid gap-2">
