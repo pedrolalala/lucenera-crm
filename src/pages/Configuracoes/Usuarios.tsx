@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table'
 import { toast } from '@/hooks/use-toast'
 import { UserPlus, ShieldAlert, Users, Trash2 } from 'lucide-react'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 export default function Usuarios() {
   const [email, setEmail] = useState('')
@@ -225,7 +226,16 @@ export default function Usuarios() {
                   ) : (
                     usuarios.map((user) => (
                       <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.nome}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                                {user.nome?.substring(0, 2).toUpperCase() || 'US'}
+                              </AvatarFallback>
+                            </Avatar>
+                            {user.nome}
+                          </div>
+                        </TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
                           <span

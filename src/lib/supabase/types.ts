@@ -360,30 +360,6 @@ export type Database = {
         }
         Relationships: []
       }
-      usuarios_crm: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          nome: string
-          role: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id: string
-          nome: string
-          role?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          nome?: string
-          role?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
@@ -642,12 +618,6 @@ export const Constants = {
 //   status: text (nullable)
 //   mensagem: text (nullable)
 //   created_at: timestamp without time zone (nullable, default: now())
-// Table: usuarios_crm
-//   id: uuid (not null)
-//   nome: text (not null)
-//   email: text (not null)
-//   role: text (not null, default: 'User'::text)
-//   created_at: timestamp with time zone (not null, default: now())
 
 // --- CONSTRAINTS ---
 // Table: Organizacao_projetos
@@ -658,8 +628,6 @@ export const Constants = {
 //   PRIMARY KEY engenheiro_crm_pkey: PRIMARY KEY (id)
 // Table: sync_history
 //   PRIMARY KEY sync_history_pkey: PRIMARY KEY (id)
-// Table: usuarios_crm
-//   PRIMARY KEY usuarios_crm_pkey: PRIMARY KEY (id)
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: Arquitetos_empresas_crm
@@ -725,20 +693,10 @@ export const Constants = {
 // Table: sync_history
 //   Policy "Allow all" (ALL, PERMISSIVE) roles={public}
 //     USING: true
-// Table: usuarios_crm
-//   Policy "authenticated_delete_usuarios_crm" (DELETE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_insert_usuarios_crm" (INSERT, PERMISSIVE) roles={authenticated}
-//     WITH CHECK: true
-//   Policy "authenticated_select_usuarios_crm" (SELECT, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "authenticated_update_usuarios_crm" (UPDATE, PERMISSIVE) roles={authenticated}
-//     USING: true
-//     WITH CHECK: true
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION create_user(text, text, text, text)
-//   CREATE OR REPLACE FUNCTION public.create_user(p_email text, p_password text, p_name text, p_role text)
+//   CREATE OR REPLACE FUNCTION public.create_user(p_email text, p_name text, p_password text, p_role text)
 //    RETURNS uuid
 //    LANGUAGE plpgsql
 //    SECURITY DEFINER
@@ -747,15 +705,17 @@ export const Constants = {
 //     new_user_id uuid;
 //     is_admin boolean;
 //   BEGIN
-//     -- Verify caller is an Admin
-//     SELECT role = 'Admin' INTO is_admin FROM public.profiles WHERE id = auth.uid();
-//     IF NOT is_admin THEN
+//     -- Verify caller is an Admin using usuarios_crm
+//     SELECT role = 'Admin' INTO is_admin FROM public.usuarios_crm WHERE id = auth.uid();
+//
+//     -- Fallback if the user is not admin and the table is not empty (for bootstrap)
+//     IF NOT is_admin AND EXISTS (SELECT 1 FROM public.usuarios_crm) THEN
 //       RAISE EXCEPTION 'Apenas administradores podem criar novos usuários.';
 //     END IF;
 //
-//     -- Check for existing email
+//     -- Check for existing email in auth.users
 //     IF EXISTS (SELECT 1 FROM auth.users WHERE email = p_email) THEN
-//       RAISE EXCEPTION 'Um usuário com este e-mail já existe.';
+//       RAISE EXCEPTION 'Um usuário com este e-mail já existe na base de autenticação.';
 //     END IF;
 //
 //     new_user_id := gen_random_uuid();
@@ -776,7 +736,8 @@ export const Constants = {
 //       '', '', '', '', '', NULL, '', '', ''
 //     );
 //
-//     INSERT INTO public.profiles (id, email, name, role)
+//     -- Insert into usuarios_crm automatically
+//     INSERT INTO public.usuarios_crm (id, email, nome, role)
 //     VALUES (new_user_id, p_email, p_name, p_role);
 //
 //     RETURN new_user_id;
