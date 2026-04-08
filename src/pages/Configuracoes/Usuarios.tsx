@@ -61,20 +61,6 @@ export default function Usuarios() {
         throw new Error('Falha ao obter ID do usuário criado.')
       }
 
-      // Salva as informações adicionais na tabela usuarios_crm
-      const { error: dbError } = await supabase.from('usuarios_crm' as any).insert([
-        {
-          id: userId,
-          nome: name,
-          email: email,
-          role: role,
-        },
-      ])
-
-      if (dbError) {
-        throw new Error(dbError.message)
-      }
-
       toast({
         title: 'Usuário criado com sucesso!',
         description: `O usuário ${name} foi cadastrado no banco de dados com acesso ao sistema.`,

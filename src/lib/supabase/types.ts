@@ -360,6 +360,30 @@ export type Database = {
         }
         Relationships: []
       }
+      usuarios_crm: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          nome: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          role?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -618,6 +642,12 @@ export const Constants = {
 //   status: text (nullable)
 //   mensagem: text (nullable)
 //   created_at: timestamp without time zone (nullable, default: now())
+// Table: usuarios_crm
+//   id: uuid (not null)
+//   nome: text (not null)
+//   email: text (not null)
+//   role: text (not null, default: 'User'::text)
+//   created_at: timestamp with time zone (not null, default: now())
 
 // --- CONSTRAINTS ---
 // Table: Organizacao_projetos
@@ -628,6 +658,8 @@ export const Constants = {
 //   PRIMARY KEY engenheiro_crm_pkey: PRIMARY KEY (id)
 // Table: sync_history
 //   PRIMARY KEY sync_history_pkey: PRIMARY KEY (id)
+// Table: usuarios_crm
+//   PRIMARY KEY usuarios_crm_pkey: PRIMARY KEY (id)
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: Arquitetos_empresas_crm
@@ -693,6 +725,16 @@ export const Constants = {
 // Table: sync_history
 //   Policy "Allow all" (ALL, PERMISSIVE) roles={public}
 //     USING: true
+// Table: usuarios_crm
+//   Policy "authenticated_delete_usuarios_crm" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_insert_usuarios_crm" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_usuarios_crm" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_update_usuarios_crm" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION create_user(text, text, text, text)
