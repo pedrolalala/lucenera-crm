@@ -28,7 +28,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { updateProjeto, deleteProjeto, type Projeto } from '@/services/projetos'
+import { updateProjetoById, deleteProjeto, type Projeto } from '@/services/projetos'
 import { useToast } from '@/hooks/use-toast'
 
 interface ProjectActionsProps {
@@ -53,16 +53,17 @@ export function ProjectActions({ projeto, onChange }: ProjectActionsProps) {
     e?.preventDefault()
     try {
       setLoading(true)
-      if (!projeto.Codigo) {
-        toast({ title: 'Erro: Projeto sem código', variant: 'destructive' })
+      if (!formData.Codigo) {
+        toast({ title: 'Erro: Código é obrigatório', variant: 'destructive' })
         return
       }
 
       const cleanData = Object.fromEntries(
         Object.entries(formData).filter(([_, v]) => v !== undefined),
       )
+      delete cleanData.id
 
-      await updateProjeto(projeto.Codigo, cleanData)
+      await updateProjetoById(projeto.id, cleanData)
       toast({ title: 'Projeto atualizado com sucesso' })
       setIsEditOpen(false)
       onChange()

@@ -36,6 +36,17 @@ export async function updateProjeto(codigo: number, data: Partial<Projeto>) {
   return result?.[0] || null
 }
 
+export async function updateProjetoById(id: number, data: Partial<Projeto>) {
+  const { data: result, error } = await supabase
+    .from('Organizacao_projetos')
+    .update(data)
+    .eq('id', id)
+    .select()
+
+  if (error) throw error
+  return result?.[0] || null
+}
+
 export async function deleteProjeto(codigo: number) {
   const { error } = await supabase.from('Organizacao_projetos').delete().eq('Codigo', codigo)
 

@@ -360,6 +360,30 @@ export type Database = {
         }
         Relationships: []
       }
+      usuarios_crm: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nome: string | null
+          role: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          nome?: string | null
+          role?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -618,6 +642,12 @@ export const Constants = {
 //   status: text (nullable)
 //   mensagem: text (nullable)
 //   created_at: timestamp without time zone (nullable, default: now())
+// Table: usuarios_crm
+//   id: uuid (not null)
+//   email: text (not null)
+//   nome: text (nullable)
+//   role: text (nullable, default: 'User'::text)
+//   created_at: timestamp with time zone (not null, default: now())
 
 // --- CONSTRAINTS ---
 // Table: Organizacao_projetos
@@ -628,6 +658,9 @@ export const Constants = {
 //   PRIMARY KEY engenheiro_crm_pkey: PRIMARY KEY (id)
 // Table: sync_history
 //   PRIMARY KEY sync_history_pkey: PRIMARY KEY (id)
+// Table: usuarios_crm
+//   FOREIGN KEY usuarios_crm_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+//   PRIMARY KEY usuarios_crm_pkey: PRIMARY KEY (id)
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: Arquitetos_empresas_crm
@@ -693,6 +726,11 @@ export const Constants = {
 // Table: sync_history
 //   Policy "Allow all" (ALL, PERMISSIVE) roles={public}
 //     USING: true
+// Table: usuarios_crm
+//   Policy "admin_delete" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM usuarios_crm usuarios_crm_1   WHERE ((usuarios_crm_1.id = auth.uid()) AND (usuarios_crm_1.role = 'Admin'::text))))
+//   Policy "authenticated_select" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION create_user(text, text, text, text)
@@ -706,7 +744,11 @@ export const Constants = {
 //     is_admin boolean;
 //   BEGIN
 //     -- Verify caller is an Admin using usuarios_crm
-//     SELECT role = 'Admin' INTO is_admin FROM public.usuarios_crm WHERE id = auth.uid();
+//     is_admin := EXISTS (
+//       SELECT 1
+//       FROM public.usuarios_crm
+//       WHERE id = auth.uid() AND role = 'Admin'
+//     );
 //
 //     -- Fallback if the user is not admin and the table is not empty (for bootstrap)
 //     IF NOT is_admin AND EXISTS (SELECT 1 FROM public.usuarios_crm) THEN
@@ -728,19 +770,40 @@ export const Constants = {
 //       confirmation_token, recovery_token, email_change_token_new,
 //       email_change, email_change_token_current, phone, phone_change, phone_change_token, reauthentication_token
 //     ) VALUES (
-//       new_user_id, '00000000-0000-0000-0000-000000000000', p_email,
+//       new_user_id, '00000000-0000-0000-0000-000000000000'::uuid, p_email,
 //       crypt(p_password, gen_salt('bf')), NOW(), NOW(), NOW(),
-//       '{"provider": "email", "providers": ["email"]}',
-//       json_build_object('name', p_name),
+//       '{"provider": "email", "providers": ["email"]}'::jsonb,
+//       json_build_object('name', p_name)::jsonb,
 //       false, 'authenticated', 'authenticated',
 //       '', '', '', '', '', NULL, '', '', ''
 //     );
 //
-//     -- Insert into usuarios_crm automatically
+//     -- Insert into usuarios_crm automatically (using ON CONFLICT to avoid errors with the trigger)
 //     INSERT INTO public.usuarios_crm (id, email, nome, role)
-//     VALUES (new_user_id, p_email, p_name, p_role);
+//     VALUES (new_user_id, p_email, p_name, p_role)
+//     ON CONFLICT (id) DO UPDATE
+//     SET nome = EXCLUDED.nome, role = EXCLUDED.role;
 //
 //     RETURN new_user_id;
+//   END;
+//   $function$
+//
+// FUNCTION handle_new_auth_user()
+//   CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//     INSERT INTO public.usuarios_crm (id, email, nome, role)
+//     VALUES (
+//       NEW.id,
+//       NEW.email,
+//       COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+//       'User'
+//     )
+//     ON CONFLICT (id) DO NOTHING;
+//     RETURN NEW;
 //   END;
 //   $function$
 //
