@@ -1,3 +1,26 @@
+-- Ensure the table exists before attempting to backfill
+CREATE TABLE IF NOT EXISTS public.usuarios_crm (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  nome TEXT,
+  role TEXT DEFAULT 'User',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE public.usuarios_crm ENABLE ROW LEVEL SECURITY;
+
+-- Add basic RLS policies
+DROP POLICY IF EXISTS "authenticated_select" ON public.usuarios_crm;
+CREATE POLICY "authenticated_select" ON public.usuarios_crm
+  FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "admin_delete" ON public.usuarios_crm;
+CREATE POLICY "admin_delete" ON public.usuarios_crm
+  FOR DELETE TO authenticated USING (
+    EXISTS (SELECT 1 FROM public.usuarios_crm WHERE id = auth.uid() AND role = 'Admin')
+  );
+
 -- Backfill existing users from auth.users to usuarios_crm
 DO $$
 BEGIN
