@@ -50,18 +50,19 @@ import { toast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/supabase/types'
 
-type EngineerRow = Database['public']['Tables']['engenheiro_crm']['Row']
+type ContatoRow = Database['public']['Tables']['contatos']['Row']
 
 const engineerSchema = z.object({
   nome: z.string().min(2, 'Nome é obrigatório'),
-  tipo: z.string().min(1, 'Tipo de engenharia é obrigatório'),
+  especialidade: z.string().optional().nullable(),
   email: z
     .string()
     .email('Email inválido')
     .or(z.literal('').or(z.null()))
     .transform((v) => v || null),
-  telefone: z.string().min(1, 'Telefone é obrigatório'),
-  empresa: z.string().optional().nullable(),
+  telefone: z.string().optional().nullable(),
+  celular: z.string().optional().nullable(),
+  nome_empresa: z.string().optional().nullable(),
   endereco_comercial: z.string().optional().nullable(),
 })
 
@@ -78,14 +79,14 @@ const ENGINEER_TYPES = [
 ]
 
 export default function Engenheiros() {
-  const [engineers, setEngineers] = useState<EngineerRow[]>([])
+  const [engineers, setEngineers] = useState<ContatoRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingEngineer, setEditingEngineer] = useState<EngineerRow | null>(null)
+  const [editingEngineer, setEditingEngineer] = useState<ContatoRow | null>(null)
   const [engineerToDelete, setEngineerToDelete] = useState<string | null>(null)
 
-  const [viewingEngineer, setViewingEngineer] = useState<EngineerRow | null>(null)
+  const [viewingEngineer, setViewingEngineer] = useState<ContatoRow | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -95,17 +96,22 @@ export default function Engenheiros() {
     resolver: zodResolver(engineerSchema),
     defaultValues: {
       nome: '',
-      tipo: '',
+      especialidade: '',
       email: '',
       telefone: '',
-      empresa: '',
+      celular: '',
+      nome_empresa: '',
       endereco_comercial: '',
     },
   })
 
   const fetchEngineers = async () => {
     setLoading(true)
-    const { data, error } = await supabase.from('engenheiro_crm').select('*').order('nome')
+    const { data, error } = await supabase
+      .from('contatos')
+      .select('*')
+      .eq('tipo', 'engenheiro')
+      .order('nome')
     if (error) {
       toast({
         title: 'Erro ao buscar engenheiros',
@@ -122,10 +128,14 @@ export default function Engenheiros() {
     fetchEngineers()
 
     const channel = supabase
-      .channel('engenheiros_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'engenheiro_crm' }, () => {
-        fetchEngineers()
-      })
+      .channel('contatos_engenheiros')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'contatos', filter: 'tipo=eq.engenheiro' },
+        () => {
+          fetchEngineers()
+        },
+      )
       .subscribe()
 
     return () => {
@@ -159,19 +169,21 @@ export default function Engenheiros() {
     if (editingEngineer) {
       form.reset({
         nome: editingEngineer.nome,
-        tipo: editingEngineer.tipo || '',
+        especialidade: editingEngineer.especialidade || '',
         email: editingEngineer.email || '',
         telefone: editingEngineer.telefone || '',
-        empresa: editingEngineer.empresa || '',
+        celular: editingEngineer.celular || '',
+        nome_empresa: editingEngineer.nome_empresa || '',
         endereco_comercial: editingEngineer.endereco_comercial || '',
       })
     } else {
       form.reset({
         nome: '',
-        tipo: '',
+        especialidade: '',
         email: '',
         telefone: '',
-        empresa: '',
+        celular: '',
+        nome_empresa: '',
         endereco_comercial: '',
       })
     }
@@ -183,42 +195,42 @@ export default function Engenheiros() {
       return (
         e.nome.toLowerCase().includes(q) ||
         (e.email || '').toLowerCase().includes(q) ||
-        (e.empresa || '').toLowerCase().includes(q) ||
-        (e.tipo || '').toLowerCase().includes(q)
+        (e.nome_empresa || '').toLowerCase().includes(q) ||
+        (e.especialidade || '').toLowerCase().includes(q)
       )
     })
   }, [engineers, search])
 
   const onSubmit = async (values: EngineerFormValues) => {
     if (editingEngineer) {
-      const { error } = await supabase
-        .from('engenheiro_crm')
-        .update(values)
-        .eq('id', editingEngineer.id)
+      const { error } = await supabase.from('contatos').update(values).eq('id', editingEngineer.id)
       if (error) {
         toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' })
       } else {
         toast({ title: 'Engenheiro atualizado com sucesso' })
         setIsModalOpen(false)
+        fetchEngineers()
       }
     } else {
-      const { error } = await supabase.from('engenheiro_crm').insert([values])
+      const { error } = await supabase.from('contatos').insert([{ ...values, tipo: 'engenheiro' }])
       if (error) {
         toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' })
       } else {
         toast({ title: 'Engenheiro adicionado com sucesso' })
         setIsModalOpen(false)
+        fetchEngineers()
       }
     }
   }
 
   const handleDelete = async () => {
     if (engineerToDelete) {
-      const { error } = await supabase.from('engenheiro_crm').delete().eq('id', engineerToDelete)
+      const { error } = await supabase.from('contatos').delete().eq('id', engineerToDelete)
       if (error) {
         toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' })
       } else {
         toast({ title: 'Engenheiro excluído com sucesso' })
+        fetchEngineers()
       }
       setEngineerToDelete(null)
     }
@@ -229,7 +241,7 @@ export default function Engenheiros() {
     setIsModalOpen(true)
   }
 
-  const openViewModal = (engineer: EngineerRow) => {
+  const openViewModal = (engineer: ContatoRow) => {
     setViewingEngineer(engineer)
     setIsViewModalOpen(true)
     setCameFromView(false)
@@ -246,7 +258,7 @@ export default function Engenheiros() {
     }
   }
 
-  const openEditModal = (engineer: EngineerRow) => {
+  const openEditModal = (engineer: ContatoRow) => {
     setEditingEngineer(engineer)
     setIsModalOpen(true)
   }
@@ -281,7 +293,7 @@ export default function Engenheiros() {
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold">Nome</TableHead>
-                <TableHead className="font-semibold">Tipo / Especialidade</TableHead>
+                <TableHead className="font-semibold">Especialidade</TableHead>
                 <TableHead className="font-semibold">Empresa</TableHead>
                 <TableHead className="font-semibold">Contato</TableHead>
                 <TableHead className="hidden lg:table-cell font-semibold">End. Comercial</TableHead>
@@ -305,11 +317,13 @@ export default function Engenheiros() {
                 filteredEngineers.map((engineer) => (
                   <TableRow key={engineer.id} className="hover:bg-muted/50 transition-colors">
                     <TableCell className="font-medium text-foreground">{engineer.nome}</TableCell>
-                    <TableCell>{engineer.tipo}</TableCell>
-                    <TableCell>{engineer.empresa || '-'}</TableCell>
+                    <TableCell>{engineer.especialidade || '-'}</TableCell>
+                    <TableCell>{engineer.nome_empresa || '-'}</TableCell>
                     <TableCell className="whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span className="text-sm">{engineer.telefone}</span>
+                        <span className="text-sm">
+                          {engineer.celular || engineer.telefone || '-'}
+                        </span>
                         {engineer.email && (
                           <span className="text-xs text-muted-foreground">{engineer.email}</span>
                         )}
@@ -384,13 +398,11 @@ export default function Engenheiros() {
                 />
                 <FormField
                   control={form.control}
-                  name="tipo"
+                  name="especialidade"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Tipo de Engenharia <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <FormLabel>Especialidade</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione o tipo" />
@@ -428,12 +440,10 @@ export default function Engenheiros() {
                 />
                 <FormField
                   control={form.control}
-                  name="telefone"
+                  name="celular"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Telefone <span className="text-destructive">*</span>
-                      </FormLabel>
+                      <FormLabel>Celular</FormLabel>
                       <FormControl>
                         <Input placeholder="(00) 00000-0000" {...field} value={field.value || ''} />
                       </FormControl>
@@ -443,13 +453,26 @@ export default function Engenheiros() {
                 />
                 <FormField
                   control={form.control}
-                  name="empresa"
+                  name="telefone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone Fixo</FormLabel>
+                      <FormControl>
+                        <Input placeholder="(00) 0000-0000" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="nome_empresa"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Empresa / Escritório</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Nome do escritório (opcional)"
+                          placeholder="Nome do escritório"
                           {...field}
                           value={field.value || ''}
                         />
@@ -502,10 +525,8 @@ export default function Engenheiros() {
                 <p className="text-foreground">{viewingEngineer.nome || '-'}</p>
               </div>
               <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">
-                  Tipo / Especialidade
-                </h4>
-                <p className="text-foreground">{viewingEngineer.tipo || '-'}</p>
+                <h4 className="font-semibold text-sm text-muted-foreground">Especialidade</h4>
+                <p className="text-foreground">{viewingEngineer.especialidade || '-'}</p>
               </div>
               <div>
                 <h4 className="font-semibold text-sm text-muted-foreground">E-mail</h4>
@@ -515,9 +536,13 @@ export default function Engenheiros() {
                 <h4 className="font-semibold text-sm text-muted-foreground">Telefone</h4>
                 <p className="text-foreground">{viewingEngineer.telefone || '-'}</p>
               </div>
+              <div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Celular</h4>
+                <p className="text-foreground">{viewingEngineer.celular || '-'}</p>
+              </div>
               <div className="sm:col-span-2">
                 <h4 className="font-semibold text-sm text-muted-foreground">Empresa</h4>
-                <p className="text-foreground">{viewingEngineer.empresa || '-'}</p>
+                <p className="text-foreground">{viewingEngineer.nome_empresa || '-'}</p>
               </div>
               <div className="sm:col-span-2">
                 <h4 className="font-semibold text-sm text-muted-foreground">Endereço Comercial</h4>

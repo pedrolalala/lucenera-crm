@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -31,7 +31,6 @@ import {
   SelectValue,
   SelectSeparator,
 } from '@/components/ui/select'
-import { USERS } from '@/types'
 import { ArrowLeft, Sparkles, Building2, HardHat, User, Plus, Zap } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from '@/hooks/use-toast'
@@ -41,110 +40,78 @@ const NEW_STATUS_OPTIONS = [
   'Estudo Inicial',
   'Elaboração Orçamento',
   'Proposta Sinal',
-  'Contrato de Projeto',
-  'Emissão Projeto Executivo',
-  'Ajustes Finais',
-  'Obra Finalizada',
-  'Venda DocuSign',
-  'Não Fechou',
+  'Informações necessárias',
+  'Projeto executivo',
+  'Entrega materiais',
+  'Ajustes finais',
+  'Finalizado',
+  'Arquivado',
 ]
 
 const formSchema = z.object({
   codigo: z.string().min(1, 'O campo Código é obrigatório'),
-  name: z.string().min(2, 'Obrigatório'),
-  strategicLevel: z.enum(['1', '2', '3', '4']),
-  responsible: z.string().min(1, 'Obrigatório'),
+  nome: z.string().min(2, 'Obrigatório'),
+  nivel_estrategico: z.enum(['1', '2', '3', '4']),
+  responsavel_id: z.string().min(1, 'Obrigatório'),
   status: z.string().min(1, 'Obrigatório'),
-  client: z.string().min(1, 'Obrigatório'),
-  architect: z.string().min(1, 'Obrigatório'),
-  engineer: z.string().min(1, 'Obrigatório'),
-  electrician: z.string().optional(),
-  city: z.string().min(2, 'Obrigatório'),
-  state: z.string().length(2, 'Inválido'),
+  cliente_id: z.string().min(1, 'Obrigatório'),
+  arquiteto_id: z.string().optional(),
+  responsavel_obra_id: z.string().optional(),
+  cidade: z.string().min(2, 'Obrigatório'),
+  estado: z.string().length(2, 'Inválido'),
 })
 
 export default function ProjectNew() {
   const navigate = useNavigate()
-  const store = useProjectStore() as any
-  const { getCities, getStateForCity, addProject } = useProjectStore()
+  const { contacts, refreshContacts, refreshProjects } = useProjectStore()
 
   const [modalType, setModalType] = useState<ContactType | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  const [clientsDb, setClientsDb] = useState<{ id: string; nome: string }[]>([])
-  const [architectsDb, setArchitectsDb] = useState<{ id: string; nome: string }[]>([])
-  const [engineersDb, setEngineersDb] = useState<{ id: string; nome: string }[]>([])
-  const [electriciansDb, setElectriciansDb] = useState<{ id: string; nome: string }[]>([])
+  const clientes = contacts.filter((c) => c.tipo === 'cliente')
+  const arquitetos = contacts.filter((c) => c.tipo === 'arquiteto')
+  const engenheiros = contacts.filter((c) => c.tipo === 'engenheiro')
+  const usuarios = contacts.filter((c) => c.tipo === 'outro') // Treating internal as 'outro' or from `usuarios`
 
-  useEffect(() => {
-    supabase
-      .from('clientes_crm')
-      .select('cod_cliente, nm_cliente')
-      .order('nm_cliente')
-      .then(({ data }) =>
-        setClientsDb(
-          data
-            ?.map((d) => ({ id: String(d.cod_cliente), nome: d.nm_cliente || '' }))
-            .filter((d) => d.nome) || [],
-        ),
-      )
+  const getCities = () => {
+    return Array.from(new Set(contacts.map((c) => c.cidade).filter(Boolean))) as string[]
+  }
 
-    supabase
-      .from('Arquitetos_empresas_crm')
-      .select('codigo_do_arquiteto, "Nome do Arquiteto"')
-      .order('"Nome do Arquiteto"')
-      .then(({ data }) =>
-        setArchitectsDb(
-          data
-            ?.map((d) => ({
-              id: String(d.codigo_do_arquiteto),
-              nome: d['Nome do Arquiteto'] || '',
-            }))
-            .filter((d) => d.nome) || [],
-        ),
-      )
-
-    supabase
-      .from('engenheiro_crm')
-      .select('id, nome')
-      .order('nome')
-      .then(({ data }) => setEngineersDb(data?.map((d) => ({ id: d.id, nome: d.nome })) || []))
-
-    supabase
-      .from('eletricistas_crm')
-      .select('id, nome')
-      .order('nome')
-      .then(({ data }) => setElectriciansDb(data?.map((d) => ({ id: d.id, nome: d.nome })) || []))
-  }, [])
+  const getStateForCity = (city: string) => {
+    const contact = contacts.find((c) => c.cidade?.toLowerCase() === city.toLowerCase())
+    return contact?.estado || ''
+  }
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       codigo: '',
-      name: '',
-      strategicLevel: '3',
-      client: 'Não Informado',
-      architect: 'Não Informado',
-      engineer: 'Não Informado',
-      electrician: 'Não Informado',
-      city: '',
-      state: 'SP',
+      nome: '',
+      nivel_estrategico: '3',
+      cliente_id: 'null',
+      arquiteto_id: 'null',
+      responsavel_obra_id: 'null',
+      responsavel_id: 'null',
+      cidade: '',
+      estado: 'SP',
       status: 'Estudo Inicial',
     },
   })
 
   const onSubmit = async (v: z.infer<typeof formSchema>) => {
+    setLoading(true)
     try {
       const payload = {
-        Codigo: v.codigo,
-        Projeto: v.name,
-        nivel_estrategico: v.strategicLevel,
-        responsavel: v.responsible,
-        Status: v.status,
-        arquiteto: v.architect !== 'Não Informado' ? v.architect : null,
-        engenheiro: v.engineer !== 'Não Informado' ? v.engineer : null,
-        eletricista: v.electrician !== 'Não Informado' ? v.electrician : null,
-        Cidade: v.city,
-        Estado: v.state,
+        codigo: v.codigo,
+        nome: v.nome,
+        nivel_estrategico: v.nivel_estrategico,
+        responsavel_id: v.responsavel_id !== 'null' ? v.responsavel_id : null,
+        status: v.status,
+        cliente_id: v.cliente_id !== 'null' ? v.cliente_id : null,
+        arquiteto_id: v.arquiteto_id !== 'null' ? v.arquiteto_id : null,
+        responsavel_obra_id: v.responsavel_obra_id !== 'null' ? v.responsavel_obra_id : null,
+        cidade: v.cidade,
+        estado: v.estado,
         data_entrada: new Date().toISOString(),
       }
 
@@ -155,126 +122,28 @@ export default function ProjectNew() {
       if (error) throw error
       if (result?.error) throw new Error(result.error)
 
-      try {
-        // Recarrega automaticamente a lista de projetos após o status 200
-        await supabase.from('Organizacao_projetos').select('*')
-
-        if (typeof store.fetchProjects === 'function') {
-          await store.fetchProjects()
-        } else {
-          addProject({
-            id: String(v.codigo),
-            name: v.name,
-            strategicLevel: v.strategicLevel as any,
-            responsible: v.responsible as any,
-            status: v.status as any,
-            client: v.client,
-            architect: v.architect,
-            engineer: v.engineer,
-            city: v.city,
-            state: v.state,
-            electrician: v.electrician,
-          })
-        }
-      } catch (e) {
-        // Ignorar erro do store caso ocorra
-      }
-
+      await refreshProjects()
       toast({ title: 'Projeto criado com sucesso!' })
       navigate('/projetos')
     } catch (err: any) {
       toast({ title: 'Erro ao salvar projeto', description: err.message, variant: 'destructive' })
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleSaveNewContact = async (values: { name: string; email?: string; phone?: string }) => {
-    try {
-      if (modalType === 'client') {
-        const { data, error } = await supabase
-          .from('clientes_crm')
-          .insert([
-            {
-              nm_cliente: values.name,
-              email_cliente: values.email || '',
-              tel_cliente: values.phone || '',
-            },
-          ])
-          .select('cod_cliente, nm_cliente')
-          .single()
+  const handleSaveNewContact = async (contactData: any) => {
+    await refreshContacts()
 
-        if (error) throw error
-        if (data) {
-          setClientsDb((p) =>
-            [...p, { id: String(data.cod_cliente), nome: data.nm_cliente || '' }].sort((a, b) =>
-              a.nome.localeCompare(b.nome),
-            ),
-          )
-          form.setValue('client', values.name)
-          toast({ title: 'Cliente criado com sucesso!' })
-        }
-      } else if (modalType === 'architect') {
-        const { data, error } = await supabase
-          .from('Arquitetos_empresas_crm')
-          .insert([
-            {
-              'Nome do Arquiteto': values.name,
-              Email: values.email || '',
-              Telefone: values.phone || '',
-            },
-          ])
-          .select('codigo_do_arquiteto, "Nome do Arquiteto"')
-          .single()
+    if (modalType === 'cliente') form.setValue('cliente_id', contactData.id)
+    else if (modalType === 'arquiteto') form.setValue('arquiteto_id', contactData.id)
+    else if (modalType === 'engenheiro') form.setValue('responsavel_obra_id', contactData.id)
 
-        if (error) throw error
-        if (data) {
-          setArchitectsDb((p) =>
-            [
-              ...p,
-              { id: String(data.codigo_do_arquiteto), nome: data['Nome do Arquiteto'] || '' },
-            ].sort((a, b) => a.nome.localeCompare(b.nome)),
-          )
-          form.setValue('architect', values.name)
-          toast({ title: 'Arquiteto criado com sucesso!' })
-        }
-      } else if (modalType === 'engineer') {
-        const { data, error } = await supabase
-          .from('engenheiro_crm')
-          .insert([{ nome: values.name, email: values.email || '', telefone: values.phone || '' }])
-          .select('id, nome')
-          .single()
-
-        if (error) throw error
-        if (data) {
-          setEngineersDb((p) =>
-            [...p, { id: data.id, nome: data.nome }].sort((a, b) => a.nome.localeCompare(b.nome)),
-          )
-          form.setValue('engineer', values.name)
-          toast({ title: 'Engenheiro criado com sucesso!' })
-        }
-      } else if (modalType === 'electrician') {
-        const { data, error } = await supabase
-          .from('eletricistas_crm')
-          .insert([{ nome: values.name, email: values.email || '', telefone: values.phone || '' }])
-          .select('id, nome')
-          .single()
-
-        if (error) throw error
-        if (data) {
-          setElectriciansDb((p) =>
-            [...p, { id: data.id, nome: data.nome }].sort((a, b) => a.nome.localeCompare(b.nome)),
-          )
-          form.setValue('electrician', values.name)
-          toast({ title: 'Eletricista criado com sucesso!' })
-        }
-      }
-      setModalType(null)
-    } catch (err: any) {
-      toast({ title: 'Erro ao criar contato', description: err.message, variant: 'destructive' })
-    }
+    setModalType(null)
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12">
+    <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-fade-in-up">
       <Button
         variant="ghost"
         className="pl-0 hover:bg-transparent hover:text-primary"
@@ -312,7 +181,7 @@ export default function ProjectNew() {
 
               <FormField
                 control={form.control}
-                name="name"
+                name="nome"
                 render={({ field }) => (
                   <FormItem className="md:col-span-1">
                     <FormLabel className="text-base">
@@ -332,7 +201,7 @@ export default function ProjectNew() {
 
               <FormField
                 control={form.control}
-                name="strategicLevel"
+                name="nivel_estrategico"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
@@ -386,7 +255,7 @@ export default function ProjectNew() {
 
               <FormField
                 control={form.control}
-                name="responsible"
+                name="responsavel_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
@@ -399,9 +268,10 @@ export default function ProjectNew() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {USERS.filter((u) => u.role === 'User').map((u) => (
-                          <SelectItem key={u.name} value={u.name}>
-                            {u.name}
+                        <SelectItem value="null">Nenhum</SelectItem>
+                        {usuarios.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.nome}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -411,14 +281,15 @@ export default function ProjectNew() {
                 )}
               />
 
-              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-6 p-5 bg-muted/20 rounded-lg border">
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-6 p-5 bg-muted/20 rounded-lg border">
                 <FormField
                   control={form.control}
-                  name="client"
+                  name="cliente_id"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1.5">
-                        <User className="h-4 w-4" /> Cliente
+                        <User className="h-4 w-4" /> Cliente{' '}
+                        <span className="text-destructive">*</span>
                       </FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
@@ -427,9 +298,9 @@ export default function ProjectNew() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Não Informado">Não Informado</SelectItem>
-                          {clientsDb.map((o) => (
-                            <SelectItem key={o.id} value={o.nome}>
+                          <SelectItem value="null">Não Informado</SelectItem>
+                          {clientes.map((o) => (
+                            <SelectItem key={o.id} value={o.id}>
                               {o.nome}
                             </SelectItem>
                           ))}
@@ -439,7 +310,7 @@ export default function ProjectNew() {
                             className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent"
                             onClick={(e) => {
                               e.stopPropagation()
-                              setModalType('client')
+                              setModalType('cliente')
                             }}
                           >
                             <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />{' '}
@@ -454,7 +325,7 @@ export default function ProjectNew() {
 
                 <FormField
                   control={form.control}
-                  name="architect"
+                  name="arquiteto_id"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1.5">
@@ -467,9 +338,9 @@ export default function ProjectNew() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Não Informado">Não Informado</SelectItem>
-                          {architectsDb.map((o) => (
-                            <SelectItem key={o.id} value={o.nome}>
+                          <SelectItem value="null">Não Informado</SelectItem>
+                          {arquitetos.map((o) => (
+                            <SelectItem key={o.id} value={o.id}>
                               {o.nome}
                             </SelectItem>
                           ))}
@@ -479,7 +350,7 @@ export default function ProjectNew() {
                             className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent"
                             onClick={(e) => {
                               e.stopPropagation()
-                              setModalType('architect')
+                              setModalType('arquiteto')
                             }}
                           >
                             <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />{' '}
@@ -494,7 +365,7 @@ export default function ProjectNew() {
 
                 <FormField
                   control={form.control}
-                  name="engineer"
+                  name="responsavel_obra_id"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1.5">
@@ -507,9 +378,9 @@ export default function ProjectNew() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Não Informado">Não Informado</SelectItem>
-                          {engineersDb.map((o) => (
-                            <SelectItem key={o.id} value={o.nome}>
+                          <SelectItem value="null">Não Informado</SelectItem>
+                          {engenheiros.map((o) => (
+                            <SelectItem key={o.id} value={o.id}>
                               {o.nome}
                             </SelectItem>
                           ))}
@@ -519,51 +390,11 @@ export default function ProjectNew() {
                             className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent"
                             onClick={(e) => {
                               e.stopPropagation()
-                              setModalType('engineer')
+                              setModalType('engenheiro')
                             }}
                           >
                             <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />{' '}
                             Novo Engenheiro
-                          </div>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="electrician"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1.5">
-                        <Zap className="h-4 w-4" /> Eletricista
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || 'Não Informado'}>
-                        <FormControl>
-                          <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Não Informado">Não Informado</SelectItem>
-                          {electriciansDb.map((o) => (
-                            <SelectItem key={o.id} value={o.nome}>
-                              {o.nome}
-                            </SelectItem>
-                          ))}
-                          <SelectSeparator />
-                          <div
-                            role="button"
-                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setModalType('electrician')
-                            }}
-                          >
-                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />{' '}
-                            Novo Eletricista
                           </div>
                         </SelectContent>
                       </Select>
@@ -576,7 +407,7 @@ export default function ProjectNew() {
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-6">
                 <FormField
                   control={form.control}
-                  name="city"
+                  name="cidade"
                   render={({ field }) => (
                     <FormItem className="sm:col-span-2">
                       <FormLabel>
@@ -591,7 +422,7 @@ export default function ProjectNew() {
                           onChange={(e) => {
                             field.onChange(e)
                             const s = getStateForCity(e.target.value)
-                            if (s) form.setValue('state', s)
+                            if (s) form.setValue('estado', s)
                           }}
                         />
                       </FormControl>
@@ -602,7 +433,7 @@ export default function ProjectNew() {
                 />
                 <FormField
                   control={form.control}
-                  name="state"
+                  name="estado"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
@@ -635,11 +466,12 @@ export default function ProjectNew() {
                 variant="outline"
                 className="h-11 px-6"
                 onClick={() => navigate(-1)}
+                disabled={loading}
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="h-11 px-8 text-base">
-                Salvar Projeto
+              <Button type="submit" className="h-11 px-8 text-base" disabled={loading}>
+                {loading ? 'Salvando...' : 'Salvar Projeto'}
               </Button>
             </CardFooter>
           </form>
