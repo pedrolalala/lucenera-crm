@@ -69,4 +69,7 @@ export async function updateProjetoEdge(id: string, data: any) {
   })
 
   if (error) throw error
-  if (result?.error) throw new Er
+  if (result?.error) throw new Error(result.error)
+
+  return result?.data
+}
