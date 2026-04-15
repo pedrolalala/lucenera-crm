@@ -84,3 +84,24 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<Index />} />
                 <Route path="/projetos" element={<Projetos />} />
+                <Route path="/novo" element={<ProjectNew />} />
+                <Route path="/projeto/:id" element={<ProjectDetail />} />
+                <Route path="/contatos/clientes" element={<Clientes />} />
+                <Route path="/contatos/arquitetos" element={<Arquitetos />} />
+                <Route path="/contatos/engenheiros" element={<Engenheiros />} />
+                <Route path="/contatos/eletricistas" element={<Eletricistas />} />
+                <Route path="/orcamentos" element={<Orcamentos />} />
+                <Route path="/configuracoes" element={<Configuracoes />} />
+                <Route path="/configuracoes/usuarios" element={<Usuarios />} />
+              </Route>
+              <Route path="/atualizar-senha" element={<UpdatePassword />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </TooltipProvider>
+        </ProjectStoreProvider>
+      </BrowserRouter>
+    </AuthProvider>
+  )
+}
+
+export default App
