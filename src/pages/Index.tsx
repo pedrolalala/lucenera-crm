@@ -36,7 +36,7 @@ export default function Index() {
 
     const value = projects.reduce((acc, p) => {
       const pVal =
-        p.projeto_parcelas?.reduce((sum, parc) => sum + Number(parcela.valor || 0), 0) ||
+        p.projeto_parcelas?.reduce((sum, parc) => sum + Number(parc.valor || 0), 0) ||
         Number(p.valor_total || 0)
       return acc + pVal
     }, 0)
