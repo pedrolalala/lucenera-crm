@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
@@ -34,41 +35,73 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>
 }
 
-const App = () => (
-  <AuthProvider>
-    <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-      <ProjectStoreProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route
-              element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<Index />} />
-              <Route path="/projetos" element={<Projetos />} />
-              <Route path="/novo" element={<ProjectNew />} />
-              <Route path="/projeto/:id" element={<ProjectDetail />} />
-              <Route path="/contatos/clientes" element={<Clientes />} />
-              <Route path="/contatos/arquitetos" element={<Arquitetos />} />
-              <Route path="/contatos/engenheiros" element={<Engenheiros />} />
-              <Route path="/contatos/eletricistas" element={<Eletricistas />} />
-              <Route path="/orcamentos" element={<Orcamentos />} />
-              <Route path="/configuracoes" element={<Configuracoes />} />
-              <Route path="/configuracoes/usuarios" element={<Usuarios />} />
-            </Route>
-            <Route path="/atualizar-senha" element={<UpdatePassword />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </TooltipProvider>
-      </ProjectStoreProvider>
-    </BrowserRouter>
-  </AuthProvider>
-)
+const App = () => {
+  useEffect(() => {
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      if (
+        event.reason &&
+        typeof event.reason.message === 'string' &&
+        (event.reason.message.includes('MetaMask') || event.reason.message.includes('ethereum'))
+      ) {
+        event.preventDefault()
+      }
+    }
+
+    const handleError = (event: ErrorEvent) => {
+      if (
+        event.message &&
+        typeof event.message === 'string' &&
+        (event.message.includes('MetaMask') || event.message.includes('ethereum'))
+      ) {
+        event.preventDefault()
+      }
+    }
+
+    window.addEventListener('unhandledrejection', handleRejection)
+    window.addEventListener('error', handleError)
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleRejection)
+      window.removeEventListener('error', handleError)
+    }
+  }, [])
+
+  return (
+    <AuthProvider>
+      <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+        <ProjectStoreProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/" element={<Index />} />
+                <Route path="/dashboard" element={<Index />} />
+                <Route path="/projetos" element={<Projetos />} />
+                <Route path="/novo" element={<ProjectNew />} />
+                <Route path="/projeto/:id" element={<ProjectDetail />} />
+                <Route path="/contatos/clientes" element={<Clientes />} />
+                <Route path="/contatos/arquitetos" element={<Arquitetos />} />
+                <Route path="/contatos/engenheiros" element={<Engenheiros />} />
+                <Route path="/contatos/eletricistas" element={<Eletricistas />} />
+                <Route path="/orcamentos" element={<Orcamentos />} />
+                <Route path="/configuracoes" element={<Configuracoes />} />
+                <Route path="/configuracoes/usuarios" element={<Usuarios />} />
+              </Route>
+              <Route path="/atualizar-senha" element={<UpdatePassword />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </TooltipProvider>
+        </ProjectStoreProvider>
+      </BrowserRouter>
+    </AuthProvider>
+  )
+}
 
 export default App
