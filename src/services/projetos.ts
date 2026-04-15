@@ -22,6 +22,7 @@ export async function getProjetos() {
       engenheiro:responsavel_obra_id(nome),
       projeto_parcelas(*)
     `)
+    .order('codigo', { ascending: false })
     .order('created_at', { ascending: false })
 
   if (error) throw error
