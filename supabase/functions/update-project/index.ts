@@ -28,10 +28,20 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    const mappedUpdates: any = {}
+    if (updates.Projeto !== undefined) mappedUpdates.nome = updates.Projeto
+    if (updates.Status !== undefined) mappedUpdates.status = updates.Status
+    if (updates.Cidade !== undefined) mappedUpdates.cidade = updates.Cidade
+    if (updates.Estado !== undefined) mappedUpdates.estado = updates.Estado
+    if (updates.Data_Entrada !== undefined) mappedUpdates.data_entrada = updates.Data_Entrada
+    if (updates.Nivel_Estrategico !== undefined)
+      mappedUpdates.nivel_estrategico = updates.Nivel_Estrategico
+    if (updates.Responsavel !== undefined) mappedUpdates.responsavel_nome = updates.Responsavel
+
     const { data, error } = await supabase
-      .from('Organizacao_projetos')
-      .update(updates)
-      .eq('Codigo', id)
+      .from('projetos')
+      .update(mappedUpdates)
+      .eq('codigo', String(id))
       .select()
       .single()
 

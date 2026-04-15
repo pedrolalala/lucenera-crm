@@ -14,15 +14,11 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    console.log('[salvar-projeto] Iniciando processamento da requisição')
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    console.log('[salvar-projeto] Lendo corpo da requisição...')
     const body = await req.json()
-    console.log('[salvar-projeto] Payload recebido:', body)
 
     const {
       Codigo,
@@ -38,7 +34,6 @@ Deno.serve(async (req: Request) => {
     } = body
 
     if (!Codigo || String(Codigo).trim() === '') {
-      console.warn('[salvar-projeto] Validação falhou: Campo Codigo ausente.')
       return new Response(JSON.stringify({ error: 'O campo Código é obrigatório.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -46,75 +41,73 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!Projeto || String(Projeto).trim() === '') {
-      console.warn('[salvar-projeto] Validação falhou: Campo Projeto ausente.')
       return new Response(JSON.stringify({ error: 'O campo Projeto é obrigatório.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    if (!Status || String(Status).trim() === '') {
-      console.warn('[salvar-projeto] Validação falhou: Campo Status ausente.')
-      return new Response(JSON.stringify({ error: 'O campo Status é obrigatório.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    let arquiteto_id = null
+    if (arquiteto) {
+      const { data: arq } = await supabase
+        .from('contatos')
+        .select('id')
+        .eq('nome', arquiteto)
+        .eq('tipo', 'arquiteto')
+        .maybeSingle()
+      if (arq) arquiteto_id = arq.id
     }
 
-    if (!Cidade || String(Cidade).trim() === '') {
-      console.warn('[salvar-projeto] Validação falhou: Campo Cidade ausente.')
-      return new Response(JSON.stringify({ error: 'O campo Cidade é obrigatório.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    let responsavel_obra_id = null
+    if (engenheiro) {
+      const { data: eng } = await supabase
+        .from('contatos')
+        .select('id')
+        .eq('nome', engenheiro)
+        .eq('tipo', 'engenheiro')
+        .maybeSingle()
+      if (eng) responsavel_obra_id = eng.id
     }
 
-    if (!Estado || String(Estado).trim() === '') {
-      console.warn('[salvar-projeto] Validação falhou: Campo Estado ausente.')
-      return new Response(JSON.stringify({ error: 'O campo Estado é obrigatório.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    let responsavel_id = null
+    if (responsavel) {
+      const { data: resp } = await supabase
+        .from('contatos')
+        .select('id')
+        .eq('nome', responsavel)
+        .maybeSingle()
+      if (resp) responsavel_id = resp.id
     }
 
     const payloadInsercao = {
-      Codigo: Number(String(Codigo).trim()),
-      Projeto,
-      Status,
-      Cidade,
-      Estado,
-      Arquiteto_Responsavel: arquiteto,
-      Responsavel_da_Obra: engenheiro,
-      Responsavel: responsavel,
-      Data_Entrada: data_entrada,
-      Nivel_Estrategico: nivel_estrategico,
+      codigo: String(Codigo).trim(),
+      nome: Projeto,
+      status: Status || 'Estudo Inicial',
+      cidade: Cidade,
+      estado: Estado,
+      arquiteto_id,
+      responsavel_obra_id,
+      responsavel_id,
+      responsavel_nome: responsavel || null,
+      data_entrada: data_entrada || null,
+      nivel_estrategico: nivel_estrategico || null,
     }
 
-    console.log('[salvar-projeto] Confirmando formato dos dados antes do INSERT:')
-    console.log(JSON.stringify(payloadInsercao, null, 2))
-
-    console.log(
-      '[salvar-projeto] Tabela alvo: Organizacao_projetos. Dados sendo inseridos:',
-      payloadInsercao,
-    )
     const { data, error } = await supabase
-      .from('Organizacao_projetos')
+      .from('projetos')
       .insert([payloadInsercao])
       .select()
       .single()
 
     if (error) {
-      console.error('[salvar-projeto] Erro ao tentar inserir no banco (insert error):', error)
       throw error
     }
 
-    console.log('[salvar-projeto] Inserção concluída com sucesso:', data)
     return new Response(JSON.stringify({ success: true, data }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error: any) {
-    console.error('[salvar-projeto] Exceção capturada (catch):', error)
     return new Response(JSON.stringify({ error: error.message || 'Erro interno no servidor' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
