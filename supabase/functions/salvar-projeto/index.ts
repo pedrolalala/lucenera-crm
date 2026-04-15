@@ -21,74 +21,43 @@ Deno.serve(async (req: Request) => {
     const body = await req.json()
 
     const {
-      Codigo,
-      Projeto,
-      Status,
-      Cidade,
-      Estado,
-      arquiteto,
-      engenheiro,
-      responsavel,
+      codigo,
+      nome,
+      status,
+      cidade,
+      estado,
+      arquiteto_id,
+      responsavel_obra_id,
+      responsavel_id,
+      cliente_id,
       data_entrada,
       nivel_estrategico,
     } = body
 
-    if (!Codigo || String(Codigo).trim() === '') {
+    if (!codigo || String(codigo).trim() === '') {
       return new Response(JSON.stringify({ error: 'O campo Código é obrigatório.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    if (!Projeto || String(Projeto).trim() === '') {
-      return new Response(JSON.stringify({ error: 'O campo Projeto é obrigatório.' }), {
+    if (!nome || String(nome).trim() === '') {
+      return new Response(JSON.stringify({ error: 'O campo Nome é obrigatório.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    let arquiteto_id = null
-    if (arquiteto) {
-      const { data: arq } = await supabase
-        .from('contatos')
-        .select('id')
-        .eq('nome', arquiteto)
-        .eq('tipo', 'arquiteto')
-        .maybeSingle()
-      if (arq) arquiteto_id = arq.id
-    }
-
-    let responsavel_obra_id = null
-    if (engenheiro) {
-      const { data: eng } = await supabase
-        .from('contatos')
-        .select('id')
-        .eq('nome', engenheiro)
-        .eq('tipo', 'engenheiro')
-        .maybeSingle()
-      if (eng) responsavel_obra_id = eng.id
-    }
-
-    let responsavel_id = null
-    if (responsavel) {
-      const { data: resp } = await supabase
-        .from('contatos')
-        .select('id')
-        .eq('nome', responsavel)
-        .maybeSingle()
-      if (resp) responsavel_id = resp.id
-    }
-
     const payloadInsercao = {
-      codigo: String(Codigo).trim(),
-      nome: Projeto,
-      status: Status || 'Estudo Inicial',
-      cidade: Cidade,
-      estado: Estado,
+      codigo: String(codigo).trim(),
+      nome,
+      status: status || 'Estudo Inicial',
+      cidade,
+      estado,
       arquiteto_id,
       responsavel_obra_id,
       responsavel_id,
-      responsavel_nome: responsavel || null,
+      cliente_id,
       data_entrada: data_entrada || null,
       nivel_estrategico: nivel_estrategico || null,
     }

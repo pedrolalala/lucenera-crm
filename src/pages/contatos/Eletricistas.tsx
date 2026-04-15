@@ -22,13 +22,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Database } from '@/lib/supabase/types'
+
+type ContatoRow = Database['public']['Tables']['contatos']['Row']
 
 export default function Eletricistas() {
-  const [eletricistas, setEletricistas] = useState<any[]>([])
+  const [eletricistas, setEletricistas] = useState<ContatoRow[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [open, setOpen] = useState(false)
-  const [viewingEletricista, setViewingEletricista] = useState<any | null>(null)
+  const [viewingEletricista, setViewingEletricista] = useState<ContatoRow | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -45,7 +48,11 @@ export default function Eletricistas() {
 
   const fetchEletricistas = async () => {
     setLoading(true)
-    const { data, error } = await supabase.from('eletricistas_crm').select('*').order('nome')
+    const { data, error } = await supabase
+      .from('contatos')
+      .select('*')
+      .eq('tipo', 'eletricista')
+      .order('nome')
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' })
     } else {
@@ -87,7 +94,7 @@ export default function Eletricistas() {
       return
     }
 
-    const { error } = await supabase.from('eletricistas_crm').insert([formData])
+    const { error } = await supabase.from('contatos').insert([{ ...formData, tipo: 'eletricista' }])
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' })
     } else {
@@ -98,7 +105,7 @@ export default function Eletricistas() {
     }
   }
 
-  const openViewModal = (el: any) => {
+  const openViewModal = (el: ContatoRow) => {
     setViewingEletricista(el)
     setIsViewModalOpen(true)
     setCameFromView(false)
@@ -245,7 +252,7 @@ export default function Eletricistas() {
                     filtered.map((el) => (
                       <TableRow key={el.id}>
                         <TableCell className="font-medium">{el.nome}</TableCell>
-                        <TableCell>{el.telefone || '-'}</TableCell>
+                        <TableCell>{el.telefone || el.celular || '-'}</TableCell>
                         <TableCell>{el.email || '-'}</TableCell>
                         <TableCell>
                           {el.cidade ? `${el.cidade}/${el.estado || '-'}` : '-'}
@@ -283,7 +290,9 @@ export default function Eletricistas() {
               </div>
               <div>
                 <h4 className="font-semibold text-sm text-muted-foreground">Telefone</h4>
-                <p className="text-foreground">{viewingEletricista.telefone || '-'}</p>
+                <p className="text-foreground">
+                  {viewingEletricista.telefone || viewingEletricista.celular || '-'}
+                </p>
               </div>
               <div>
                 <h4 className="font-semibold text-sm text-muted-foreground">E-mail</h4>

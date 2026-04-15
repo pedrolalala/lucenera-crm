@@ -1,364 +1,228 @@
-import { useEffect, useState, useMemo } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { getProjetos, type Projeto } from '@/services/projetos'
-import { Loader2, DollarSign, Briefcase, CheckCircle, Clock } from 'lucide-react'
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Cell } from 'recharts'
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { ArrowRight, BarChart3, Users, Building2, HardHat, ListTodo, Plus } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase/client'
+import useProjectStore from '@/stores/useProjectStore'
 
 export default function Index() {
-  const [projetos, setProjetos] = useState<Projeto[]>([])
-  const [loading, setLoading] = useState(true)
-  const [periodo, setPeriodo] = useState('todos')
-  const [responsavel, setResponsavel] = useState('todos')
+  const { projects, contacts } = useProjectStore()
+  const navigate = useNavigate()
+  const [stats, setStats] = useState({
+    activeProjects: 0,
+    completedThisMonth: 0,
+    totalValue: 0,
+    clientsCount: 0,
+    architectsCount: 0,
+    engineersCount: 0,
+  })
 
   useEffect(() => {
-    const loadProjetos = async () => {
-      setLoading(true)
-      try {
-        const data = await getProjetos()
-        setProjetos(data)
-      } catch (error) {
-        console.error('Erro ao carregar projetos:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadProjetos()
-  }, [])
+    const active = projects.filter(
+      (p) => p.status !== 'Finalizado' && p.status !== 'Arquivado' && p.status !== 'Não fechou',
+    )
 
-  const responsaveis = useMemo(() => {
-    const reps = projetos.map((p) => p.Responsavel).filter(Boolean) as string[]
-    return Array.from(new Set(reps)).sort()
-  }, [projetos])
+    const currentMonth = new Date().getMonth()
+    const currentYear = new Date().getFullYear()
 
-  const parseDate = (dateStr: string | null) => {
-    if (!dateStr) return null
-    if (dateStr.includes('/')) {
-      const parts = dateStr.split('/')
-      if (parts.length === 3) {
-        return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]))
-      }
-    }
-    const d = new Date(dateStr)
-    return isNaN(d.getTime()) ? null : d
-  }
-
-  const filteredProjetos = useMemo(() => {
-    const now = new Date()
-    let limitDate: Date | null = null
-
-    if (periodo !== 'todos') {
-      limitDate = new Date()
-      limitDate.setMonth(now.getMonth() - parseInt(periodo))
-    }
-
-    return projetos.filter((p) => {
-      if (responsavel !== 'todos' && p.Responsavel !== responsavel) return false
-
-      if (limitDate) {
-        const pDate = parseDate(p.Data_Entrada)
-        if (!pDate) return false
-        if (pDate < limitDate) return false
-      }
-
-      return true
+    const completed = projects.filter((p) => {
+      if (p.status !== 'Finalizado') return false
+      // Find the payment date of the last installment or fallback to created_at
+      const dateStr = p.created_at || new Date().toISOString()
+      const d = new Date(dateStr)
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear
     })
-  }, [projetos, periodo, responsavel])
 
-  const parseValor = (val: any) => {
-    if (!val) return 0
-    if (typeof val === 'number') return val
-    const str = String(val).trim()
-    if (str.includes(',')) {
-      const clean = str
-        .replace(/\./g, '')
-        .replace(',', '.')
-        .replace(/[^\d.-]/g, '')
-      return parseFloat(clean) || 0
-    }
-    const clean = str.replace(/[^\d.-]/g, '')
-    return parseFloat(clean) || 0
-  }
+    const value = projects.reduce((acc, p) => {
+      const pVal =
+        p.projeto_parcelas?.reduce((sum, parc) => sum + Number(parcela.valor || 0), 0) ||
+        Number(p.valor_total || 0)
+      return acc + pVal
+    }, 0)
 
-  const getValorTotal = (projeto: any) => {
-    let total = 0
-    for (let i = 1; i <= 10; i++) {
-      total += parseValor(projeto[`valor_fechado_${i}`])
-    }
-    return total
-  }
-
-  const totalProjetos = filteredProjetos.length
-  const totalRevenue = filteredProjetos.reduce((acc, p) => acc + getValorTotal(p), 0)
-
-  const activeProjetos = filteredProjetos.filter(
-    (p) => p.Status && !['Concluído', 'Completo', 'Finalizado'].includes(p.Status),
-  ).length
-  const completedProjetos = filteredProjetos.filter(
-    (p) => p.Status && ['Concluído', 'Completo', 'Finalizado'].includes(p.Status),
-  ).length
-
-  const statusData = useMemo(() => {
-    const counts: Record<string, number> = {}
-    filteredProjetos.forEach((p) => {
-      const status = p.Status || 'Sem Status'
-      counts[status] = (counts[status] || 0) + 1
+    setStats({
+      activeProjects: active.length,
+      completedThisMonth: completed.length,
+      totalValue: value,
+      clientsCount: contacts.filter((c) => c.tipo === 'cliente').length,
+      architectsCount: contacts.filter((c) => c.tipo === 'arquiteto').length,
+      engineersCount: contacts.filter((c) => c.tipo === 'engenheiro').length,
     })
-    return Object.entries(counts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 8)
-  }, [filteredProjetos])
+  }, [projects, contacts])
 
-  const getStatusCount = (statusName: string) => {
-    if (statusName === 'Sem Status') {
-      return filteredProjetos.filter((p) => !p.Status || p.Status.trim() === '').length
-    }
-    return filteredProjetos.filter(
-      (p) => p.Status?.trim().toLowerCase() === statusName.toLowerCase(),
-    ).length
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
   }
-
-  const statusCards = [
-    {
-      label: 'Elaboração Orçamento',
-      count: getStatusCount('Elaboração Orçamento'),
-      color: 'text-amber-500',
-    },
-    { label: 'Não Fechou', count: getStatusCount('Não Fechou'), color: 'text-red-500' },
-    { label: 'Proposta Sinal', count: getStatusCount('Proposta Sinal'), color: 'text-blue-500' },
-    {
-      label: 'Obra Finalizada',
-      count: getStatusCount('Obra Finalizada'),
-      color: 'text-emerald-500',
-    },
-    { label: 'Sem Status', count: getStatusCount('Sem Status'), color: 'text-slate-500' },
-    { label: 'Estudo Inicial', count: getStatusCount('Estudo Inicial'), color: 'text-purple-500' },
-    {
-      label: 'Emissão Proj. Exec.',
-      count: getStatusCount('Emissão Projeto Executivo'),
-      color: 'text-indigo-500',
-    },
-    { label: 'Venda DocuSign', count: getStatusCount('Venda DocuSign'), color: 'text-pink-500' },
-  ]
 
   return (
-    <div className="space-y-8 animate-fade-in-up">
+    <div className="space-y-8 animate-fade-in-up max-w-[1400px] mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
-          <p className="text-slate-500">Visão geral e indicadores dos projetos.</p>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Visão geral do sistema e atalhos rápidos.</p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-4 bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-600">Período:</span>
-            <Select value={periodo} onValueChange={setPeriodo}>
-              <SelectTrigger className="w-[160px] h-9 border-slate-200 bg-white focus:ring-primary/20">
-                <SelectValue placeholder="Todos os tempos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os tempos</SelectItem>
-                <SelectItem value="3">Últimos 3 meses</SelectItem>
-                <SelectItem value="6">Últimos 6 meses</SelectItem>
-                <SelectItem value="12">Últimos 12 meses</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-600">Responsável:</span>
-            <Select value={responsavel} onValueChange={setResponsavel}>
-              <SelectTrigger className="w-[160px] h-9 border-slate-200 bg-white focus:ring-primary/20">
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {responsaveis.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate('/novo')} className="shadow-elevation">
+            <Plus className="mr-2 h-4 w-4" /> Novo Projeto
+          </Button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center h-[50vh]">
-          <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        </div>
-      ) : (
-        <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="shadow-sm border-slate-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">
-                  Total de Projetos
-                </CardTitle>
-                <Briefcase className="h-4 w-4 text-slate-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-slate-900">{totalProjetos}</div>
-              </CardContent>
-            </Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card
+          className="shadow-subtle hover:shadow-elevation transition-all duration-300 border-l-4 border-l-primary group cursor-pointer"
+          onClick={() => navigate('/projetos')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Projetos Ativos</CardTitle>
+            <ListTodo className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.activeProjects}</div>
+            <p className="text-xs text-muted-foreground mt-1">Em andamento</p>
+          </CardContent>
+        </Card>
 
-            <Card className="shadow-sm border-slate-200 overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">Valor Total</CardTitle>
-                <DollarSign className="h-4 w-4 text-slate-400 shrink-0" />
-              </CardHeader>
-              <CardContent>
+        <Card
+          className="shadow-subtle hover:shadow-elevation transition-all duration-300 border-l-4 border-l-emerald-500 group cursor-pointer"
+          onClick={() => navigate('/projetos')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor Total Fechado</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Histórico geral</p>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="shadow-subtle hover:shadow-elevation transition-all duration-300 border-l-4 border-l-blue-500 group cursor-pointer"
+          onClick={() => navigate('/contatos/clientes')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Clientes</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.clientsCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Cadastrados no sistema</p>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="shadow-subtle hover:shadow-elevation transition-all duration-300 border-l-4 border-l-purple-500 group cursor-pointer"
+          onClick={() => navigate('/contatos/arquitetos')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Parceiros</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground group-hover:text-purple-500 transition-colors" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.architectsCount + stats.engineersCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Arquitetos e Engenheiros</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4 shadow-subtle">
+          <CardHeader>
+            <CardTitle>Projetos Recentes</CardTitle>
+            <CardDescription>Últimos projetos cadastrados ou atualizados.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {projects.slice(0, 5).map((project) => (
                 <div
-                  className="text-lg md:text-xl font-bold text-emerald-600 truncate"
-                  title={new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  }).format(totalRevenue)}
+                  key={project.id}
+                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
                 >
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                    totalRevenue,
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm border-slate-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">Em Andamento</CardTitle>
-                <Clock className="h-4 w-4 text-amber-500 shrink-0" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-slate-900">{activeProjetos}</div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm border-slate-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">Concluídos</CardTitle>
-                <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-slate-900">{completedProjetos}</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-            {statusCards.map((card) => (
-              <Card key={card.label} className="shadow-sm border-slate-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
-                  <CardTitle
-                    className="text-xs font-medium text-slate-600 truncate pr-2"
-                    title={card.label}
-                  >
-                    {card.label}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className={`text-xl font-bold ${card.color}`}>{card.count}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-1 lg:col-span-4 shadow-sm border-slate-200">
-              <CardHeader>
-                <CardTitle className="text-lg text-slate-800">Projetos por Status</CardTitle>
-              </CardHeader>
-              <CardContent className="pl-2">
-                {statusData.length > 0 ? (
-                  <ChartContainer
-                    config={{ value: { label: 'Projetos', color: 'hsl(var(--primary))' } }}
-                    className="h-[300px] w-full"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={statusData}
-                        margin={{ top: 10, right: 10, left: -20, bottom: 40 }}
-                      >
-                        <XAxis
-                          dataKey="name"
-                          fontSize={11}
-                          tickLine={false}
-                          axisLine={false}
-                          interval={0}
-                          angle={-45}
-                          textAnchor="end"
-                        />
-                        <YAxis
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          allowDecimals={false}
-                        />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="value" radius={[4, 4, 0, 0]} fill="var(--color-value)" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center text-slate-500">
-                    Sem dados para exibir
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium leading-none">{project.nome}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {project.codigo} • {project.cidade}
+                    </p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="col-span-1 lg:col-span-3 shadow-sm border-slate-200">
-              <CardHeader>
-                <CardTitle className="text-lg text-slate-800">Projetos Recentes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredProjetos.slice(0, 6).map((projeto) => (
-                    <div
-                      key={projeto.Codigo || Math.random()}
-                      className="flex items-center justify-between border-b border-slate-100 pb-3 last:border-0 last:pb-0"
-                    >
-                      <div className="space-y-1 overflow-hidden pr-4">
-                        <p
-                          className="text-sm font-medium text-slate-900 truncate"
-                          title={projeto.Projeto || ''}
-                        >
-                          {projeto.Projeto || 'Sem nome'}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <span className="font-semibold">{projeto.Codigo}</span>
-                          <span>•</span>
-                          <span className="truncate">{projeto.Responsavel || 'Sem resp.'}</span>
-                        </div>
-                      </div>
-                      <div className="text-sm font-bold text-emerald-600 whitespace-nowrap">
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }).format(getValorTotal(projeto))}
-                      </div>
-                    </div>
-                  ))}
-                  {filteredProjetos.length === 0 && (
-                    <div className="text-center py-10 text-slate-500 text-sm">
-                      Nenhum projeto encontrado com os filtros atuais.
-                    </div>
-                  )}
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm font-medium">{project.status}</div>
+                    <Button variant="ghost" size="icon" asChild>
+                      <Link to={`/projeto/${project.id}`}>
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </>
-      )}
+              ))}
+              {projects.length === 0 && (
+                <div className="text-center py-4 text-muted-foreground">
+                  Nenhum projeto encontrado.
+                </div>
+              )}
+            </div>
+            <div className="mt-4">
+              <Button variant="outline" className="w-full" asChild>
+                <Link to="/projetos">Ver todos os projetos</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-3 shadow-subtle">
+          <CardHeader>
+            <CardTitle>Acesso Rápido</CardTitle>
+            <CardDescription>Atalhos para as principais áreas</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <Button variant="outline" className="h-14 justify-start" asChild>
+              <Link to="/contatos/clientes">
+                <Users className="mr-4 h-5 w-5 text-blue-500" />
+                <div className="flex flex-col items-start">
+                  <span>Gestão de Clientes</span>
+                  <span className="text-xs text-muted-foreground font-normal">
+                    Cadastros e histórico
+                  </span>
+                </div>
+              </Link>
+            </Button>
+            <Button variant="outline" className="h-14 justify-start" asChild>
+              <Link to="/contatos/arquitetos">
+                <Building2 className="mr-4 h-5 w-5 text-purple-500" />
+                <div className="flex flex-col items-start">
+                  <span>Arquitetos</span>
+                  <span className="text-xs text-muted-foreground font-normal">
+                    Parceiros e escritórios
+                  </span>
+                </div>
+              </Link>
+            </Button>
+            <Button variant="outline" className="h-14 justify-start" asChild>
+              <Link to="/contatos/engenheiros">
+                <HardHat className="mr-4 h-5 w-5 text-amber-500" />
+                <div className="flex flex-col items-start">
+                  <span>Engenheiros</span>
+                  <span className="text-xs text-muted-foreground font-normal">
+                    Executores de obra
+                  </span>
+                </div>
+              </Link>
+            </Button>
+            <Button variant="outline" className="h-14 justify-start" asChild>
+              <Link to="/novo">
+                <Plus className="mr-4 h-5 w-5 text-primary" />
+                <div className="flex flex-col items-start">
+                  <span>Novo Projeto</span>
+                  <span className="text-xs text-muted-foreground font-normal">
+                    Iniciar novo registro
+                  </span>
+                </div>
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

@@ -22,26 +22,16 @@ Deno.serve(async (req: Request) => {
     const { id, ...updates } = body
 
     if (!id) {
-      return new Response(JSON.stringify({ error: 'O campo id (Codigo) é obrigatório.' }), {
+      return new Response(JSON.stringify({ error: 'O campo id é obrigatório.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const mappedUpdates: any = {}
-    if (updates.Projeto !== undefined) mappedUpdates.nome = updates.Projeto
-    if (updates.Status !== undefined) mappedUpdates.status = updates.Status
-    if (updates.Cidade !== undefined) mappedUpdates.cidade = updates.Cidade
-    if (updates.Estado !== undefined) mappedUpdates.estado = updates.Estado
-    if (updates.Data_Entrada !== undefined) mappedUpdates.data_entrada = updates.Data_Entrada
-    if (updates.Nivel_Estrategico !== undefined)
-      mappedUpdates.nivel_estrategico = updates.Nivel_Estrategico
-    if (updates.Responsavel !== undefined) mappedUpdates.responsavel_nome = updates.Responsavel
-
     const { data, error } = await supabase
       .from('projetos')
-      .update(mappedUpdates)
-      .eq('codigo', String(id))
+      .update(updates)
+      .eq('id', id)
       .select()
       .single()
 

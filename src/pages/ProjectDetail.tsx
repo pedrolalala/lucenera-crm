@@ -1,11 +1,27 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { getProjeto, updateProjetoEdge, type Projeto } from '@/services/projetos'
+import { getProjeto, updateProjetoById, type Projeto } from '@/services/projetos'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
+import useProjectStore from '@/stores/useProjectStore'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import {
   ArrowLeft,
   Building2,
@@ -26,6 +42,7 @@ export default function ProjectDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { contacts } = useProjectStore()
 
   const [projeto, setProjeto] = useState<Projeto | null>(null)
   const [loading, setLoading] = useState(true)
@@ -36,7 +53,7 @@ export default function ProjectDetail() {
 
   useEffect(() => {
     if (!id) return
-    getProjeto(Number(id))
+    getProjeto(id)
       .then((data) => {
         setProjeto(data)
         setEditForm(data)
@@ -73,11 +90,26 @@ export default function ProjectDetail() {
   }
 
   const handleSave = async () => {
-    if (!projeto.Codigo) return
+    if (!projeto.id) return
     setSaving(true)
     try {
-      await updateProjetoEdge(projeto.Codigo, editForm)
-      setProjeto({ ...projeto, ...editForm })
+      const payload = {
+        status: editForm.status,
+        nivel_estrategico: editForm.nivel_estrategico,
+        data_entrada: editForm.data_entrada,
+        cidade: editForm.cidade,
+        estado: editForm.estado,
+        responsavel_id: editForm.responsavel_id,
+        cliente_id: editForm.cliente_id,
+        arquiteto_id: editForm.arquiteto_id,
+        responsavel_obra_id: editForm.responsavel_obra_id,
+      } as any
+
+      await updateProjetoById(projeto.id, payload)
+
+      const updated = await getProjeto(projeto.id)
+      setProjeto(updated)
+      setEditForm(updated)
       setIsEditing(false)
       toast({ title: 'Projeto atualizado com sucesso' })
     } catch (error: any) {
@@ -88,14 +120,29 @@ export default function ProjectDetail() {
     }
   }
 
-  const handleChange = (field: keyof Projeto, value: string) => {
+  const handleChange = (field: keyof Projeto, value: string | null) => {
     setEditForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  const getVal = (field: keyof Projeto, fallbackField?: string) => {
-    if (isEditing) return editForm[field] || ''
-    return projeto[field] || (fallbackField ? (projeto as any)[fallbackField] : '') || ''
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
   }
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return '-'
+    const d = new Date(dateStr)
+    return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('pt-BR')
+  }
+
+  const clientes = contacts.filter((c) => c.tipo === 'cliente')
+  const arquitetos = contacts.filter((c) => c.tipo === 'arquiteto')
+  const engenheiros = contacts.filter((c) => c.tipo === 'engenheiro')
+  const outros = contacts.filter((c) => c.tipo === 'outro')
+
+  const valorTotal =
+    projeto.projeto_parcelas?.reduce((acc, p) => acc + Number(p.valor), 0) ||
+    Number(projeto.valor_total) ||
+    0
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -107,16 +154,10 @@ export default function ProjectDetail() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold tracking-tight">
-                {projeto.Projeto || 'Projeto sem nome'}
+                {projeto.nome || 'Projeto sem nome'}
               </h1>
               <Badge variant="secondary" className="text-sm">
-                #
-                {projeto.Codigo !== undefined && projeto.Codigo !== null
-                  ? (projeto.Codigo + '').replace(
-                      /(\d+)\.?(\d*)/,
-                      (match, p1, p2) => p1 + '.' + (p2 + '000').substring(0, 3),
-                    )
-                  : projeto.Codigo}
+                #{projeto.codigo}
               </Badge>
             </div>
             <p className="text-muted-foreground mt-1">Visualizando detalhes completos do projeto</p>
@@ -162,15 +203,13 @@ export default function ProjectDetail() {
               <div className="w-2/3 text-right flex justify-end">
                 {isEditing ? (
                   <Input
-                    value={getVal('Status', 'status')}
-                    onChange={(e) => handleChange('Status', e.target.value)}
+                    value={editForm.status || ''}
+                    onChange={(e) => handleChange('status', e.target.value)}
                     className="h-8 max-w-[200px] text-right"
                   />
                 ) : (
-                  <Badge
-                    variant={getVal('Status', 'status') === 'Concluído' ? 'default' : 'secondary'}
-                  >
-                    {getVal('Status', 'status') || 'Não informado'}
+                  <Badge variant={projeto.status === 'Concluído' ? 'default' : 'secondary'}>
+                    {projeto.status || 'Não informado'}
                   </Badge>
                 )}
               </div>
@@ -180,13 +219,13 @@ export default function ProjectDetail() {
               <div className="w-2/3 flex justify-end">
                 {isEditing ? (
                   <Input
-                    value={getVal('Nivel_Estrategico', 'nivel_estrategico')}
-                    onChange={(e) => handleChange('Nivel_Estrategico', e.target.value)}
+                    value={editForm.nivel_estrategico || ''}
+                    onChange={(e) => handleChange('nivel_estrategico', e.target.value as any)}
                     className="h-8 max-w-[200px] text-right"
                   />
                 ) : (
                   <span className="font-medium">
-                    {getVal('Nivel_Estrategico', 'nivel_estrategico') || 'Não informado'}
+                    {projeto.nivel_estrategico || 'Não informado'}
                   </span>
                 )}
               </div>
@@ -197,14 +236,14 @@ export default function ProjectDetail() {
                 {isEditing ? (
                   <Input
                     type="date"
-                    value={getVal('Data_Entrada', 'data_entrada')}
-                    onChange={(e) => handleChange('Data_Entrada', e.target.value)}
+                    value={editForm.data_entrada?.split('T')[0] || ''}
+                    onChange={(e) => handleChange('data_entrada', e.target.value)}
                     className="h-8 max-w-[200px]"
                   />
                 ) : (
                   <span className="font-medium flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    {getVal('Data_Entrada', 'data_entrada') || 'Não informado'}
+                    {formatDate(projeto.data_entrada)}
                   </span>
                 )}
               </div>
@@ -212,19 +251,10 @@ export default function ProjectDetail() {
             <div className="flex justify-between items-center py-2 border-b">
               <span className="text-muted-foreground w-1/3">Valor Fechado</span>
               <div className="w-2/3 flex justify-end">
-                {isEditing ? (
-                  <Input
-                    value={getVal('valor_fechado')}
-                    onChange={(e) => handleChange('valor_fechado', e.target.value)}
-                    className="h-8 max-w-[200px] text-right"
-                    placeholder="R$ 0,00"
-                  />
-                ) : (
-                  <span className="font-medium flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    {getVal('valor_fechado') || 'Não informado'}
-                  </span>
-                )}
+                <span className="font-medium flex items-center gap-2 text-emerald-600">
+                  <DollarSign className="h-4 w-4" />
+                  {formatCurrency(valorTotal)}
+                </span>
               </div>
             </div>
             <div className="flex justify-between items-center py-2 border-b border-b-transparent">
@@ -233,14 +263,14 @@ export default function ProjectDetail() {
                 {isEditing ? (
                   <div className="flex gap-2 max-w-[250px]">
                     <Input
-                      value={getVal('Cidade')}
-                      onChange={(e) => handleChange('Cidade', e.target.value)}
+                      value={editForm.cidade || ''}
+                      onChange={(e) => handleChange('cidade', e.target.value)}
                       className="h-8"
                       placeholder="Cidade"
                     />
                     <Input
-                      value={getVal('Estado')}
-                      onChange={(e) => handleChange('Estado', e.target.value)}
+                      value={editForm.estado || ''}
+                      onChange={(e) => handleChange('estado', e.target.value)}
                       className="h-8 w-16"
                       placeholder="UF"
                     />
@@ -248,7 +278,7 @@ export default function ProjectDetail() {
                 ) : (
                   <span className="font-medium flex items-center gap-2 text-right">
                     <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    {getVal('Cidade') || '-'} / {getVal('Estado') || '-'}
+                    {projeto.cidade || '-'} / {projeto.estado || '-'}
                   </span>
                 )}
               </div>
@@ -268,15 +298,26 @@ export default function ProjectDetail() {
               <span className="text-muted-foreground w-1/3">Responsável Principal</span>
               <div className="w-2/3 flex justify-end">
                 {isEditing ? (
-                  <Input
-                    value={getVal('Responsavel', 'responsavel')}
-                    onChange={(e) => handleChange('Responsavel', e.target.value)}
-                    className="h-8 max-w-[200px] text-right"
-                  />
+                  <Select
+                    value={editForm.responsavel_id || 'null'}
+                    onValueChange={(v) => handleChange('responsavel_id', v === 'null' ? null : v)}
+                  >
+                    <SelectTrigger className="h-8 max-w-[200px]">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="null">Nenhum</SelectItem>
+                      {outros.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <span className="font-medium flex items-center gap-2 text-right">
                     <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    {getVal('Responsavel', 'responsavel') || 'Não definido'}
+                    {projeto.responsavel?.nome || projeto.responsavel_nome || 'Não definido'}
                   </span>
                 )}
               </div>
@@ -284,40 +325,32 @@ export default function ProjectDetail() {
             <div className="flex justify-between items-center py-2 border-b">
               <span className="text-muted-foreground w-1/3">Cliente</span>
               <div className="w-2/3 flex justify-end">
-                <span className="font-medium flex items-center gap-2 text-right">
-                  <UserCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  {(projeto as any).cliente && (projeto as any).cliente !== 'Não Informado' ? (
-                    <Link
-                      to={`/contatos/clientes?view=${encodeURIComponent((projeto as any).cliente)}`}
-                      className="text-primary hover:underline"
-                    >
-                      {(projeto as any).cliente}
-                    </Link>
-                  ) : (
-                    'Não definido'
-                  )}
-                </span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-muted-foreground w-1/3">Arquiteto Designado</span>
-              <div className="w-2/3 flex justify-end">
                 {isEditing ? (
-                  <Input
-                    value={getVal('Arquiteto_Responsavel', 'arquiteto')}
-                    onChange={(e) => handleChange('Arquiteto_Responsavel', e.target.value)}
-                    className="h-8 max-w-[200px] text-right"
-                  />
+                  <Select
+                    value={editForm.cliente_id || 'null'}
+                    onValueChange={(v) => handleChange('cliente_id', v === 'null' ? null : v)}
+                  >
+                    <SelectTrigger className="h-8 max-w-[200px]">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="null">Nenhum</SelectItem>
+                      {clientes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <span className="font-medium flex items-center gap-2 text-right">
-                    <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    {getVal('Arquiteto_Responsavel', 'arquiteto') &&
-                    getVal('Arquiteto_Responsavel', 'arquiteto') !== 'Não Informado' ? (
+                    <UserCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    {projeto.cliente?.nome ? (
                       <Link
-                        to={`/contatos/arquitetos?view=${encodeURIComponent(getVal('Arquiteto_Responsavel', 'arquiteto'))}`}
+                        to={`/contatos/clientes?view=${encodeURIComponent(projeto.cliente.nome)}`}
                         className="text-primary hover:underline"
                       >
-                        {getVal('Arquiteto_Responsavel', 'arquiteto')}
+                        {projeto.cliente.nome}
                       </Link>
                     ) : (
                       'Não definido'
@@ -327,24 +360,34 @@ export default function ProjectDetail() {
               </div>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-muted-foreground w-1/3">Engenheiro Responsável</span>
+              <span className="text-muted-foreground w-1/3">Arquiteto Designado</span>
               <div className="w-2/3 flex justify-end">
                 {isEditing ? (
-                  <Input
-                    value={getVal('Responsavel_da_Obra', 'engenheiro')}
-                    onChange={(e) => handleChange('Responsavel_da_Obra', e.target.value)}
-                    className="h-8 max-w-[200px] text-right"
-                  />
+                  <Select
+                    value={editForm.arquiteto_id || 'null'}
+                    onValueChange={(v) => handleChange('arquiteto_id', v === 'null' ? null : v)}
+                  >
+                    <SelectTrigger className="h-8 max-w-[200px]">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="null">Nenhum</SelectItem>
+                      {arquitetos.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <span className="font-medium flex items-center gap-2 text-right">
                     <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    {getVal('Responsavel_da_Obra', 'engenheiro') &&
-                    getVal('Responsavel_da_Obra', 'engenheiro') !== 'Não Informado' ? (
+                    {projeto.arquiteto?.nome ? (
                       <Link
-                        to={`/contatos/engenheiros?view=${encodeURIComponent(getVal('Responsavel_da_Obra', 'engenheiro'))}`}
+                        to={`/contatos/arquitetos?view=${encodeURIComponent(projeto.arquiteto.nome)}`}
                         className="text-primary hover:underline"
                       >
-                        {getVal('Responsavel_da_Obra', 'engenheiro')}
+                        {projeto.arquiteto.nome}
                       </Link>
                     ) : (
                       'Não definido'
@@ -354,24 +397,107 @@ export default function ProjectDetail() {
               </div>
             </div>
             <div className="flex justify-between items-center py-2 border-b border-b-transparent">
-              <span className="text-muted-foreground w-1/3">Eletricista</span>
+              <span className="text-muted-foreground w-1/3">Engenheiro Responsável</span>
               <div className="w-2/3 flex justify-end">
-                <span className="font-medium flex items-center gap-2 text-right">
-                  <Zap className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  {(projeto as any).eletricista &&
-                  (projeto as any).eletricista !== 'Não Informado' ? (
-                    <Link
-                      to={`/contatos/eletricistas?view=${encodeURIComponent((projeto as any).eletricista)}`}
-                      className="text-primary hover:underline"
-                    >
-                      {(projeto as any).eletricista}
-                    </Link>
-                  ) : (
-                    'Não definido'
-                  )}
-                </span>
+                {isEditing ? (
+                  <Select
+                    value={editForm.responsavel_obra_id || 'null'}
+                    onValueChange={(v) =>
+                      handleChange('responsavel_obra_id', v === 'null' ? null : v)
+                    }
+                  >
+                    <SelectTrigger className="h-8 max-w-[200px]">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="null">Nenhum</SelectItem>
+                      {engenheiros.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <span className="font-medium flex items-center gap-2 text-right">
+                    <HardHat className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    {projeto.engenheiro?.nome ? (
+                      <Link
+                        to={`/contatos/engenheiros?view=${encodeURIComponent(projeto.engenheiro.nome)}`}
+                        className="text-primary hover:underline"
+                      >
+                        {projeto.engenheiro.nome}
+                      </Link>
+                    ) : (
+                      'Não definido'
+                    )}
+                  </span>
+                )}
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              Parcelas do Projeto
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {projeto.projeto_parcelas && projeto.projeto_parcelas.length > 0 ? (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow>
+                      <TableHead className="w-[80px]">Nº</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Valor Pago</TableHead>
+                      <TableHead className="text-right">Pagamento</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[...projeto.projeto_parcelas]
+                      .sort((a, b) => a.numero_parcela - b.numero_parcela)
+                      .map((p) => (
+                        <TableRow key={p.id}>
+                          <TableCell className="font-medium">{p.numero_parcela}</TableCell>
+                          <TableCell className="font-semibold text-emerald-600">
+                            {formatCurrency(Number(p.valor))}
+                          </TableCell>
+                          <TableCell>{formatDate(p.data_vencimento)}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                p.status === 'paga'
+                                  ? 'default'
+                                  : p.status === 'atrasada'
+                                    ? 'destructive'
+                                    : 'secondary'
+                              }
+                            >
+                              {p.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-semibold text-emerald-600">
+                            {p.valor_pago ? formatCurrency(Number(p.valor_pago)) : '-'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatDate(p.data_pagamento)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground border rounded-md bg-muted/20">
+                Nenhuma parcela cadastrada para este projeto.
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

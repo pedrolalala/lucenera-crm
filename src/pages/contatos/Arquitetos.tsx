@@ -55,27 +55,26 @@ import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/supabase/types'
 import { toast } from '@/hooks/use-toast'
 
-type Arquiteto = Database['public']['Tables']['Arquitetos_empresas_crm']['Row']
+type Arquiteto = Database['public']['Tables']['contatos']['Row']
 
 const arquitetoSchema = z.object({
-  'Nome do Arquiteto': z.string().min(2, 'Obrigatório'),
-  'Nome da Empresa': z.string().optional().nullable(),
-  Email: z
+  nome: z.string().min(2, 'Obrigatório'),
+  nome_empresa: z.string().optional().nullable(),
+  email: z
     .string()
     .email('Email inválido')
     .or(z.literal('').or(z.null()))
     .transform((v) => v || null),
-  Celular: z.string().optional().nullable(),
-  Telefone: z.string().optional().nullable(),
-  Cidade: z.string().optional().nullable(),
-  Estado: z.string().optional().nullable(),
-  endereço: z.string().optional().nullable(),
-  Bairro: z.string().optional().nullable(),
-  CEP: z.string().optional().nullable(),
-  'CPF/CNPJ': z.string().optional().nullable(),
-  RG: z.string().optional().nullable(),
-  Observacoes: z.string().optional().nullable(),
-  numero_de_arquitetos: z.coerce.number().optional().nullable(),
+  celular: z.string().optional().nullable(),
+  telefone: z.string().optional().nullable(),
+  cidade: z.string().optional().nullable(),
+  estado: z.string().optional().nullable(),
+  endereco: z.string().optional().nullable(),
+  bairro: z.string().optional().nullable(),
+  cep: z.string().optional().nullable(),
+  cpf_cnpj: z.string().optional().nullable(),
+  rg: z.string().optional().nullable(),
+  observacoes: z.string().optional().nullable(),
 })
 
 type ArquitetoFormValues = z.infer<typeof arquitetoSchema>
@@ -99,36 +98,35 @@ function ArquitetoDetails({ arquiteto }: { arquiteto: Arquiteto }) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
       <div className="space-y-4">
         <Section title="Dados da Empresa" icon={Building2}>
-          <Field label="Empresa" value={arquiteto['Nome da Empresa']} />
-          <Field label="Código" value={arquiteto.codigo_do_arquiteto} />
-          <Field label="Nº de Arquitetos" value={arquiteto.numero_de_arquitetos} />
+          <Field label="Empresa" value={arquiteto.nome_empresa} />
+          <Field label="Nome do Arquiteto" value={arquiteto.nome} />
         </Section>
         <Section title="Contato" icon={Phone}>
-          <Field label="Celular" value={arquiteto.Celular} />
-          <Field label="Telefone" value={arquiteto.Telefone} />
-          <Field label="Email" value={arquiteto.Email} />
+          <Field label="Celular" value={arquiteto.celular} />
+          <Field label="Telefone" value={arquiteto.telefone} />
+          <Field label="Email" value={arquiteto.email} />
         </Section>
       </div>
       <div className="space-y-4">
         <Section title="Localização" icon={MapPin}>
-          <Field label="Endereço" value={arquiteto.endereço} />
-          <Field label="Bairro" value={arquiteto.Bairro} />
+          <Field label="Endereço" value={arquiteto.endereco} />
+          <Field label="Bairro" value={arquiteto.bairro} />
           <Field
             label="Cidade/UF"
-            value={`${arquiteto.Cidade || '-'}${arquiteto.Estado ? ` / ${arquiteto.Estado}` : ''}`}
+            value={`${arquiteto.cidade || '-'}${arquiteto.estado ? ` / ${arquiteto.estado}` : ''}`}
           />
-          <Field label="CEP" value={arquiteto.CEP} />
+          <Field label="CEP" value={arquiteto.cep} />
         </Section>
         <Section title="Documentação" icon={FileText}>
-          <Field label="CPF/CNPJ" value={arquiteto['CPF/CNPJ']} />
-          <Field label="RG" value={arquiteto.RG} />
-          <Field label="Data Nasc." value={arquiteto.data_de_nascimento} />
+          <Field label="CPF/CNPJ" value={arquiteto.cpf_cnpj} />
+          <Field label="RG" value={arquiteto.rg} />
+          <Field label="Data Nasc." value={arquiteto.data_nascimento} />
         </Section>
       </div>
-      {arquiteto.Observacoes && (
+      {arquiteto.observacoes && (
         <div className="md:col-span-2 mt-2">
           <Section title="Observações" icon={Info}>
-            <div className="whitespace-pre-wrap">{arquiteto.Observacoes}</div>
+            <div className="whitespace-pre-wrap">{arquiteto.observacoes}</div>
           </Section>
         </div>
       )}
@@ -155,32 +153,31 @@ export default function Arquitetos() {
   const form = useForm<ArquitetoFormValues>({
     resolver: zodResolver(arquitetoSchema),
     defaultValues: {
-      'Nome do Arquiteto': '',
-      'Nome da Empresa': '',
-      Email: '',
-      Celular: '',
-      Telefone: '',
-      Cidade: '',
-      Estado: '',
-      endereço: '',
-      Bairro: '',
-      CEP: '',
-      'CPF/CNPJ': '',
-      RG: '',
-      Observacoes: '',
-      numero_de_arquitetos: null,
+      nome: '',
+      nome_empresa: '',
+      email: '',
+      celular: '',
+      telefone: '',
+      cidade: '',
+      estado: '',
+      endereco: '',
+      bairro: '',
+      cep: '',
+      cpf_cnpj: '',
+      rg: '',
+      observacoes: '',
     },
   })
 
   const fetchArquitetos = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase.from('Arquitetos_empresas_crm').select('*')
+      const { data, error } = await supabase.from('contatos').select('*').eq('tipo', 'arquiteto')
       if (error) throw error
 
       const sorted = (data || []).sort((a, b) => {
-        const nameA = a['Nome do Arquiteto'] || ''
-        const nameB = b['Nome do Arquiteto'] || ''
+        const nameA = a.nome || ''
+        const nameB = b.nome || ''
         return nameA.localeCompare(nameB)
       })
       setArquitetos(sorted)
@@ -198,10 +195,10 @@ export default function Arquitetos() {
   useEffect(() => {
     fetchArquitetos()
     const channel = supabase
-      .channel('arquitetos_changes')
+      .channel('contatos_arquitetos')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'Arquitetos_empresas_crm' },
+        { event: '*', schema: 'public', table: 'contatos', filter: 'tipo=eq.arquiteto' },
         fetchArquitetos,
       )
       .subscribe()
@@ -216,14 +213,14 @@ export default function Arquitetos() {
       const normalizedView = viewName.toLowerCase().trim()
       let match = arquitetos.find(
         (a) =>
-          a['Nome do Arquiteto']?.toLowerCase().trim() === normalizedView ||
-          a['Nome da Empresa']?.toLowerCase().trim() === normalizedView,
+          a.nome?.toLowerCase().trim() === normalizedView ||
+          a.nome_empresa?.toLowerCase().trim() === normalizedView,
       )
       if (!match) {
         match = arquitetos.find(
           (a) =>
-            a['Nome do Arquiteto']?.toLowerCase().includes(normalizedView) ||
-            a['Nome da Empresa']?.toLowerCase().includes(normalizedView),
+            a.nome?.toLowerCase().includes(normalizedView) ||
+            a.nome_empresa?.toLowerCase().includes(normalizedView),
         )
       }
 
@@ -242,55 +239,51 @@ export default function Arquitetos() {
   const filteredArquitetos = useMemo(() => {
     return arquitetos.filter((a) => {
       const matchCity =
-        !searchCity || (a.Cidade?.toLowerCase() || '').includes(searchCity.toLowerCase())
+        !searchCity || (a.cidade?.toLowerCase() || '').includes(searchCity.toLowerCase())
       const matchState =
-        !searchState || (a.Estado?.toLowerCase() || '').includes(searchState.toLowerCase())
+        !searchState || (a.estado?.toLowerCase() || '').includes(searchState.toLowerCase())
       const matchCompany =
         !searchCompany ||
-        (a['Nome da Empresa']?.toLowerCase() || '').includes(searchCompany.toLowerCase())
+        (a.nome_empresa?.toLowerCase() || '').includes(searchCompany.toLowerCase())
       const matchName =
-        !searchName ||
-        (a['Nome do Arquiteto']?.toLowerCase() || '').includes(searchName.toLowerCase())
+        !searchName || (a.nome?.toLowerCase() || '').includes(searchName.toLowerCase())
       return matchCity && matchState && matchCompany && matchName
     })
   }, [arquitetos, searchCity, searchState, searchCompany, searchName])
 
   const onSubmit = async (values: ArquitetoFormValues) => {
-    if (editingArquiteto?.codigo_do_arquiteto) {
-      const { error } = await supabase
-        .from('Arquitetos_empresas_crm')
-        .update(values)
-        .eq('codigo_do_arquiteto', editingArquiteto.codigo_do_arquiteto)
+    if (editingArquiteto?.id) {
+      const { error } = await supabase.from('contatos').update(values).eq('id', editingArquiteto.id)
 
       if (error) {
         toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' })
       } else {
         toast({ title: 'Arquiteto atualizado com sucesso' })
         setIsEditModalOpen(false)
+        fetchArquitetos()
       }
     } else {
-      const { error } = await supabase.from('Arquitetos_empresas_crm').insert([values])
+      const { error } = await supabase.from('contatos').insert([{ ...values, tipo: 'arquiteto' }])
 
       if (error) {
         toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' })
       } else {
         toast({ title: 'Arquiteto adicionado com sucesso' })
         setIsEditModalOpen(false)
+        fetchArquitetos()
       }
     }
   }
 
   const handleDelete = async () => {
-    if (arquitetoToDelete && arquitetoToDelete.codigo_do_arquiteto) {
-      const { error } = await supabase
-        .from('Arquitetos_empresas_crm')
-        .delete()
-        .eq('codigo_do_arquiteto', arquitetoToDelete.codigo_do_arquiteto)
+    if (arquitetoToDelete && arquitetoToDelete.id) {
+      const { error } = await supabase.from('contatos').delete().eq('id', arquitetoToDelete.id)
 
       if (error) {
         toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' })
       } else {
         toast({ title: 'Arquiteto excluído com sucesso' })
+        fetchArquitetos()
       }
       setArquitetoToDelete(null)
     }
@@ -299,20 +292,19 @@ export default function Arquitetos() {
   const openNewModal = () => {
     setEditingArquiteto(null)
     form.reset({
-      'Nome do Arquiteto': '',
-      'Nome da Empresa': '',
-      Email: '',
-      Celular: '',
-      Telefone: '',
-      Cidade: '',
-      Estado: '',
-      endereço: '',
-      Bairro: '',
-      CEP: '',
-      'CPF/CNPJ': '',
-      RG: '',
-      Observacoes: '',
-      numero_de_arquitetos: null,
+      nome: '',
+      nome_empresa: '',
+      email: '',
+      celular: '',
+      telefone: '',
+      cidade: '',
+      estado: '',
+      endereco: '',
+      bairro: '',
+      cep: '',
+      cpf_cnpj: '',
+      rg: '',
+      observacoes: '',
     })
     setIsEditModalOpen(true)
   }
@@ -334,20 +326,19 @@ export default function Arquitetos() {
   const openEditModal = (arquiteto: Arquiteto) => {
     setEditingArquiteto(arquiteto)
     form.reset({
-      'Nome do Arquiteto': arquiteto['Nome do Arquiteto'] || '',
-      'Nome da Empresa': arquiteto['Nome da Empresa'] || '',
-      Email: arquiteto.Email || '',
-      Celular: arquiteto.Celular || '',
-      Telefone: arquiteto.Telefone || '',
-      Cidade: arquiteto.Cidade || '',
-      Estado: arquiteto.Estado || '',
-      endereço: arquiteto.endereço || '',
-      Bairro: arquiteto.Bairro || '',
-      CEP: arquiteto.CEP || '',
-      'CPF/CNPJ': arquiteto['CPF/CNPJ'] || '',
-      RG: arquiteto.RG || '',
-      Observacoes: arquiteto.Observacoes || '',
-      numero_de_arquitetos: arquiteto.numero_de_arquitetos,
+      nome: arquiteto.nome || '',
+      nome_empresa: arquiteto.nome_empresa || '',
+      email: arquiteto.email || '',
+      celular: arquiteto.celular || '',
+      telefone: arquiteto.telefone || '',
+      cidade: arquiteto.cidade || '',
+      estado: arquiteto.estado || '',
+      endereco: arquiteto.endereco || '',
+      bairro: arquiteto.bairro || '',
+      cep: arquiteto.cep || '',
+      cpf_cnpj: arquiteto.cpf_cnpj || '',
+      rg: arquiteto.rg || '',
+      observacoes: arquiteto.observacoes || '',
     })
     setIsEditModalOpen(true)
   }
@@ -433,29 +424,29 @@ export default function Arquitetos() {
               ) : (
                 filteredArquitetos.map((arquiteto, idx) => (
                   <TableRow
-                    key={arquiteto.codigo_do_arquiteto || idx}
+                    key={arquiteto.id || idx}
                     className="hover:bg-muted/50 cursor-pointer transition-colors"
                     onClick={() => openViewModal(arquiteto)}
                   >
                     <TableCell className="font-medium text-foreground">
-                      {arquiteto['Nome do Arquiteto'] || '-'}
+                      {arquiteto.nome || '-'}
                     </TableCell>
-                    <TableCell>{arquiteto['Nome da Empresa'] || '-'}</TableCell>
+                    <TableCell>{arquiteto.nome_empresa || '-'}</TableCell>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="text-sm">
-                          {arquiteto.Celular || arquiteto.Telefone || '-'}
+                          {arquiteto.celular || arquiteto.telefone || '-'}
                         </span>
-                        {arquiteto.Email && (
+                        {arquiteto.email && (
                           <span className="text-xs text-muted-foreground truncate max-w-[200px]">
-                            {arquiteto.Email}
+                            {arquiteto.email}
                           </span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      {arquiteto.Cidade
-                        ? `${arquiteto.Cidade}${arquiteto.Estado ? ` - ${arquiteto.Estado}` : ''}`
+                      {arquiteto.cidade
+                        ? `${arquiteto.cidade}${arquiteto.estado ? ` - ${arquiteto.estado}` : ''}`
                         : '-'}
                     </TableCell>
                     <TableCell
@@ -509,7 +500,7 @@ export default function Arquitetos() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="Nome do Arquiteto"
+                  name="nome"
                   render={({ field }) => (
                     <FormItem className="sm:col-span-2">
                       <FormLabel>
@@ -524,9 +515,9 @@ export default function Arquitetos() {
                 />
                 <FormField
                   control={form.control}
-                  name="Nome da Empresa"
+                  name="nome_empresa"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="sm:col-span-2">
                       <FormLabel>Empresa</FormLabel>
                       <FormControl>
                         <Input placeholder="Nome da empresa" {...field} value={field.value || ''} />
@@ -537,25 +528,7 @@ export default function Arquitetos() {
                 />
                 <FormField
                   control={form.control}
-                  name="numero_de_arquitetos"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nº de Arquitetos na Equipe</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Ex: 5"
-                          {...field}
-                          value={field.value || ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="Email"
+                  name="email"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>E-mail</FormLabel>
@@ -573,7 +546,7 @@ export default function Arquitetos() {
                 />
                 <FormField
                   control={form.control}
-                  name="Celular"
+                  name="celular"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Celular</FormLabel>
@@ -586,7 +559,7 @@ export default function Arquitetos() {
                 />
                 <FormField
                   control={form.control}
-                  name="Telefone"
+                  name="telefone"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Telefone Fixo</FormLabel>
@@ -599,7 +572,7 @@ export default function Arquitetos() {
                 />
                 <FormField
                   control={form.control}
-                  name="CPF/CNPJ"
+                  name="cpf_cnpj"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>CPF / CNPJ</FormLabel>
@@ -612,7 +585,7 @@ export default function Arquitetos() {
                 />
                 <FormField
                   control={form.control}
-                  name="Cidade"
+                  name="cidade"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Cidade</FormLabel>
@@ -625,7 +598,7 @@ export default function Arquitetos() {
                 />
                 <FormField
                   control={form.control}
-                  name="Estado"
+                  name="estado"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Estado (UF)</FormLabel>
@@ -643,7 +616,7 @@ export default function Arquitetos() {
                 />
                 <FormField
                   control={form.control}
-                  name="endereço"
+                  name="endereco"
                   render={({ field }) => (
                     <FormItem className="sm:col-span-2">
                       <FormLabel>Endereço</FormLabel>
@@ -660,7 +633,7 @@ export default function Arquitetos() {
                 />
                 <FormField
                   control={form.control}
-                  name="Observacoes"
+                  name="observacoes"
                   render={({ field }) => (
                     <FormItem className="sm:col-span-2">
                       <FormLabel>Observações</FormLabel>
@@ -694,7 +667,7 @@ export default function Arquitetos() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
               <User className="h-5 w-5 text-primary" />{' '}
-              {selectedArquiteto?.['Nome do Arquiteto'] || 'Detalhes do Arquiteto'}
+              {selectedArquiteto?.nome || 'Detalhes do Arquiteto'}
             </DialogTitle>
             <DialogDescription>Informações completas do arquiteto e empresa.</DialogDescription>
           </DialogHeader>
@@ -715,7 +688,7 @@ export default function Arquitetos() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Arquiteto</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o arquiteto "{arquitetoToDelete?.['Nome do Arquiteto']}
+              Tem certeza que deseja excluir o arquiteto "{arquitetoToDelete?.nome}
               "? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>

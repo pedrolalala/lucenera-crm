@@ -1,61 +1,70 @@
 import { supabase } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
 
-export type Projeto = Database['public']['Tables']['Organizacao_projetos']['Row']
+export type ProjetoParcela = Database['public']['Tables']['projeto_parcelas']['Row']
+
+export type Projeto = Database['public']['Tables']['projetos']['Row'] & {
+  cliente?: { nome: string } | null
+  arquiteto?: { nome: string } | null
+  responsavel?: { nome: string } | null
+  engenheiro?: { nome: string } | null
+  projeto_parcelas?: ProjetoParcela[]
+}
 
 export async function getProjetos() {
   const { data, error } = await supabase
-    .from('Organizacao_projetos')
-    .select('*')
-    .order('Codigo', { ascending: false })
+    .from('projetos')
+    .select(`
+      *,
+      cliente:cliente_id(nome),
+      arquiteto:arquiteto_id(nome),
+      responsavel:responsavel_id(nome),
+      engenheiro:responsavel_obra_id(nome),
+      projeto_parcelas(*)
+    `)
+    .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data
+  return data as Projeto[]
 }
 
-export async function getProjeto(codigo: number) {
+export async function getProjeto(id: string) {
   const { data, error } = await supabase
-    .from('Organizacao_projetos')
-    .select('*')
-    .eq('Codigo', codigo)
-    .limit(1)
-
-  if (error) throw error
-  if (!data || data.length === 0) throw new Error('Projeto não encontrado')
-  return data[0]
-}
-
-export async function updateProjeto(codigo: number, data: Partial<Projeto>) {
-  const { data: result, error } = await supabase
-    .from('Organizacao_projetos')
-    .update(data)
-    .eq('Codigo', codigo)
-    .select()
-
-  if (error) throw error
-  return result?.[0] || null
-}
-
-export async function updateProjetoById(id: number, data: Partial<Projeto>) {
-  const { data: result, error } = await supabase
-    .from('Organizacao_projetos')
-    .update(data)
+    .from('projetos')
+    .select(`
+      *,
+      cliente:cliente_id(nome),
+      arquiteto:arquiteto_id(nome),
+      responsavel:responsavel_id(nome),
+      engenheiro:responsavel_obra_id(nome),
+      projeto_parcelas(*)
+    `)
     .eq('id', id)
-    .select()
+    .single()
+
+  if (error) throw error
+  if (!data) throw new Error('Projeto não encontrado')
+  return data as Projeto
+}
+
+export async function updateProjetoById(
+  id: string,
+  data: Partial<Database['public']['Tables']['projetos']['Update']>,
+) {
+  const { data: result, error } = await supabase.from('projetos').update(data).eq('id', id).select()
 
   if (error) throw error
   return result?.[0] || null
 }
 
-export async function deleteProjeto(codigo: number) {
-  const { error } = await supabase.from('Organizacao_projetos').delete().eq('Codigo', codigo)
-
+export async function deleteProjeto(id: string) {
+  const { error } = await supabase.from('projetos').delete().eq('id', id)
   if (error) throw error
 }
 
-export async function updateProjetoEdge(codigo: number, data: Partial<Projeto>) {
+export async function updateProjetoEdge(id: string, data: any) {
   const { data: result, error } = await supabase.functions.invoke('update-project', {
-    body: { id: codigo, ...data },
+    body: { id, ...data },
   })
 
   if (error) throw error

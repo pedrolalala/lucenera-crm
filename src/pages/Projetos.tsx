@@ -1,6 +1,7 @@
-import { useEffect, useState, Fragment } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getProjetos, updateProjeto, type Projeto } from '@/services/projetos'
+import { getProjetos, updateProjetoById, deleteProjeto, type Projeto } from '@/services/projetos'
+import { supabase } from '@/lib/supabase/client'
 import {
   Table,
   TableBody,
@@ -11,9 +12,8 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Loader2, Plus, FilterX, X } from 'lucide-react'
+import { Loader2, Plus, FilterX, X, Edit2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ProjectActions } from '@/components/ProjectActions'
 import {
   Select,
   SelectContent,
@@ -22,6 +22,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
@@ -61,36 +72,51 @@ export default function Projetos() {
   }, [])
 
   const filterConfigs = [
-    { label: 'Status', state: filterStatus, set: setFilterStatus, key: 'Status' },
+    { label: 'Status', state: filterStatus, set: setFilterStatus, key: 'status' },
     {
       label: 'Responsável',
       state: filterResponsavel,
       set: setFilterResponsavel,
-      key: 'Responsavel',
+      key: 'responsavel',
+      extract: (p: Projeto) => p.responsavel?.nome || p.responsavel_nome,
     },
     {
-      label: 'Arquiteto Responsável',
+      label: 'Arquiteto',
       state: filterArquiteto,
       set: setFilterArquiteto,
-      key: 'Arquiteto_Responsavel',
+      key: 'arquiteto',
+      extract: (p: Projeto) => p.arquiteto?.nome,
     },
     {
       label: 'Engenheiro',
       state: filterEngenheiro,
       set: setFilterEngenheiro,
-      key: 'Responsavel_da_Obra',
+      key: 'engenheiro',
+      extract: (p: Projeto) => p.engenheiro?.nome,
     },
-    { label: 'Cidade', state: filterCidade, set: setFilterCidade, key: 'Cidade' },
+    { label: 'Cidade', state: filterCidade, set: setFilterCidade, key: 'cidade' },
   ]
 
-  const getUnique = (key: string) => {
-    const vals = projetos.map((p) => (p as any)[key]).filter(Boolean) as string[]
+  const getUnique = (config: any) => {
+    const vals = projetos
+      .map((p) => (config.extract ? config.extract(p) : (p as any)[config.key]))
+      .filter(Boolean) as string[]
     return Array.from(new Set(vals)).sort()
+  }
+
+  const getValorTotal = (projeto: Projeto) => {
+    if (projeto.projeto_parcelas && Array.isArray(projeto.projeto_parcelas)) {
+      return projeto.projeto_parcelas.reduce(
+        (acc: number, p: any) => acc + (Number(p.valor) || 0),
+        0,
+      )
+    }
+    return Number(projeto.valor_total) || 0
   }
 
   const filteredProjetos = projetos.filter((p) => {
     if (viewMode === 'operacional') {
-      const status = p.Status || ''
+      const status = p.status || ''
       if (status === 'Completo' || status === 'Finalizado' || status === 'Concluído') return false
     }
 
@@ -101,7 +127,8 @@ export default function Projetos() {
 
     return filterConfigs.every((config) => {
       if (config.state === 'all') return true
-      return (p as any)[config.key] === config.state
+      const val = config.extract ? config.extract(p) : (p as any)[config.key]
+      return val === config.state
     })
   })
 
@@ -122,38 +149,6 @@ export default function Projetos() {
     }
   }
 
-  const formatCodigo = (codigo: any) => {
-    if (!codigo) return '-'
-    const codStr = codigo.toString()
-    if (codStr.length > 2 && !codStr.includes('.')) {
-      return `${codStr.substring(0, 2)}.${codStr.substring(2)}`
-    }
-    return codStr
-  }
-
-  const parseValor = (val: any) => {
-    if (!val) return 0
-    if (typeof val === 'number') return val
-    const str = String(val).trim()
-    if (str.includes(',')) {
-      const clean = str
-        .replace(/\./g, '')
-        .replace(',', '.')
-        .replace(/[^\d.-]/g, '')
-      return parseFloat(clean) || 0
-    }
-    const clean = str.replace(/[^\d.-]/g, '')
-    return parseFloat(clean) || 0
-  }
-
-  const getValorTotal = (projeto: any) => {
-    let total = 0
-    for (let i = 1; i <= 10; i++) {
-      total += parseValor(projeto[`valor_fechado_${i}`])
-    }
-    return total
-  }
-
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
   }
@@ -163,14 +158,16 @@ export default function Projetos() {
     setIsEditing(true)
     setEditedProjeto({ ...selectedProjeto })
 
-    const pags = []
-    for (let i = 1; i <= 10; i++) {
-      const valor = (selectedProjeto as any)[`valor_fechado_${i}`]
-      const data = (selectedProjeto as any)[`data_fechamento_${i}`]
-      if (valor || data) {
-        pags.push({ id: i, valor: valor || '', data: data || '' })
-      }
-    }
+    const pags = (selectedProjeto.projeto_parcelas || []).map((p: any) => ({
+      id: p.id,
+      numero_parcela: p.numero_parcela,
+      valor: p.valor || '',
+      data_vencimento: p.data_vencimento || '',
+      data_pagamento: p.data_pagamento || '',
+      valor_pago: p.valor_pago || '',
+      status: p.status || 'pendente',
+    }))
+    pags.sort((a, b) => a.numero_parcela - b.numero_parcela)
     setEditedPagamentos(pags)
   }
 
@@ -178,25 +175,49 @@ export default function Projetos() {
     if (!editedProjeto || !selectedProjeto) return
     setSaving(true)
     try {
-      const dataToSave = { ...editedProjeto } as any
-      delete dataToSave.id // Evita atualizar a primary key auto-incrementável
+      const dataToSave = {
+        codigo: editedProjeto.codigo,
+        nome: editedProjeto.nome,
+        nivel_estrategico: editedProjeto.nivel_estrategico,
+        status: editedProjeto.status,
+        cidade: editedProjeto.cidade,
+        estado: editedProjeto.estado,
+        data_entrada: editedProjeto.data_entrada,
+        arquivado: editedProjeto.arquivado,
+        tipo_item: editedProjeto.tipo_item,
+        caminho: editedProjeto.caminho,
+      } as any
 
-      // Limpa os pagamentos antigos
-      for (let i = 1; i <= 10; i++) {
-        dataToSave[`valor_fechado_${i}`] = null
-        dataToSave[`data_fechamento_${i}`] = null
+      await updateProjetoById(selectedProjeto.id, dataToSave)
+
+      // Save pagamentos
+      const existingIds = new Set((selectedProjeto.projeto_parcelas || []).map((p) => p.id))
+      const editedIds = new Set(
+        editedPagamentos.map((p) => p.id).filter((id) => id && !String(id).startsWith('new-')),
+      )
+
+      for (const p of editedPagamentos) {
+        const payload = {
+          projeto_id: selectedProjeto.id,
+          numero_parcela: p.numero_parcela || 1,
+          valor: Number(p.valor) || 0,
+          data_vencimento: p.data_vencimento || null,
+          data_pagamento: p.data_pagamento || null,
+          valor_pago: p.valor_pago ? Number(p.valor_pago) : null,
+          status: p.status || 'pendente',
+        }
+        if (p.id && !String(p.id).startsWith('new-')) {
+          await supabase.from('projeto_parcelas').update(payload).eq('id', p.id)
+        } else {
+          await supabase.from('projeto_parcelas').insert(payload)
+        }
       }
 
-      // Remapeia os pagamentos editados
-      editedPagamentos.forEach((p, index) => {
-        const i = index + 1
-        if (i <= 10) {
-          dataToSave[`valor_fechado_${i}`] = p.valor
-          dataToSave[`data_fechamento_${i}`] = p.data
+      for (const oldId of Array.from(existingIds)) {
+        if (!editedIds.has(oldId)) {
+          await supabase.from('projeto_parcelas').delete().eq('id', oldId)
         }
-      })
-
-      await updateProjeto(selectedProjeto.Codigo!, dataToSave)
+      }
 
       toast({ title: 'Sucesso', description: 'Projeto atualizado com sucesso.' })
       setSelectedProjeto(null)
@@ -211,6 +232,17 @@ export default function Projetos() {
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    try {
+      await deleteProjeto(id)
+      toast({ title: 'Sucesso', description: 'Projeto excluído.' })
+      loadProjetos()
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
     }
   }
 
@@ -237,10 +269,9 @@ export default function Projetos() {
     }
 
     let val = selectedProjeto?.[key] as any
-    if (key === 'Codigo') val = formatCodigo(val)
-    if (key === 'Data_Entrada' && !isEditing) val = formatDate(val)
+    if (key === 'data_entrada' && !isEditing) val = formatDate(val)
 
-    if (key === 'Status' && !isEditing) {
+    if (key === 'status' && !isEditing) {
       return (
         <div className="space-y-1">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -338,7 +369,7 @@ export default function Projetos() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
-                    {getUnique(config.key).map((s) => (
+                    {getUnique(config).map((s) => (
                       <SelectItem key={s} value={s}>
                         {s}
                       </SelectItem>
@@ -401,10 +432,10 @@ export default function Projetos() {
                       </TableHead>
                       <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
                       <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                        Arquiteto Responsável
+                        Arquiteto
                       </TableHead>
                       <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                        Responsável da Obra
+                        Engenheiro
                       </TableHead>
                       <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
                       <TableHead className="py-4 text-slate-600 font-semibold">Estado</TableHead>
@@ -434,7 +465,7 @@ export default function Projetos() {
                   <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
                     Valor Total
                   </TableHead>
-                  <TableHead className="w-[50px] py-4"></TableHead>
+                  <TableHead className="w-[100px] py-4 text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -462,76 +493,67 @@ export default function Projetos() {
 
                     return (
                       <TableRow
-                        key={projeto.Codigo || Math.random().toString()}
+                        key={projeto.id}
                         className="cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
                         onClick={() => setSelectedProjeto(projeto)}
                       >
                         <TableCell className="py-4 font-medium text-slate-900">
-                          {formatCodigo(projeto.Codigo)}
+                          {projeto.codigo}
                         </TableCell>
 
                         {viewMode === 'completa' && (
                           <TableCell className="py-4 text-slate-600">
-                            {projeto.Nivel_Estrategico || '-'}
+                            {projeto.nivel_estrategico || '-'}
                           </TableCell>
                         )}
 
                         <TableCell
                           className="py-4 font-semibold text-slate-900 max-w-[200px] truncate"
-                          title={projeto.Projeto || ''}
+                          title={projeto.nome || ''}
                         >
-                          {projeto.Projeto || 'Sem nome'}
+                          {projeto.nome || 'Sem nome'}
                         </TableCell>
 
                         {viewMode === 'completa' && (
                           <>
-                            <TableCell
-                              className="py-4 text-slate-600 max-w-[150px] truncate"
-                              title={projeto.Responsavel || ''}
-                            >
-                              {projeto.Responsavel || '-'}
+                            <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
+                              {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
                             </TableCell>
                             <TableCell className="py-4 whitespace-nowrap text-slate-500">
-                              {formatDate(projeto.Data_Entrada)}
+                              {formatDate(projeto.data_entrada)}
                             </TableCell>
                             <TableCell className="py-4">
-                              {projeto.Status ? (
+                              {projeto.status ? (
                                 <Badge
                                   variant={
-                                    projeto.Status === 'Concluído' ||
-                                    projeto.Status === 'Completo' ||
-                                    projeto.Status === 'Finalizado'
+                                    projeto.status === 'Concluído' ||
+                                    projeto.status === 'Completo' ||
+                                    projeto.status === 'Finalizado'
                                       ? 'default'
                                       : 'secondary'
                                   }
                                   className="font-medium shadow-sm"
                                 >
-                                  {projeto.Status}
+                                  {projeto.status}
                                 </Badge>
                               ) : (
                                 <span className="text-slate-400 text-sm">-</span>
                               )}
                             </TableCell>
-                            <TableCell
-                              className="py-4 text-slate-600 max-w-[150px] truncate"
-                              title={projeto.Arquiteto_Responsavel || ''}
-                            >
-                              {projeto.Arquiteto_Responsavel || '-'}
+                            <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
+                              {projeto.arquiteto?.nome || '-'}
                             </TableCell>
-                            <TableCell
-                              className="py-4 text-slate-600 max-w-[150px] truncate"
-                              title={projeto.Responsavel_da_Obra || ''}
-                            >
-                              {projeto.Responsavel_da_Obra || '-'}
+                            <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
+                              {projeto.engenheiro?.nome || '-'}
                             </TableCell>
                             <TableCell
                               className="py-4 text-slate-700 max-w-[150px] truncate"
-                              title={projeto.Cidade || ''}
+                              title={projeto.cidade || ''}
                             >
-                              {projeto.Cidade || '-'}
+                              {projeto.cidade || '-'}
                             </TableCell>
                             <TableCell className="py-4 text-slate-600">
-                              {projeto.Estado || '-'}
+                              {projeto.estado || '-'}
                             </TableCell>
                           </>
                         )}
@@ -539,41 +561,38 @@ export default function Projetos() {
                         {viewMode === 'operacional' && (
                           <>
                             <TableCell className="py-4">
-                              {projeto.Status ? (
+                              {projeto.status ? (
                                 <Badge
                                   variant={
-                                    projeto.Status === 'Concluído' ||
-                                    projeto.Status === 'Completo' ||
-                                    projeto.Status === 'Finalizado'
+                                    projeto.status === 'Concluído' ||
+                                    projeto.status === 'Completo' ||
+                                    projeto.status === 'Finalizado'
                                       ? 'default'
                                       : 'secondary'
                                   }
                                   className="font-medium shadow-sm"
                                 >
-                                  {projeto.Status}
+                                  {projeto.status}
                                 </Badge>
                               ) : (
                                 <span className="text-slate-400 text-sm">-</span>
                               )}
                             </TableCell>
 
-                            <TableCell
-                              className="py-4 max-w-[150px] truncate text-slate-600"
-                              title={projeto.Responsavel || ''}
-                            >
-                              {projeto.Responsavel || '-'}
+                            <TableCell className="py-4 max-w-[150px] truncate text-slate-600">
+                              {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
                             </TableCell>
 
                             <TableCell className="py-4 whitespace-nowrap text-slate-500">
-                              {formatDate(projeto.Data_Entrada)}
+                              {formatDate(projeto.data_entrada)}
                             </TableCell>
 
                             <TableCell className="py-4">
                               <span
                                 className="text-slate-700 font-medium truncate max-w-[150px] block"
-                                title={projeto.Cidade || ''}
+                                title={projeto.cidade || ''}
                               >
-                                {projeto.Cidade || '-'}
+                                {projeto.cidade || '-'}
                               </span>
                             </TableCell>
                           </>
@@ -582,29 +601,26 @@ export default function Projetos() {
                         {viewMode === 'resumida' && (
                           <>
                             <TableCell className="py-4">
-                              {projeto.Status ? (
+                              {projeto.status ? (
                                 <Badge
                                   variant={
-                                    projeto.Status === 'Concluído' ||
-                                    projeto.Status === 'Completo' ||
-                                    projeto.Status === 'Finalizado'
+                                    projeto.status === 'Concluído' ||
+                                    projeto.status === 'Completo' ||
+                                    projeto.status === 'Finalizado'
                                       ? 'default'
                                       : 'secondary'
                                   }
                                   className="font-medium shadow-sm"
                                 >
-                                  {projeto.Status}
+                                  {projeto.status}
                                 </Badge>
                               ) : (
                                 <span className="text-slate-400 text-sm">-</span>
                               )}
                             </TableCell>
 
-                            <TableCell
-                              className="py-4 max-w-[150px] truncate text-slate-600"
-                              title={projeto.Responsavel || ''}
-                            >
-                              {projeto.Responsavel || '-'}
+                            <TableCell className="py-4 max-w-[150px] truncate text-slate-600">
+                              {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
                             </TableCell>
                           </>
                         )}
@@ -615,8 +631,44 @@ export default function Projetos() {
                           </span>
                         </TableCell>
 
-                        <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
-                          <ProjectActions projeto={projeto} onChange={loadProjetos} />
+                        <TableCell className="py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/projeto/${projeto.id}`)}
+                            >
+                              <Edit2 className="w-4 h-4 text-slate-600" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir Projeto</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja excluir o projeto?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(projeto.id)}
+                                    className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                  >
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )
@@ -637,70 +689,112 @@ export default function Projetos() {
           }
         }}
       >
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl">
-              {isEditing ? 'Editar Projeto' : 'Detalhes do Projeto'}
+              {isEditing ? 'Editar Projeto e Parcelas' : 'Detalhes Rápidos do Projeto'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-4">
             {selectedProjeto && (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {renderField('Código', 'Codigo', 'number')}
-                  {renderField('Nível Estratégico', 'Nivel_Estrategico')}
-                  {renderField('Projeto', 'Projeto')}
-                  {renderField('Responsável', 'Responsavel')}
-                  {renderField('Data de Entrada', 'Data_Entrada')}
-                  {renderField('Status', 'Status')}
-                  {renderField('Arquiteto Responsável', 'Arquiteto_Responsavel')}
-                  {renderField('Responsável da Obra', 'Responsavel_da_Obra')}
-                  {renderField('Cidade', 'Cidade')}
-                  {renderField('Estado', 'Estado')}
-                  {renderField('Arquivado', 'Arquivado')}
-                  {renderField('Tipo de Item', 'Tipo_de_Item')}
-                  <div className="col-span-1 sm:col-span-2 md:col-span-3 space-y-1">
-                    {renderField('Caminho', 'Caminho')}
+                  {renderField('Código', 'codigo', 'text')}
+                  {renderField('Nível Estratégico', 'nivel_estrategico')}
+                  {renderField('Projeto', 'nome')}
+
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Cliente
+                    </span>
+                    <p className="text-slate-900 font-medium break-all">
+                      {selectedProjeto.cliente?.nome || '-'}
+                    </p>
                   </div>
+
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Responsável
+                    </span>
+                    <p className="text-slate-900 font-medium break-all">
+                      {selectedProjeto.responsavel?.nome || selectedProjeto.responsavel_nome || '-'}
+                    </p>
+                  </div>
+
+                  {renderField('Data de Entrada', 'data_entrada')}
+                  {renderField('Status', 'status')}
+
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Arquiteto
+                    </span>
+                    <p className="text-slate-900 font-medium break-all">
+                      {selectedProjeto.arquiteto?.nome || '-'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Engenheiro
+                    </span>
+                    <p className="text-slate-900 font-medium break-all">
+                      {selectedProjeto.engenheiro?.nome || '-'}
+                    </p>
+                  </div>
+
+                  {renderField('Cidade', 'cidade')}
+                  {renderField('Estado', 'estado')}
                 </div>
 
                 <div className="pt-4 border-t border-slate-200 mt-6">
                   <h4 className="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">
-                    Pagamentos Registrados
+                    Parcelas do Projeto
                   </h4>
                   {isEditing ? (
                     <div className="space-y-3">
                       {editedPagamentos.map((p, idx) => (
                         <div
                           key={p.id}
-                          className="flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-slate-50 p-3 rounded-md border border-slate-100"
+                          className="grid grid-cols-2 sm:grid-cols-6 items-end gap-3 bg-slate-50 p-3 rounded-md border border-slate-100"
                         >
-                          <div className="w-full sm:w-1/2">
-                            <Label className="text-xs text-slate-500 mb-1 block">Valor Pago</Label>
+                          <div className="col-span-1">
+                            <Label className="text-xs text-slate-500 mb-1 block">Nº Parcela</Label>
                             <Input
+                              type="number"
+                              value={p.numero_parcela}
+                              onChange={(e) => {
+                                const newPags = [...editedPagamentos]
+                                newPags[idx].numero_parcela = e.target.value
+                                setEditedPagamentos(newPags)
+                              }}
+                            />
+                          </div>
+                          <div className="col-span-1 sm:col-span-2">
+                            <Label className="text-xs text-slate-500 mb-1 block">Valor</Label>
+                            <Input
+                              type="number"
                               value={p.valor}
                               onChange={(e) => {
                                 const newPags = [...editedPagamentos]
                                 newPags[idx].valor = e.target.value
                                 setEditedPagamentos(newPags)
                               }}
-                              placeholder="Ex: 1500,00"
+                              placeholder="0,00"
                             />
                           </div>
-                          <div className="w-full sm:w-1/2">
-                            <Label className="text-xs text-slate-500 mb-1 block">Data</Label>
+                          <div className="col-span-1 sm:col-span-2">
+                            <Label className="text-xs text-slate-500 mb-1 block">Vencimento</Label>
                             <Input
-                              type="text"
-                              value={p.data}
+                              type="date"
+                              value={p.data_vencimento}
                               onChange={(e) => {
                                 const newPags = [...editedPagamentos]
-                                newPags[idx].data = e.target.value
+                                newPags[idx].data_vencimento = e.target.value
                                 setEditedPagamentos(newPags)
                               }}
-                              placeholder="DD/MM/AAAA"
                             />
                           </div>
-                          <div className="w-full sm:w-auto mt-2 sm:mt-0 flex justify-end">
+                          <div className="col-span-1 flex justify-end">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -714,41 +808,36 @@ export default function Projetos() {
                           </div>
                         </div>
                       ))}
-                      {editedPagamentos.length < 10 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setEditedPagamentos([
-                              ...editedPagamentos,
-                              { id: Date.now(), valor: '', data: '' },
-                            ])
-                          }}
-                        >
-                          <Plus className="w-4 h-4 mr-2" /> Adicionar Pagamento
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditedPagamentos([
+                            ...editedPagamentos,
+                            {
+                              id: `new-${Date.now()}`,
+                              numero_parcela: editedPagamentos.length + 1,
+                              valor: '',
+                              data_vencimento: '',
+                              data_pagamento: '',
+                              valor_pago: '',
+                              status: 'pendente',
+                            },
+                          ])
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-2" /> Nova Parcela
+                      </Button>
                     </div>
                   ) : (
                     (() => {
-                      const pagamentos = []
-                      for (let i = 1; i <= 10; i++) {
-                        const valor = (selectedProjeto as any)[`valor_fechado_${i}`]
-                        const data = (selectedProjeto as any)[`data_fechamento_${i}`]
-                        if (valor || data) {
-                          pagamentos.push({
-                            i,
-                            valor: valor ? formatCurrency(parseValor(valor)) : '-',
-                            data: formatDate(data),
-                          })
-                        }
-                      }
+                      const pagamentos = [...(selectedProjeto.projeto_parcelas || [])].sort(
+                        (a, b) => a.numero_parcela - b.numero_parcela,
+                      )
 
                       if (pagamentos.length === 0) {
                         return (
-                          <p className="text-slate-500 text-sm py-2">
-                            Nenhum pagamento registrado.
-                          </p>
+                          <p className="text-slate-500 text-sm py-2">Nenhuma parcela registrada.</p>
                         )
                       }
 
@@ -757,28 +846,50 @@ export default function Projetos() {
                           <Table>
                             <TableHeader className="bg-slate-50">
                               <TableRow>
-                                <TableHead className="w-[80px]">Parcela</TableHead>
+                                <TableHead className="w-[80px]">Nº</TableHead>
+                                <TableHead>Valor</TableHead>
+                                <TableHead>Vencimento</TableHead>
+                                <TableHead>Status</TableHead>
                                 <TableHead>Valor Pago</TableHead>
-                                <TableHead className="text-right">Data</TableHead>
+                                <TableHead className="text-right">Pagamento</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {pagamentos.map((p) => (
-                                <TableRow key={p.i}>
+                                <TableRow key={p.id}>
                                   <TableCell className="font-medium text-slate-500">
-                                    {p.i}
+                                    {p.numero_parcela}
                                   </TableCell>
                                   <TableCell className="font-semibold text-emerald-600">
-                                    {p.valor}
+                                    {formatCurrency(Number(p.valor) || 0)}
+                                  </TableCell>
+                                  <TableCell className="text-slate-600">
+                                    {formatDate(p.data_vencimento)}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      variant={
+                                        p.status === 'paga'
+                                          ? 'default'
+                                          : p.status === 'atrasada'
+                                            ? 'destructive'
+                                            : 'secondary'
+                                      }
+                                    >
+                                      {p.status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="font-semibold text-emerald-600">
+                                    {p.valor_pago ? formatCurrency(Number(p.valor_pago)) : '-'}
                                   </TableCell>
                                   <TableCell className="text-right text-slate-600">
-                                    {p.data}
+                                    {formatDate(p.data_pagamento)}
                                   </TableCell>
                                 </TableRow>
                               ))}
                               <TableRow className="bg-slate-50 font-bold">
-                                <TableCell colSpan={2} className="text-slate-700">
-                                  Valor Total
+                                <TableCell colSpan={5} className="text-slate-700">
+                                  Valor Total Parcelado
                                 </TableCell>
                                 <TableCell className="text-right text-emerald-600">
                                   {formatCurrency(getValorTotal(selectedProjeto))}
@@ -793,6 +904,13 @@ export default function Projetos() {
                 </div>
 
                 <div className="flex justify-end pt-6 gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate(`/projeto/${selectedProjeto.id}`)}
+                  >
+                    Ver Detalhes Completos
+                  </Button>
+                  <div className="flex-1" />
                   {isEditing ? (
                     <>
                       <Button variant="outline" onClick={() => setIsEditing(false)}>
