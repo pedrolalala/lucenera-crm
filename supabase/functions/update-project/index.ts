@@ -22,16 +22,16 @@ Deno.serve(async (req: Request) => {
     const { id, ...updates } = body
 
     if (!id) {
-      return new Response(JSON.stringify({ error: 'O campo id (Codigo) é obrigatório.' }), {
+      return new Response(JSON.stringify({ error: 'O campo id é obrigatório.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
     const { data, error } = await supabase
-      .from('Organizacao_projetos')
+      .from('projetos')
       .update(updates)
-      .eq('Codigo', id)
+      .eq('id', id)
       .select()
       .single()
 

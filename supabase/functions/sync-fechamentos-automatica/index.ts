@@ -19,7 +19,6 @@ Deno.serve(async (req: Request) => {
   const supabase = createClient(supabaseUrl, supabaseKey)
 
   try {
-    // 1. Leia todos os registros de projetos_fechados
     const { data: fechamentos, error: fetchError } = await supabase
       .from('projetos_fechados')
       .select('cod, valor_fechado, data_fechamento')
@@ -27,7 +26,6 @@ Deno.serve(async (req: Request) => {
 
     if (fetchError) throw fetchError
 
-    // 2. Agrupe por cod
     const agrupados: Record<string, any[]> = {}
     for (const row of fechamentos || []) {
       if (!row.cod) continue
@@ -38,7 +36,6 @@ Deno.serve(async (req: Request) => {
       agrupados[codigo].push(row)
     }
 
-    // Fallback: ordenar por data_fechamento (crescente)
     for (const cod in agrupados) {
       agrupados[cod].sort((a, b) => {
         const parseDate = (dStr: string) => {
@@ -57,52 +54,52 @@ Deno.serve(async (req: Request) => {
 
     let projetosAtualizados = 0
 
-    // 3. Para cada código único, mapeie os fechamentos (até 10)
     for (const cod in agrupados) {
       const registros = agrupados[cod]
-      const payload: Record<string, any> = {}
 
-      const limite = Math.min(registros.length, 10)
-      for (let i = 0; i < limite; i++) {
-        const idx = i + 1
-        payload[`valor_fechado_${idx}`] = registros[i].valor_fechado
-        payload[`data_fechamento_${idx}`] = registros[i].data_fechamento
-      }
+      const { data: projeto } = await supabase
+        .from('projetos')
+        .select('id')
+        .eq('codigo', cod)
+        .maybeSingle()
 
-      // Atualize a linha correspondente em Organizacao_projetos onde Codigo = cod
-      const { data: existing } = await supabase
-        .from('Organizacao_projetos')
-        .select('Codigo')
-        .eq('Codigo', Number(cod))
-        .limit(1)
+      if (projeto) {
+        const { data: parcelasExistentes } = await supabase
+          .from('projeto_parcelas')
+          .select('id, numero_parcela')
+          .eq('projeto_id', projeto.id)
 
-      if (existing && existing.length > 0) {
-        const { error: updateError } = await supabase
-          .from('Organizacao_projetos')
-          .update(payload)
-          .eq('Codigo', Number(cod))
+        const limite = Math.min(registros.length, 10)
+        for (let i = 0; i < limite; i++) {
+          const numParcela = i + 1
+          const parcelaExistente = parcelasExistentes?.find((p) => p.numero_parcela === numParcela)
 
-        if (!updateError) projetosAtualizados++
-      } else {
-        // Fallback: se não existir, insere o projeto (mantém consistência de dados)
-        payload['Codigo'] = Number(cod)
-        const { error: insertError } = await supabase.from('Organizacao_projetos').insert([payload])
+          const payload = {
+            projeto_id: projeto.id,
+            numero_parcela: numParcela,
+            valor: registros[i].valor_fechado ? parseFloat(registros[i].valor_fechado) : 0,
+            data_fechamento: registros[i].data_fechamento || null,
+          }
 
-        if (!insertError) projetosAtualizados++
+          if (parcelaExistente) {
+            await supabase.from('projeto_parcelas').update(payload).eq('id', parcelaExistente.id)
+          } else {
+            await supabase.from('projeto_parcelas').insert([{ ...payload, status: 'pendente' }])
+          }
+        }
+        projetosAtualizados++
       }
     }
 
-    // 4. Registre em sync_history
     const mensagemSucesso = 'Sincronização concluída com sucesso'
-    const historyPayload = {
-      projetos_atualizados: projetosAtualizados,
-      status: 'sucesso',
-      mensagem: mensagemSucesso,
-    }
+    await supabase.from('sync_history').insert([
+      {
+        registros_atualizados: projetosAtualizados,
+        status: 'sucesso',
+        mensagem: mensagemSucesso,
+      },
+    ])
 
-    await supabase.from('sync_history').insert([historyPayload])
-
-    // 5. Retorne os dados esperados
     return new Response(
       JSON.stringify({
         success: true,
@@ -118,7 +115,7 @@ Deno.serve(async (req: Request) => {
     const errorMsg = error.message || 'Erro desconhecido'
     await supabase.from('sync_history').insert([
       {
-        projetos_atualizados: 0,
+        registros_atualizados: 0,
         status: 'erro',
         mensagem: errorMsg,
       },
