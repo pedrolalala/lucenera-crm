@@ -42,6 +42,7 @@ import * as z from 'zod'
 import { toast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/supabase/types'
+import { useAuth } from '@/hooks/use-auth'
 
 type ContatoRow = Database['public']['Tables']['contatos']['Row']
 
@@ -50,23 +51,65 @@ const clientSchema = z.object({
   email: z
     .string()
     .email('Email inválido')
-    .or(z.literal('').or(z.null()))
+    .or(z.literal(''))
+    .nullable()
     .transform((v) => v || null),
   email_financeiro: z
     .string()
     .email('Email inválido')
-    .or(z.literal('').or(z.null()))
+    .or(z.literal(''))
+    .nullable()
     .transform((v) => v || null),
-  telefone: z.string().optional().nullable(),
-  celular: z.string().optional().nullable(),
-  cpf_cnpj: z.string().optional().nullable(),
-  rg: z.string().optional().nullable(),
-  endereco: z.string().optional().nullable(),
-  bairro: z.string().optional().nullable(),
-  cep: z.string().optional().nullable(),
-  cidade: z.string().optional().nullable(),
-  estado: z.string().optional().nullable(),
-  observacoes: z.string().optional().nullable(),
+  telefone: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
+  celular: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
+  cpf_cnpj: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
+  rg: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
+  endereco: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
+  bairro: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
+  cep: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
+  cidade: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
+  estado: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
+  observacoes: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
 })
 
 type ClientFormValues = z.infer<typeof clientSchema>
@@ -88,6 +131,7 @@ export default function Clientes() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const [cameFromView, setCameFromView] = useState(false)
+  const { user } = useAuth()
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
@@ -186,17 +230,35 @@ export default function Clientes() {
       const { error } = await supabase.from('contatos').update(values).eq('id', editingClient.id)
 
       if (error) {
-        toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' })
+        if (error.code === '23505' && error.message.includes('cpf_cnpj')) {
+          toast({
+            title: 'Erro ao atualizar',
+            description: 'Já existe um cadastro com este CPF/CNPJ.',
+            variant: 'destructive',
+          })
+        } else {
+          toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' })
+        }
       } else {
         toast({ title: 'Cliente atualizado com sucesso' })
         setIsEditModalOpen(false)
         fetchClients()
       }
     } else {
-      const { error } = await supabase.from('contatos').insert([{ ...values, tipo: 'cliente' }])
+      const { error } = await supabase
+        .from('contatos')
+        .insert([{ ...values, tipo: 'cliente', created_by: user?.id }])
 
       if (error) {
-        toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' })
+        if (error.code === '23505' && error.message.includes('cpf_cnpj')) {
+          toast({
+            title: 'Erro ao criar',
+            description: 'Já existe um cadastro com este CPF/CNPJ.',
+            variant: 'destructive',
+          })
+        } else {
+          toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' })
+        }
       } else {
         toast({ title: 'Cliente adicionado com sucesso' })
         setIsEditModalOpen(false)

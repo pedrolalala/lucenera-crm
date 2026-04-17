@@ -27,9 +27,14 @@ const schema = z.object({
   email: z
     .string()
     .email('Email inválido')
-    .or(z.literal('').or(z.null()))
+    .or(z.literal(''))
+    .nullable()
     .transform((v) => v || null),
-  telefone: z.string().optional().nullable(),
+  telefone: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
 })
 
 export type ContactType = 'cliente' | 'arquiteto' | 'engenheiro' | 'eletricista'
