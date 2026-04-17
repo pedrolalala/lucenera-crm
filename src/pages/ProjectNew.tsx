@@ -29,8 +29,16 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectSeparator,
 } from '@/components/ui/select'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command'
 import {
   ArrowLeft,
   Sparkles,
@@ -40,6 +48,8 @@ import {
   Plus,
   Zap,
   CalendarIcon,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { format } from 'date-fns'
@@ -83,6 +93,9 @@ export default function ProjectNew() {
 
   const [modalType, setModalType] = useState<ContactType | null>(null)
   const [loading, setLoading] = useState(false)
+  const [openCliente, setOpenCliente] = useState(false)
+  const [openArquiteto, setOpenArquiteto] = useState(false)
+  const [openEngenheiro, setOpenEngenheiro] = useState(false)
 
   const clientes = contacts.filter((c) => c.tipo === 'cliente')
   const arquitetos = contacts.filter((c) => c.tipo === 'arquiteto')
@@ -352,38 +365,89 @@ export default function ProjectNew() {
                   control={form.control}
                   name="cliente_id"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col pt-2.5">
                       <FormLabel className="flex items-center gap-1.5">
                         <User className="h-4 w-4" /> Cliente{' '}
                         <span className="text-destructive">*</span>
                       </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="null">Não Informado</SelectItem>
-                          {clientes.map((o) => (
-                            <SelectItem key={o.id} value={o.id}>
-                              {o.nome}
-                            </SelectItem>
-                          ))}
-                          <SelectSeparator />
-                          <div
-                            role="button"
-                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setModalType('cliente')
-                            }}
-                          >
-                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />{' '}
-                            Novo Cliente
-                          </div>
-                        </SelectContent>
-                      </Select>
+                      <Popover open={openCliente} onOpenChange={setOpenCliente}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={openCliente}
+                              className={cn(
+                                'w-full justify-between h-11 font-normal',
+                                (!field.value || field.value === 'null') && 'text-muted-foreground',
+                              )}
+                            >
+                              {field.value && field.value !== 'null'
+                                ? clientes.find((o) => o.id === field.value)?.nome
+                                : 'Não Informado'}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar cliente..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                <CommandItem
+                                  value="nao-informado"
+                                  onSelect={() => {
+                                    form.setValue('cliente_id', 'null')
+                                    setOpenCliente(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      field.value === 'null' || !field.value
+                                        ? 'opacity-100'
+                                        : 'opacity-0',
+                                    )}
+                                  />
+                                  Não Informado
+                                </CommandItem>
+                                {clientes.map((o) => (
+                                  <CommandItem
+                                    value={o.nome}
+                                    key={o.id}
+                                    onSelect={() => {
+                                      form.setValue('cliente_id', o.id)
+                                      setOpenCliente(false)
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        'mr-2 h-4 w-4',
+                                        o.id === field.value ? 'opacity-100' : 'opacity-0',
+                                      )}
+                                    />
+                                    {o.nome}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                              <CommandSeparator />
+                              <CommandGroup>
+                                <CommandItem
+                                  onSelect={() => {
+                                    setOpenCliente(false)
+                                    setModalType('cliente')
+                                  }}
+                                  className="text-primary font-medium cursor-pointer"
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Novo Cliente
+                                </CommandItem>
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -393,37 +457,88 @@ export default function ProjectNew() {
                   control={form.control}
                   name="arquiteto_id"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col pt-2.5">
                       <FormLabel className="flex items-center gap-1.5">
                         <Building2 className="h-4 w-4" /> Arquiteto
                       </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="null">Não Informado</SelectItem>
-                          {arquitetos.map((o) => (
-                            <SelectItem key={o.id} value={o.id}>
-                              {o.nome}
-                            </SelectItem>
-                          ))}
-                          <SelectSeparator />
-                          <div
-                            role="button"
-                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setModalType('arquiteto')
-                            }}
-                          >
-                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />{' '}
-                            Novo Arquiteto
-                          </div>
-                        </SelectContent>
-                      </Select>
+                      <Popover open={openArquiteto} onOpenChange={setOpenArquiteto}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={openArquiteto}
+                              className={cn(
+                                'w-full justify-between h-11 font-normal',
+                                (!field.value || field.value === 'null') && 'text-muted-foreground',
+                              )}
+                            >
+                              {field.value && field.value !== 'null'
+                                ? arquitetos.find((o) => o.id === field.value)?.nome
+                                : 'Não Informado'}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar arquiteto..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhum arquiteto encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                <CommandItem
+                                  value="nao-informado"
+                                  onSelect={() => {
+                                    form.setValue('arquiteto_id', 'null')
+                                    setOpenArquiteto(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      field.value === 'null' || !field.value
+                                        ? 'opacity-100'
+                                        : 'opacity-0',
+                                    )}
+                                  />
+                                  Não Informado
+                                </CommandItem>
+                                {arquitetos.map((o) => (
+                                  <CommandItem
+                                    value={o.nome}
+                                    key={o.id}
+                                    onSelect={() => {
+                                      form.setValue('arquiteto_id', o.id)
+                                      setOpenArquiteto(false)
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        'mr-2 h-4 w-4',
+                                        o.id === field.value ? 'opacity-100' : 'opacity-0',
+                                      )}
+                                    />
+                                    {o.nome}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                              <CommandSeparator />
+                              <CommandGroup>
+                                <CommandItem
+                                  onSelect={() => {
+                                    setOpenArquiteto(false)
+                                    setModalType('arquiteto')
+                                  }}
+                                  className="text-primary font-medium cursor-pointer"
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Novo Arquiteto
+                                </CommandItem>
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -433,37 +548,88 @@ export default function ProjectNew() {
                   control={form.control}
                   name="responsavel_obra_id"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col pt-2.5">
                       <FormLabel className="flex items-center gap-1.5">
                         <HardHat className="h-4 w-4" /> Engenheiro
                       </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="null">Não Informado</SelectItem>
-                          {engenheiros.map((o) => (
-                            <SelectItem key={o.id} value={o.id}>
-                              {o.nome}
-                            </SelectItem>
-                          ))}
-                          <SelectSeparator />
-                          <div
-                            role="button"
-                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm font-medium text-primary outline-none hover:bg-accent"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setModalType('engenheiro')
-                            }}
-                          >
-                            <Plus className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center" />{' '}
-                            Novo Engenheiro
-                          </div>
-                        </SelectContent>
-                      </Select>
+                      <Popover open={openEngenheiro} onOpenChange={setOpenEngenheiro}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={openEngenheiro}
+                              className={cn(
+                                'w-full justify-between h-11 font-normal',
+                                (!field.value || field.value === 'null') && 'text-muted-foreground',
+                              )}
+                            >
+                              {field.value && field.value !== 'null'
+                                ? engenheiros.find((o) => o.id === field.value)?.nome
+                                : 'Não Informado'}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar engenheiro..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhum engenheiro encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                <CommandItem
+                                  value="nao-informado"
+                                  onSelect={() => {
+                                    form.setValue('responsavel_obra_id', 'null')
+                                    setOpenEngenheiro(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      field.value === 'null' || !field.value
+                                        ? 'opacity-100'
+                                        : 'opacity-0',
+                                    )}
+                                  />
+                                  Não Informado
+                                </CommandItem>
+                                {engenheiros.map((o) => (
+                                  <CommandItem
+                                    value={o.nome}
+                                    key={o.id}
+                                    onSelect={() => {
+                                      form.setValue('responsavel_obra_id', o.id)
+                                      setOpenEngenheiro(false)
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        'mr-2 h-4 w-4',
+                                        o.id === field.value ? 'opacity-100' : 'opacity-0',
+                                      )}
+                                    />
+                                    {o.nome}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                              <CommandSeparator />
+                              <CommandGroup>
+                                <CommandItem
+                                  onSelect={() => {
+                                    setOpenEngenheiro(false)
+                                    setModalType('engenheiro')
+                                  }}
+                                  className="text-primary font-medium cursor-pointer"
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Novo Engenheiro
+                                </CommandItem>
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
