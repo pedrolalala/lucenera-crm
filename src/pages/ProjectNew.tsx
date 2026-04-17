@@ -31,8 +31,21 @@ import {
   SelectValue,
   SelectSeparator,
 } from '@/components/ui/select'
-import { ArrowLeft, Sparkles, Building2, HardHat, User, Plus, Zap } from 'lucide-react'
+import {
+  ArrowLeft,
+  Sparkles,
+  Building2,
+  HardHat,
+  User,
+  Plus,
+  Zap,
+  CalendarIcon,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import { format } from 'date-fns'
+import { cn } from '@/lib/utils'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { toast } from '@/hooks/use-toast'
 import { NewContactModal, ContactType } from '@/components/NewContactModal'
 
@@ -59,6 +72,9 @@ const formSchema = z.object({
   responsavel_obra_id: z.string().optional(),
   cidade: z.string().min(2, 'Obrigatório'),
   estado: z.string().length(2, 'Inválido'),
+  data_entrada: z.date({
+    required_error: 'A data de entrada é obrigatória.',
+  }),
 })
 
 export default function ProjectNew() {
@@ -95,6 +111,7 @@ export default function ProjectNew() {
       cidade: '',
       estado: 'SP',
       status: 'Estudo Inicial',
+      data_entrada: new Date(),
     },
   })
 
@@ -112,7 +129,7 @@ export default function ProjectNew() {
         responsavel_obra_id: v.responsavel_obra_id !== 'null' ? v.responsavel_obra_id : null,
         cidade: v.cidade,
         estado: v.estado,
-        data_entrada: new Date().toISOString(),
+        data_entrada: v.data_entrada.toISOString(),
       }
 
       const { data: result, error } = await supabase.functions.invoke('salvar-projeto', {
@@ -276,6 +293,47 @@ export default function ProjectNew() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="data_entrada"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col justify-end">
+                    <FormLabel className="mb-2">
+                      Data de Entrada <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-full pl-3 text-left font-normal h-11',
+                              !field.value && 'text-muted-foreground',
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, 'dd/MM/yyyy')
+                            ) : (
+                              <span>Selecione a data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
