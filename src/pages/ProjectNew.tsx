@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -87,7 +87,19 @@ export default function ProjectNew() {
   const clientes = contacts.filter((c) => c.tipo === 'cliente')
   const arquitetos = contacts.filter((c) => c.tipo === 'arquiteto')
   const engenheiros = contacts.filter((c) => c.tipo === 'engenheiro')
-  const usuarios = contacts.filter((c) => c.tipo === 'outro') // Treating internal as 'outro' or from `usuarios`
+
+  const [usuarios, setUsuarios] = useState<{ id: string; nome: string }[]>([])
+
+  useEffect(() => {
+    supabase
+      .from('usuarios')
+      .select('id, nome')
+      .eq('ativo', true)
+      .order('nome')
+      .then(({ data }) => {
+        if (data) setUsuarios(data)
+      })
+  }, [])
 
   const getCities = () => {
     return Array.from(new Set(contacts.map((c) => c.cidade).filter(Boolean))) as string[]
