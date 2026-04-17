@@ -205,12 +205,13 @@ export default function Clientes() {
   }, [searchParams, clients, setSearchParams])
 
   const fetchClients = async () => {
-    setLoading(true)
+    if (clients.length === 0) setLoading(true)
     const { data, error } = await supabase
       .from('contatos')
       .select('*')
       .eq('tipo', 'cliente')
-      .order('nome', { ascending: true })
+      .order('created_at', { ascending: false })
+      .limit(10000)
 
     if (error) {
       toast({
@@ -225,14 +226,19 @@ export default function Clientes() {
   }
 
   const filteredClients = useMemo(() => {
-    const sName = searchName.trim().toLowerCase()
-    const sCity = searchCity.trim().toLowerCase()
-    const sState = searchState.trim().toLowerCase()
+    const normalize = (str: string) =>
+      str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+    const sName = normalize(searchName.trim())
+    const sCity = normalize(searchCity.trim())
+    const sState = normalize(searchState.trim())
 
     return clients.filter((c) => {
-      const matchName = !sName || (c.nome || '').toLowerCase().includes(sName)
-      const matchCity = !sCity || (c.cidade || '').toLowerCase().includes(sCity)
-      const matchState = !sState || (c.estado || '').toLowerCase().includes(sState)
+      const matchName = !sName || normalize(c.nome || '').includes(sName)
+      const matchCity = !sCity || normalize(c.cidade || '').includes(sCity)
+      const matchState = !sState || normalize(c.estado || '').includes(sState)
       return matchName && matchCity && matchState
     })
   }, [clients, searchName, searchCity, searchState])
@@ -417,7 +423,7 @@ export default function Clientes() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {loading && clients.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                     Carregando clientes...

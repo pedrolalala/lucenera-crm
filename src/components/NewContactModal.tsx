@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/use-auth'
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,7 @@ const TITLES: Record<string, string> = {
 
 export function NewContactModal({ type, open, onOpenChange, onSuccess }: Props) {
   const [loading, setLoading] = useState(false)
+  const { user } = useAuth()
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: { nome: '', email: '', telefone: '' },
@@ -71,7 +73,7 @@ export function NewContactModal({ type, open, onOpenChange, onSuccess }: Props) 
     try {
       const { data, error } = await supabase
         .from('contatos')
-        .insert([{ ...values, tipo: type, ativo: true }])
+        .insert([{ ...values, tipo: type, ativo: true, created_by: user?.id }])
         .select()
         .single()
       if (error) throw error
