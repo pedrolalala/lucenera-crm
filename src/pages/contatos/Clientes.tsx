@@ -47,69 +47,80 @@ import { useAuth } from '@/hooks/use-auth'
 type ContatoRow = Database['public']['Tables']['contatos']['Row']
 
 const clientSchema = z.object({
-  nome: z.string().min(2, 'Nome é obrigatório'),
+  nome: z.string().trim().min(2, 'Nome é obrigatório'),
   email: z
     .string()
-    .email('Email inválido')
-    .or(z.literal(''))
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .transform((v) => v || null),
+    .refine((v) => v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Email inválido'),
   email_financeiro: z
     .string()
-    .email('Email inválido')
-    .or(z.literal(''))
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .transform((v) => v || null),
+    .refine((v) => v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Email inválido'),
   telefone: z
     .string()
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .optional()
-    .transform((v) => v || null),
+    .optional(),
   celular: z
     .string()
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .optional()
-    .transform((v) => v || null),
+    .optional(),
   cpf_cnpj: z
     .string()
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .optional()
-    .transform((v) => v || null),
+    .optional(),
   rg: z
     .string()
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .optional()
-    .transform((v) => v || null),
+    .optional(),
   endereco: z
     .string()
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .optional()
-    .transform((v) => v || null),
+    .optional(),
   bairro: z
     .string()
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .optional()
-    .transform((v) => v || null),
+    .optional(),
   cep: z
     .string()
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .optional()
-    .transform((v) => v || null),
+    .optional(),
   cidade: z
     .string()
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .optional()
-    .transform((v) => v || null),
+    .optional(),
   estado: z
     .string()
+    .trim()
+    .toUpperCase()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .optional()
-    .transform((v) => v || null),
+    .optional(),
   observacoes: z
     .string()
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .optional()
-    .transform((v) => v || null),
+    .optional(),
 })
 
 type ClientFormValues = z.infer<typeof clientSchema>
@@ -214,13 +225,14 @@ export default function Clientes() {
   }
 
   const filteredClients = useMemo(() => {
+    const sName = searchName.trim().toLowerCase()
+    const sCity = searchCity.trim().toLowerCase()
+    const sState = searchState.trim().toLowerCase()
+
     return clients.filter((c) => {
-      const matchName =
-        !searchName || (c.nome || '').toLowerCase().includes(searchName.toLowerCase())
-      const matchCity =
-        !searchCity || (c.cidade || '').toLowerCase().includes(searchCity.toLowerCase())
-      const matchState =
-        !searchState || (c.estado || '').toLowerCase().includes(searchState.toLowerCase())
+      const matchName = !sName || (c.nome || '').toLowerCase().includes(sName)
+      const matchCity = !sCity || (c.cidade || '').toLowerCase().includes(sCity)
+      const matchState = !sState || (c.estado || '').toLowerCase().includes(sState)
       return matchName && matchCity && matchState
     })
   }, [clients, searchName, searchCity, searchState])
@@ -247,7 +259,7 @@ export default function Clientes() {
     } else {
       const { error } = await supabase
         .from('contatos')
-        .insert([{ ...values, tipo: 'cliente', created_by: user?.id }])
+        .insert([{ ...values, tipo: 'cliente', ativo: true, created_by: user?.id }])
 
       if (error) {
         if (error.code === '23505' && error.message.includes('cpf_cnpj')) {
@@ -265,6 +277,15 @@ export default function Clientes() {
         fetchClients()
       }
     }
+  }
+
+  const handleFormError = (errors: any) => {
+    console.error('Erros de validação do formulário:', errors)
+    toast({
+      title: 'Erro de validação',
+      description: 'Verifique os campos obrigatórios e tente novamente.',
+      variant: 'destructive',
+    })
   }
 
   const handleDelete = async () => {
@@ -469,7 +490,7 @@ export default function Clientes() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}

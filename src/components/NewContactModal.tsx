@@ -23,18 +23,19 @@ import { Button } from '@/components/ui/button'
 import { toast } from '@/hooks/use-toast'
 
 const schema = z.object({
-  nome: z.string().min(2, 'Nome é obrigatório'),
+  nome: z.string().trim().min(2, 'Nome é obrigatório'),
   email: z
     .string()
-    .email('Email inválido')
-    .or(z.literal(''))
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .transform((v) => v || null),
+    .refine((v) => v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Email inválido'),
   telefone: z
     .string()
+    .trim()
+    .transform((v) => (v === '' ? null : v))
     .nullable()
-    .optional()
-    .transform((v) => v || null),
+    .optional(),
 })
 
 export type ContactType = 'cliente' | 'arquiteto' | 'engenheiro' | 'eletricista'
@@ -70,7 +71,7 @@ export function NewContactModal({ type, open, onOpenChange, onSuccess }: Props) 
     try {
       const { data, error } = await supabase
         .from('contatos')
-        .insert([{ ...values, tipo: type }])
+        .insert([{ ...values, tipo: type, ativo: true }])
         .select()
         .single()
       if (error) throw error
@@ -81,6 +82,15 @@ export function NewContactModal({ type, open, onOpenChange, onSuccess }: Props) 
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleFormError = (errors: any) => {
+    console.error('Form validation errors:', errors)
+    toast({
+      title: 'Erro de validação',
+      description: 'Por favor, preencha os campos obrigatórios corretamente.',
+      variant: 'destructive',
+    })
   }
 
   const title = type ? TITLES[type] : ''
@@ -96,7 +106,7 @@ export function NewContactModal({ type, open, onOpenChange, onSuccess }: Props) 
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-4">
             <FormField
               control={form.control}
               name="nome"
