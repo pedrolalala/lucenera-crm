@@ -65,7 +65,7 @@ const formSchema = z.object({
   codigo: z.string().min(1, 'O campo Código é obrigatório'),
   nome: z.string().min(2, 'Obrigatório'),
   nivel_estrategico: z.enum(['1', '2', '3', '4']),
-  responsavel_id: z.string().min(1, 'Obrigatório'),
+  responsavel_nome: z.string().optional(),
   status: z.string().min(1, 'Obrigatório'),
   cliente_id: z.string().min(1, 'Obrigatório'),
   arquiteto_id: z.string().optional(),
@@ -88,16 +88,20 @@ export default function ProjectNew() {
   const arquitetos = contacts.filter((c) => c.tipo === 'arquiteto')
   const engenheiros = contacts.filter((c) => c.tipo === 'engenheiro')
 
-  const [usuarios, setUsuarios] = useState<{ id: string; nome: string }[]>([])
+  const [responsaveis, setResponsaveis] = useState<string[]>([])
 
   useEffect(() => {
     supabase
-      .from('usuarios')
-      .select('id, nome')
-      .eq('ativo', true)
-      .order('nome')
+      .from('projetos')
+      .select('responsavel_nome')
+      .not('responsavel_nome', 'is', null)
       .then(({ data }) => {
-        if (data) setUsuarios(data)
+        if (data) {
+          const uniqueNames = Array.from(
+            new Set(data.map((d) => d.responsavel_nome).filter(Boolean) as string[]),
+          )
+          setResponsaveis(uniqueNames.sort())
+        }
       })
   }, [])
 
@@ -119,7 +123,7 @@ export default function ProjectNew() {
       cliente_id: 'null',
       arquiteto_id: 'null',
       responsavel_obra_id: 'null',
-      responsavel_id: 'null',
+      responsavel_nome: '',
       cidade: '',
       estado: 'SP',
       status: 'Estudo Inicial',
@@ -134,7 +138,8 @@ export default function ProjectNew() {
         codigo: v.codigo,
         nome: v.nome,
         nivel_estrategico: v.nivel_estrategico,
-        responsavel_id: v.responsavel_id !== 'null' ? v.responsavel_id : null,
+        responsavel_nome: v.responsavel_nome || null,
+        responsavel_id: null,
         status: v.status,
         cliente_id: v.cliente_id !== 'null' ? v.cliente_id : null,
         arquiteto_id: v.arquiteto_id !== 'null' ? v.arquiteto_id : null,
@@ -284,27 +289,18 @@ export default function ProjectNew() {
 
               <FormField
                 control={form.control}
-                name="responsavel_id"
+                name="responsavel_nome"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      Responsável <span className="text-destructive">*</span>
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="null">Nenhum</SelectItem>
-                        {usuarios.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Responsável</FormLabel>
+                    <FormControl>
+                      <Input
+                        list="responsaveis"
+                        placeholder="Digite ou selecione..."
+                        className="h-11 text-base"
+                        {...field}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -527,6 +523,12 @@ export default function ProjectNew() {
             <datalist id="cities">
               {getCities().map((c) => (
                 <option key={c} value={c} />
+              ))}
+            </datalist>
+
+            <datalist id="responsaveis">
+              {responsaveis.map((r) => (
+                <option key={r} value={r} />
               ))}
             </datalist>
 
