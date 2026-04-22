@@ -12,15 +12,18 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Loader2, Plus, FilterX, X, Edit2, Trash2 } from 'lucide-react'
+import { Loader2, Plus, FilterX, X, Edit2, Trash2, Check, ChevronsUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   AlertDialog,
@@ -38,6 +41,79 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 
 type ViewMode = 'resumida' | 'operacional' | 'completa'
+
+function FilterCombobox({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string
+  value: string
+  onChange: (val: string) => void
+  options: { label: string; value: string }[]
+}) {
+  const [open, setOpen] = useState(false)
+
+  const selectedLabel =
+    value === 'all' ? 'Todos' : options.find((opt) => opt.value === value)?.label || value
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between bg-white border-slate-200 shadow-sm focus:ring-primary/20 transition-all font-normal h-10 px-3 py-2"
+        >
+          <span className="truncate">{selectedLabel}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={`Buscar...`} />
+          <CommandList>
+            <CommandEmpty>Nenhum resultado.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="Todos"
+                onSelect={() => {
+                  onChange('all')
+                  setOpen(false)
+                }}
+              >
+                <Check
+                  className={cn('mr-2 h-4 w-4', value === 'all' ? 'opacity-100' : 'opacity-0')}
+                />
+                Todos
+              </CommandItem>
+              {options.map((option) => (
+                <CommandItem
+                  key={option.value}
+                  value={option.label}
+                  onSelect={() => {
+                    onChange(option.value === value ? 'all' : option.value)
+                    setOpen(false)
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      'mr-2 h-4 w-4',
+                      value === option.value ? 'opacity-100' : 'opacity-0',
+                    )}
+                  />
+                  {option.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 export default function Projetos() {
   const navigate = useNavigate()
@@ -363,34 +439,24 @@ export default function Projetos() {
                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
                   {config.label}
                 </label>
-                <Select value={config.state} onValueChange={config.set}>
-                  <SelectTrigger className="bg-white border-slate-200 shadow-sm focus:ring-primary/20 transition-all">
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    {getUnique(config).map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FilterCombobox
+                  label={config.label}
+                  value={config.state}
+                  onChange={config.set}
+                  options={getUnique(config).map((s) => ({ label: s, value: s }))}
+                />
               </div>
             ))}
             <div className="space-y-2 flex-1 min-w-[150px]">
               <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
                 Valor Total
               </label>
-              <Select value={filterValorTotal} onValueChange={setFilterValorTotal}>
-                <SelectTrigger className="bg-white border-slate-200 shadow-sm focus:ring-primary/20 transition-all">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value=">0">Maior que 0</SelectItem>
-                </SelectContent>
-              </Select>
+              <FilterCombobox
+                label="Valor Total"
+                value={filterValorTotal}
+                onChange={setFilterValorTotal}
+                options={[{ label: 'Maior que 0', value: '>0' }]}
+              />
             </div>
             <div className="flex-none w-full sm:w-auto mt-2 sm:mt-0">
               <Button
