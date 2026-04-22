@@ -7,9 +7,11 @@ import { MapPin, User, Calendar, HardHat, CheckCircle2, DollarSign } from 'lucid
 export function ProjectMobileCards({
   projects,
   viewMode = 'completa',
+  onClickProject,
 }: {
   projects: any[]
   viewMode?: 'resumida' | 'operacional' | 'completa'
+  onClickProject?: (id: string) => void
 }) {
   const navigate = useNavigate()
   if (projects.length === 0)
@@ -32,7 +34,7 @@ export function ProjectMobileCards({
         <Card
           key={p.id}
           className="cursor-pointer hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 shadow-sm"
-          onClick={() => navigate(`/projeto/${p.id}`)}
+          onClick={() => (onClickProject ? onClickProject(p.id) : navigate(`/projeto/${p.id}`))}
         >
           <CardContent className="p-4 flex flex-col gap-3">
             <div className="flex justify-between items-start mb-1">

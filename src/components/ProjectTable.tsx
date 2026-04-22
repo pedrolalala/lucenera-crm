@@ -26,7 +26,13 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 
-export function ProjectTable({ projects }: { projects: Projeto[] }) {
+export function ProjectTable({
+  projects,
+  onClickProject,
+}: {
+  projects: Projeto[]
+  onClickProject?: (id: string) => void
+}) {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
@@ -99,7 +105,9 @@ export function ProjectTable({ projects }: { projects: Projeto[] }) {
               <TableRow
                 key={p.id}
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => navigate(`/projeto/${p.id}`)}
+                onClick={() =>
+                  onClickProject ? onClickProject(p.id) : navigate(`/projeto/${p.id}`)
+                }
               >
                 <TableCell className="font-medium text-foreground">{p.codigo}</TableCell>
                 <TableCell>

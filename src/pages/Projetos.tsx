@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -532,6 +533,10 @@ export default function Projetos() {
           <div className="animate-fade-in">
             <ProjectMobileCards
               viewMode={viewMode}
+              onClickProject={(id) => {
+                const proj = projetos.find((p) => p.id === id)
+                if (proj) setSelectedProjeto(proj)
+              }}
               projects={
                 filteredProjetos.map((p) => ({
                   id: p.id,
@@ -771,7 +776,7 @@ export default function Projetos() {
         </Card>
       )}
 
-      <Dialog
+      <Sheet
         open={!!selectedProjeto}
         onOpenChange={(open) => {
           if (!open) {
@@ -780,234 +785,357 @@ export default function Projetos() {
           }
         }}
       >
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl">
-              {isEditing ? 'Editar Projeto e Parcelas' : 'Detalhes Rápidos do Projeto'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
+        <SheetContent
+          side="right"
+          className="w-full sm:w-[480px] md:w-[600px] lg:w-[45vw] sm:max-w-none flex flex-col p-6 shadow-2xl border-l-0"
+        >
+          <SheetHeader className="flex-none pb-4 border-b border-slate-100">
+            <SheetTitle className="text-xl text-slate-800">
+              {isEditing ? 'Editar Projeto e Parcelas' : 'Detalhes do Projeto'}
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto py-4 pr-2 -mr-2 space-y-6">
             {selectedProjeto && (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {renderField('Código', 'codigo', 'text')}
-                  {renderField('Nível Estratégico', 'nivel_estrategico')}
-                  {renderField('Projeto', 'nome')}
+                {isEditing ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {renderField('Código', 'codigo', 'text')}
+                      {renderField('Nível Estratégico', 'nivel_estrategico')}
+                      {renderField('Projeto', 'nome')}
 
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Cliente
-                    </span>
-                    <p className="text-slate-900 font-medium break-all">
-                      {selectedProjeto.cliente?.nome || '-'}
-                    </p>
-                  </div>
+                      <div className="space-y-1">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          Cliente
+                        </span>
+                        <p className="text-slate-900 font-medium break-all">
+                          {selectedProjeto.cliente?.nome || '-'}
+                        </p>
+                      </div>
 
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Responsável
-                    </span>
-                    <p className="text-slate-900 font-medium break-all">
-                      {selectedProjeto.responsavel?.nome || selectedProjeto.responsavel_nome || '-'}
-                    </p>
-                  </div>
+                      <div className="space-y-1">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          Responsável
+                        </span>
+                        <p className="text-slate-900 font-medium break-all">
+                          {selectedProjeto.responsavel?.nome ||
+                            selectedProjeto.responsavel_nome ||
+                            '-'}
+                        </p>
+                      </div>
 
-                  {renderField('Data de Entrada', 'data_entrada')}
-                  {renderField('Status', 'status')}
+                      {renderField('Data de Entrada', 'data_entrada')}
+                      {renderField('Status', 'status')}
 
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Arquiteto
-                    </span>
-                    <p className="text-slate-900 font-medium break-all">
-                      {selectedProjeto.arquiteto?.nome || '-'}
-                    </p>
-                  </div>
+                      <div className="space-y-1">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          Arquiteto
+                        </span>
+                        <p className="text-slate-900 font-medium break-all">
+                          {selectedProjeto.arquiteto?.nome || '-'}
+                        </p>
+                      </div>
 
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Engenheiro
-                    </span>
-                    <p className="text-slate-900 font-medium break-all">
-                      {selectedProjeto.engenheiro?.nome || '-'}
-                    </p>
-                  </div>
+                      <div className="space-y-1">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          Engenheiro
+                        </span>
+                        <p className="text-slate-900 font-medium break-all">
+                          {selectedProjeto.engenheiro?.nome || '-'}
+                        </p>
+                      </div>
 
-                  {renderField('Cidade', 'cidade')}
-                  {renderField('Estado', 'estado')}
-                </div>
-
-                <div className="pt-4 border-t border-slate-200 mt-6">
-                  <h4 className="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">
-                    Parcelas do Projeto
-                  </h4>
-                  {isEditing ? (
-                    <div className="space-y-3">
-                      {editedPagamentos.map((p, idx) => (
-                        <div
-                          key={p.id}
-                          className="grid grid-cols-2 sm:grid-cols-6 items-end gap-3 bg-slate-50 p-3 rounded-md border border-slate-100"
-                        >
-                          <div className="col-span-1">
-                            <Label className="text-xs text-slate-500 mb-1 block">Nº Parcela</Label>
-                            <Input
-                              type="number"
-                              value={p.numero_parcela}
-                              onChange={(e) => {
-                                const newPags = [...editedPagamentos]
-                                newPags[idx].numero_parcela = e.target.value
-                                setEditedPagamentos(newPags)
-                              }}
-                            />
-                          </div>
-                          <div className="col-span-1 sm:col-span-2">
-                            <Label className="text-xs text-slate-500 mb-1 block">Valor</Label>
-                            <Input
-                              type="number"
-                              value={p.valor}
-                              onChange={(e) => {
-                                const newPags = [...editedPagamentos]
-                                newPags[idx].valor = e.target.value
-                                setEditedPagamentos(newPags)
-                              }}
-                              placeholder="0,00"
-                            />
-                          </div>
-                          <div className="col-span-1 sm:col-span-2">
-                            <Label className="text-xs text-slate-500 mb-1 block">Vencimento</Label>
-                            <Input
-                              type="date"
-                              value={p.data_vencimento}
-                              onChange={(e) => {
-                                const newPags = [...editedPagamentos]
-                                newPags[idx].data_vencimento = e.target.value
-                                setEditedPagamentos(newPags)
-                              }}
-                            />
-                          </div>
-                          <div className="col-span-1 flex justify-end">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                const newPags = editedPagamentos.filter((_, i) => i !== idx)
-                                setEditedPagamentos(newPags)
-                              }}
-                            >
-                              <X className="w-4 h-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setEditedPagamentos([
-                            ...editedPagamentos,
-                            {
-                              id: `new-${Date.now()}`,
-                              numero_parcela: editedPagamentos.length + 1,
-                              valor: '',
-                              data_vencimento: '',
-                              data_pagamento: '',
-                              valor_pago: '',
-                              status: 'pendente',
-                            },
-                          ])
-                        }}
-                      >
-                        <Plus className="w-4 h-4 mr-2" /> Nova Parcela
-                      </Button>
+                      {renderField('Cidade', 'cidade')}
+                      {renderField('Estado', 'estado')}
                     </div>
-                  ) : (
-                    (() => {
-                      const pagamentos = [...(selectedProjeto.projeto_parcelas || [])].sort(
-                        (a, b) => a.numero_parcela - b.numero_parcela,
-                      )
 
-                      if (pagamentos.length === 0) {
-                        return (
-                          <p className="text-slate-500 text-sm py-2">Nenhuma parcela registrada.</p>
-                        )
-                      }
+                    <div className="pt-4 border-t border-slate-200 mt-6">
+                      <h4 className="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">
+                        Parcelas do Projeto
+                      </h4>
+                      <div className="space-y-3">
+                        {editedPagamentos.map((p, idx) => (
+                          <div
+                            key={p.id}
+                            className="grid grid-cols-2 sm:grid-cols-6 items-end gap-3 bg-slate-50 p-3 rounded-md border border-slate-100"
+                          >
+                            <div className="col-span-1">
+                              <Label className="text-xs text-slate-500 mb-1 block">
+                                Nº Parcela
+                              </Label>
+                              <Input
+                                type="number"
+                                value={p.numero_parcela}
+                                onChange={(e) => {
+                                  const newPags = [...editedPagamentos]
+                                  newPags[idx].numero_parcela = e.target.value
+                                  setEditedPagamentos(newPags)
+                                }}
+                              />
+                            </div>
+                            <div className="col-span-1 sm:col-span-2">
+                              <Label className="text-xs text-slate-500 mb-1 block">Valor</Label>
+                              <Input
+                                type="number"
+                                value={p.valor}
+                                onChange={(e) => {
+                                  const newPags = [...editedPagamentos]
+                                  newPags[idx].valor = e.target.value
+                                  setEditedPagamentos(newPags)
+                                }}
+                                placeholder="0,00"
+                              />
+                            </div>
+                            <div className="col-span-1 sm:col-span-2">
+                              <Label className="text-xs text-slate-500 mb-1 block">
+                                Vencimento
+                              </Label>
+                              <Input
+                                type="date"
+                                value={p.data_vencimento}
+                                onChange={(e) => {
+                                  const newPags = [...editedPagamentos]
+                                  newPags[idx].data_vencimento = e.target.value
+                                  setEditedPagamentos(newPags)
+                                }}
+                              />
+                            </div>
+                            <div className="col-span-1 flex justify-end">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  const newPags = editedPagamentos.filter((_, i) => i !== idx)
+                                  setEditedPagamentos(newPags)
+                                }}
+                              >
+                                <X className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditedPagamentos([
+                              ...editedPagamentos,
+                              {
+                                id: `new-${Date.now()}`,
+                                numero_parcela: editedPagamentos.length + 1,
+                                valor: '',
+                                data_vencimento: '',
+                                data_pagamento: '',
+                                valor_pago: '',
+                                status: 'pendente',
+                              },
+                            ])
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-2" /> Nova Parcela
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-6">
+                    <div className="space-y-1">
+                      <h1 className="text-3xl font-bold tracking-tight text-slate-900 break-words">
+                        {selectedProjeto.cliente?.nome || 'Cliente não informado'}
+                      </h1>
+                      <h2 className="text-xl text-slate-600 font-medium break-words">
+                        {selectedProjeto.nome || 'Projeto sem nome'}
+                      </h2>
+                      <p className="text-sm text-slate-500 font-mono mt-1">
+                        Cód: {selectedProjeto.codigo}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 bg-slate-50/80 p-5 rounded-xl border border-slate-200 shadow-sm">
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                          Status
+                        </span>
+                        <div>
+                          <Badge
+                            variant={
+                              ['Concluído', 'Completo', 'Finalizado'].includes(
+                                selectedProjeto.status as string,
+                              )
+                                ? 'default'
+                                : 'secondary'
+                            }
+                            className="shadow-sm font-medium"
+                          >
+                            {selectedProjeto.status || '-'}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                          Valor Total
+                        </span>
+                        <p className="text-slate-900 font-bold text-lg leading-none">
+                          {formatCurrency(getValorTotal(selectedProjeto))}
+                        </p>
+                      </div>
+
+                      {(viewMode === 'operacional' || viewMode === 'completa') && (
+                        <>
+                          <div className="space-y-1.5">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                              Data Fechamento
+                            </span>
+                            <p className="text-slate-900 font-medium">
+                              {formatDate(getDataFechamento(selectedProjeto))}
+                            </p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                              Engenheiro
+                            </span>
+                            <p
+                              className="text-slate-900 font-medium truncate"
+                              title={selectedProjeto.engenheiro?.nome || '-'}
+                            >
+                              {selectedProjeto.engenheiro?.nome || '-'}
+                            </p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                              Arquiteto
+                            </span>
+                            <p
+                              className="text-slate-900 font-medium truncate"
+                              title={selectedProjeto.arquiteto?.nome || '-'}
+                            >
+                              {selectedProjeto.arquiteto?.nome || '-'}
+                            </p>
+                          </div>
+                        </>
+                      )}
+
+                      {viewMode === 'completa' && (
+                        <>
+                          <div className="space-y-1.5">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                              Cidade / Estado
+                            </span>
+                            <p className="text-slate-900 font-medium">
+                              {[selectedProjeto.cidade, selectedProjeto.estado]
+                                .filter(Boolean)
+                                .join(' / ') || '-'}
+                            </p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                              Data Entrada
+                            </span>
+                            <p className="text-slate-900 font-medium">
+                              {formatDate(selectedProjeto.data_entrada)}
+                            </p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                              Nível Estratégico
+                            </span>
+                            <p className="text-slate-900 font-medium">
+                              {selectedProjeto.nivel_estrategico ? (
+                                <Badge variant="outline" className="bg-white shadow-sm">
+                                  {selectedProjeto.nivel_estrategico}
+                                </Badge>
+                              ) : (
+                                '-'
+                              )}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {(() => {
+                      const related = selectedProjeto.cliente_id
+                        ? projetos.filter(
+                            (p) =>
+                              p.cliente_id === selectedProjeto.cliente_id &&
+                              p.id !== selectedProjeto.id,
+                          )
+                        : []
 
                       return (
-                        <div className="rounded-md border border-slate-200 overflow-hidden">
-                          <Table>
-                            <TableHeader className="bg-slate-50">
-                              <TableRow>
-                                <TableHead className="w-[80px]">Nº</TableHead>
-                                <TableHead>Valor</TableHead>
-                                <TableHead>Vencimento</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Valor Pago</TableHead>
-                                <TableHead className="text-right">Pagamento</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {pagamentos.map((p) => (
-                                <TableRow key={p.id}>
-                                  <TableCell className="font-medium text-slate-500">
-                                    {p.numero_parcela}
-                                  </TableCell>
-                                  <TableCell className="font-semibold text-emerald-600">
-                                    {formatCurrency(Number(p.valor) || 0)}
-                                  </TableCell>
-                                  <TableCell className="text-slate-600">
-                                    {formatDate(p.data_vencimento)}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge
-                                      variant={
-                                        p.status === 'paga'
-                                          ? 'default'
-                                          : p.status === 'atrasada'
-                                            ? 'destructive'
-                                            : 'secondary'
-                                      }
-                                    >
-                                      {p.status}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="font-semibold text-emerald-600">
-                                    {p.valor_pago ? formatCurrency(Number(p.valor_pago)) : '-'}
-                                  </TableCell>
-                                  <TableCell className="text-right text-slate-600">
-                                    {formatDate(p.data_pagamento)}
-                                  </TableCell>
-                                </TableRow>
+                        <div className="mt-2 pt-6 border-t border-slate-200">
+                          <h3 className="font-bold text-lg mb-4 text-slate-800">
+                            Projetos Relacionados
+                          </h3>
+                          {related.length > 0 ? (
+                            <div className="flex flex-col gap-3">
+                              {related.map((rp) => (
+                                <Card
+                                  key={rp.id}
+                                  onClick={() => setSelectedProjeto(rp)}
+                                  className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all p-4 bg-white border-slate-200 group"
+                                >
+                                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                                    <div>
+                                      <h4 className="font-semibold text-slate-900 group-hover:text-primary transition-colors">
+                                        {rp.nome}
+                                      </h4>
+                                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-[10px] uppercase tracking-wider bg-slate-100"
+                                        >
+                                          {rp.status || '-'}
+                                        </Badge>
+                                        {(viewMode === 'operacional' ||
+                                          viewMode === 'completa') && (
+                                          <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 whitespace-nowrap">
+                                            Fechamento: {formatDate(getDataFechamento(rp))}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded-md shrink-0 border border-slate-200">
+                                      {rp.codigo}
+                                    </span>
+                                  </div>
+                                </Card>
                               ))}
-                              <TableRow className="bg-slate-50 font-bold">
-                                <TableCell colSpan={5} className="text-slate-700">
-                                  Valor Total Parcelado
-                                </TableCell>
-                                <TableCell className="text-right text-emerald-600">
-                                  {formatCurrency(getValorTotal(selectedProjeto))}
-                                </TableCell>
-                              </TableRow>
-                            </TableBody>
-                          </Table>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-500 bg-slate-50 p-4 rounded-lg border border-slate-100 text-center font-medium">
+                              Nenhum outro projeto encontrado para este cliente.
+                            </p>
+                          )}
                         </div>
                       )
-                    })()
-                  )}
-                </div>
+                    })()}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
 
-                <div className="flex justify-end pt-6 gap-2">
-                  <Button
-                    variant="ghost"
-                    onClick={() => navigate(`/projeto/${selectedProjeto.id}`)}
-                  >
-                    Ver Detalhes Completos
-                  </Button>
-                  <div className="flex-1" />
+          {selectedProjeto && (
+            <div className="flex-none pt-4 mt-2 border-t border-slate-200 bg-white">
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate(`/projeto/${selectedProjeto.id}`)}
+                  className="text-primary hover:text-primary hover:bg-primary/10"
+                >
+                  Ver Detalhes Completos
+                </Button>
+
+                <div className="flex items-center gap-2">
                   {isEditing ? (
                     <>
                       <Button variant="outline" onClick={() => setIsEditing(false)}>
                         Cancelar
                       </Button>
-                      <Button onClick={handleSave} disabled={saving}>
+                      <Button onClick={handleSave} disabled={saving} className="shadow-sm">
                         {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         Salvar
                       </Button>
@@ -1020,18 +1148,21 @@ export default function Projetos() {
                           setIsEditing(false)
                         }}
                         variant="outline"
+                        className="shadow-sm"
                       >
                         Fechar
                       </Button>
-                      <Button onClick={startEditing}>Editar</Button>
+                      <Button onClick={startEditing} className="shadow-sm">
+                        Editar
+                      </Button>
                     </>
                   )}
                 </div>
-              </>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
