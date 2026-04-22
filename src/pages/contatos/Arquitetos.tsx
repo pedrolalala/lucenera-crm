@@ -1,7 +1,20 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useViewMode } from '@/hooks/use-view-mode'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Search,
+  LayoutGrid,
+  List,
+  Mail,
+  ChevronRight,
   MapPin,
   Building2,
   User,
@@ -149,6 +162,7 @@ export default function Arquitetos() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const [cameFromView, setCameFromView] = useState(false)
+  const [viewMode, setViewMode] = useViewMode('arquitetos', 'cards')
 
   const form = useForm<ArquitetoFormValues>({
     resolver: zodResolver(arquitetoSchema),
@@ -352,9 +366,41 @@ export default function Arquitetos() {
             Base de arquitetos e empresas parceiras integradas.
           </p>
         </div>
-        <Button onClick={openNewModal} className="w-full sm:w-auto shadow-elevation h-11" size="lg">
-          <Plus className="mr-2 h-5 w-5" /> NOVO ARQUITETO
-        </Button>
+        <div className="flex items-center gap-4 w-full sm:w-auto flex-col sm:flex-row">
+          <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0 w-full sm:w-auto">
+            <Button
+              variant={viewMode === 'cards' ? 'secondary' : 'ghost'}
+              size="sm"
+              className={
+                viewMode === 'cards'
+                  ? 'bg-white shadow-sm flex-1 sm:flex-none'
+                  : 'flex-1 sm:flex-none'
+              }
+              onClick={() => setViewMode('cards')}
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" /> Cards
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+              size="sm"
+              className={
+                viewMode === 'table'
+                  ? 'bg-white shadow-sm flex-1 sm:flex-none'
+                  : 'flex-1 sm:flex-none'
+              }
+              onClick={() => setViewMode('table')}
+            >
+              <List className="h-4 w-4 mr-2" /> Planilha
+            </Button>
+          </div>
+          <Button
+            onClick={openNewModal}
+            className="w-full sm:w-auto shadow-elevation h-11"
+            size="lg"
+          >
+            <Plus className="mr-2 h-5 w-5" /> NOVO ARQUITETO
+          </Button>
+        </div>
       </div>
 
       <div className="bg-card p-5 rounded-lg border shadow-sm space-y-4">
@@ -397,32 +443,114 @@ export default function Arquitetos() {
           </div>
         </div>
 
-        <div className="rounded-md border bg-card overflow-hidden shadow-subtle">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="font-semibold">Nome</TableHead>
-                <TableHead className="font-semibold">Empresa</TableHead>
-                <TableHead className="font-semibold">Contato</TableHead>
-                <TableHead className="font-semibold">Cidade/UF</TableHead>
-                <TableHead className="text-right font-semibold">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    Carregando arquitetos...
-                  </TableCell>
+        {loading ? (
+          <div className="py-20 flex flex-col items-center justify-center text-muted-foreground">
+            Carregando arquitetos...
+          </div>
+        ) : filteredArquitetos.length === 0 ? (
+          <div className="py-20 flex flex-col items-center justify-center bg-card rounded-xl border border-dashed">
+            <User className="h-16 w-16 text-muted-foreground/30 mb-4" />
+            <h3 className="text-lg font-medium text-foreground">Nenhum arquiteto encontrado</h3>
+            <p className="text-muted-foreground mt-1">
+              Ajuste os filtros ou cadastre um novo arquiteto.
+            </p>
+          </div>
+        ) : viewMode === 'cards' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredArquitetos.map((arquiteto) => (
+              <Card
+                key={arquiteto.id}
+                className="group cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-primary/50 flex flex-col animate-fade-in"
+                onClick={() => openViewModal(arquiteto)}
+              >
+                <CardHeader className="pb-3 relative">
+                  <div className="absolute top-4 right-4 flex opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 bg-background/80 hover:bg-background shadow-sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openEditModal(arquiteto)
+                      }}
+                    >
+                      <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 bg-background/80 hover:bg-background shadow-sm hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setArquitetoToDelete(arquiteto)
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <div className="pr-16">
+                    <CardTitle className="text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                      {arquiteto.nome}
+                    </CardTitle>
+                    {arquiteto.nome_empresa && (
+                      <CardDescription className="text-sm font-medium mt-1 line-clamp-1">
+                        {arquiteto.nome_empresa}
+                      </CardDescription>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 space-y-3 text-sm text-muted-foreground pt-2">
+                  {arquiteto.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{arquiteto.email}</span>
+                    </div>
+                  )}
+                  {(arquiteto.celular || arquiteto.telefone) && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 shrink-0" />
+                      <span>{arquiteto.celular || arquiteto.telefone}</span>
+                    </div>
+                  )}
+                  {(arquiteto.cidade || arquiteto.estado) && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 shrink-0" />
+                      <span className="truncate">
+                        {[arquiteto.cidade, arquiteto.estado].filter(Boolean).join(' - ')}
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="pt-3 border-t bg-slate-50/50">
+                  <Button
+                    variant="default"
+                    className="w-full shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openViewModal(arquiteto)
+                    }}
+                  >
+                    Ver Detalhes
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-md border bg-card overflow-hidden shadow-subtle animate-fade-in">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="font-semibold">Nome</TableHead>
+                  <TableHead className="font-semibold">Empresa</TableHead>
+                  <TableHead className="font-semibold">Contato</TableHead>
+                  <TableHead className="font-semibold">Cidade/UF</TableHead>
+                  <TableHead className="text-right font-semibold">Ações</TableHead>
                 </TableRow>
-              ) : filteredArquitetos.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    Nenhum arquiteto encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredArquitetos.map((arquiteto, idx) => (
+              </TableHeader>
+              <TableBody>
+                {filteredArquitetos.map((arquiteto, idx) => (
                   <TableRow
                     key={arquiteto.id || idx}
                     className="hover:bg-muted/50 cursor-pointer transition-colors"
@@ -480,11 +608,11 @@ export default function Arquitetos() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>

@@ -12,7 +12,20 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Loader2, Plus, FilterX, X, Edit2, Trash2, Check, ChevronsUpDown } from 'lucide-react'
+import {
+  Loader2,
+  Plus,
+  FilterX,
+  X,
+  Edit2,
+  Trash2,
+  Check,
+  ChevronsUpDown,
+  LayoutGrid,
+  List,
+} from 'lucide-react'
+import { useViewMode } from '@/hooks/use-view-mode'
+import { ProjectMobileCards } from '@/components/ProjectMobileCards'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
@@ -120,7 +133,8 @@ export default function Projetos() {
   const { toast } = useToast()
   const [projetos, setProjetos] = useState<Projeto[]>([])
   const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<ViewMode>('resumida')
+  const [tableConfig, setTableConfig] = useState<ViewMode>('resumida')
+  const [displayMode, setDisplayMode] = useViewMode('projetos', 'cards')
   const [selectedProjeto, setSelectedProjeto] = useState<Projeto | null>(null)
 
   const [isEditing, setIsEditing] = useState(false)
@@ -191,7 +205,7 @@ export default function Projetos() {
   }
 
   const filteredProjetos = projetos.filter((p) => {
-    if (viewMode === 'operacional') {
+    if (tableConfig === 'operacional') {
       const status = p.status || ''
       if (status === 'Completo' || status === 'Finalizado' || status === 'Concluído') return false
     }
@@ -392,38 +406,61 @@ export default function Projetos() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          <div className="bg-slate-100 p-1.5 rounded-lg flex items-center border border-slate-200">
+          <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0">
             <Button
-              variant={viewMode === 'resumida' ? 'secondary' : 'ghost'}
+              variant={displayMode === 'cards' ? 'secondary' : 'ghost'}
               size="sm"
-              className={
-                viewMode === 'resumida' ? 'bg-white shadow-sm font-medium' : 'text-slate-600'
-              }
-              onClick={() => setViewMode('resumida')}
+              className={displayMode === 'cards' ? 'bg-white shadow-sm' : ''}
+              onClick={() => setDisplayMode('cards')}
             >
-              Resumida
+              <LayoutGrid className="h-4 w-4 mr-2" /> Cards
             </Button>
             <Button
-              variant={viewMode === 'operacional' ? 'secondary' : 'ghost'}
+              variant={displayMode === 'table' ? 'secondary' : 'ghost'}
               size="sm"
-              className={
-                viewMode === 'operacional' ? 'bg-white shadow-sm font-medium' : 'text-slate-600'
-              }
-              onClick={() => setViewMode('operacional')}
+              className={displayMode === 'table' ? 'bg-white shadow-sm' : ''}
+              onClick={() => setDisplayMode('table')}
             >
-              Operacional
-            </Button>
-            <Button
-              variant={viewMode === 'completa' ? 'secondary' : 'ghost'}
-              size="sm"
-              className={
-                viewMode === 'completa' ? 'bg-white shadow-sm font-medium' : 'text-slate-600'
-              }
-              onClick={() => setViewMode('completa')}
-            >
-              Completa
+              <List className="h-4 w-4 mr-2" /> Planilha
             </Button>
           </div>
+
+          {displayMode === 'table' && (
+            <div className="bg-slate-100 p-1.5 rounded-lg flex items-center border border-slate-200">
+              <Button
+                variant={tableConfig === 'resumida' ? 'secondary' : 'ghost'}
+                size="sm"
+                className={
+                  tableConfig === 'resumida' ? 'bg-white shadow-sm font-medium' : 'text-slate-600'
+                }
+                onClick={() => setTableConfig('resumida')}
+              >
+                Resumida
+              </Button>
+              <Button
+                variant={tableConfig === 'operacional' ? 'secondary' : 'ghost'}
+                size="sm"
+                className={
+                  tableConfig === 'operacional'
+                    ? 'bg-white shadow-sm font-medium'
+                    : 'text-slate-600'
+                }
+                onClick={() => setTableConfig('operacional')}
+              >
+                Operacional
+              </Button>
+              <Button
+                variant={tableConfig === 'completa' ? 'secondary' : 'ghost'}
+                size="sm"
+                className={
+                  tableConfig === 'completa' ? 'bg-white shadow-sm font-medium' : 'text-slate-600'
+                }
+                onClick={() => setTableConfig('completa')}
+              >
+                Completa
+              </Button>
+            </div>
+          )}
           <Button onClick={() => navigate('/novo')} className="shadow-sm font-medium">
             <Plus className="mr-2 h-4 w-4" />
             Novo Projeto
@@ -472,279 +509,315 @@ export default function Projetos() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm border-slate-200 bg-white overflow-hidden">
-        <CardContent className="p-0 overflow-x-auto">
-          <div className="rounded-md border-0 min-w-[700px]">
-            <Table>
-              <TableHeader className="bg-slate-50/80 border-b border-slate-200">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[100px] py-4 text-slate-600 font-semibold">
-                    Código
-                  </TableHead>
-                  {viewMode === 'completa' && (
-                    <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                      Nível Estratégico
+      {displayMode === 'cards' ? (
+        loading ? (
+          <div className="py-12 flex justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+          </div>
+        ) : (
+          <div className="animate-fade-in">
+            <ProjectMobileCards
+              projects={
+                filteredProjetos.map((p) => ({
+                  id: p.id,
+                  name: p.nome,
+                  status: p.status,
+                  strategicLevel: p.nivel_estrategico,
+                  responsible: p.responsavel?.nome || p.responsavel_nome || '-',
+                  entryDate: p.data_entrada,
+                  client: p.cliente?.nome || '-',
+                  architect: p.arquiteto?.nome || '-',
+                  engineer: p.engenheiro?.nome || '-',
+                  city: p.cidade || '-',
+                  state: p.estado || '-',
+                  valor_fechado: formatCurrency(getValorTotal(p)),
+                })) as any
+              }
+            />
+          </div>
+        )
+      ) : (
+        <Card className="shadow-sm border-slate-200 bg-white overflow-hidden">
+          <CardContent className="p-0 overflow-x-auto">
+            <div className="rounded-md border-0 min-w-[700px]">
+              <Table>
+                <TableHeader className="bg-slate-50/80 border-b border-slate-200">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-[100px] py-4 text-slate-600 font-semibold">
+                      Código
                     </TableHead>
-                  )}
-                  <TableHead className="py-4 text-slate-600 font-semibold">Projeto</TableHead>
+                    {tableConfig === 'completa' && (
+                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                        Nível Estratégico
+                      </TableHead>
+                    )}
+                    <TableHead className="py-4 text-slate-600 font-semibold">Projeto</TableHead>
 
-                  {viewMode === 'completa' && (
-                    <>
-                      <TableHead className="py-4 text-slate-600 font-semibold">
-                        Responsável
-                      </TableHead>
-                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                        Data Entrada
-                      </TableHead>
-                      <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
-                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                        Arquiteto
-                      </TableHead>
-                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                        Engenheiro
-                      </TableHead>
-                      <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
-                      <TableHead className="py-4 text-slate-600 font-semibold">Estado</TableHead>
-                    </>
-                  )}
-                  {viewMode === 'operacional' && (
-                    <>
-                      <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
-                      <TableHead className="py-4 text-slate-600 font-semibold">
-                        Responsável
-                      </TableHead>
-                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                        Data Entrada
-                      </TableHead>
-                      <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
-                    </>
-                  )}
-                  {viewMode === 'resumida' && (
-                    <>
-                      <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
-                      <TableHead className="py-4 text-slate-600 font-semibold">
-                        Responsável
-                      </TableHead>
-                    </>
-                  )}
+                    {tableConfig === 'completa' && (
+                      <>
+                        <TableHead className="py-4 text-slate-600 font-semibold">
+                          Responsável
+                        </TableHead>
+                        <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                          Data Entrada
+                        </TableHead>
+                        <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
+                        <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                          Arquiteto
+                        </TableHead>
+                        <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                          Engenheiro
+                        </TableHead>
+                        <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
+                        <TableHead className="py-4 text-slate-600 font-semibold">Estado</TableHead>
+                      </>
+                    )}
+                    {tableConfig === 'operacional' && (
+                      <>
+                        <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
+                        <TableHead className="py-4 text-slate-600 font-semibold">
+                          Responsável
+                        </TableHead>
+                        <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                          Data Entrada
+                        </TableHead>
+                        <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
+                      </>
+                    )}
+                    {tableConfig === 'resumida' && (
+                      <>
+                        <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
+                        <TableHead className="py-4 text-slate-600 font-semibold">
+                          Responsável
+                        </TableHead>
+                      </>
+                    )}
 
-                  <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                    Valor Total
-                  </TableHead>
-                  <TableHead className="w-[100px] py-4 text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={viewMode === 'completa' ? 12 : viewMode === 'operacional' ? 8 : 6}
-                      className="h-32 text-center"
-                    >
-                      <Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" />
-                    </TableCell>
+                    <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                      Valor Total
+                    </TableHead>
+                    <TableHead className="w-[100px] py-4 text-right">Ações</TableHead>
                   </TableRow>
-                ) : filteredProjetos.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={viewMode === 'completa' ? 12 : viewMode === 'operacional' ? 8 : 6}
-                      className="h-32 text-center text-slate-500 font-medium"
-                    >
-                      Nenhum projeto encontrado com os filtros atuais.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredProjetos.map((projeto) => {
-                    const valorTotal = getValorTotal(projeto)
-
-                    return (
-                      <TableRow
-                        key={projeto.id}
-                        className="cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
-                        onClick={() => setSelectedProjeto(projeto)}
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={
+                          tableConfig === 'completa' ? 12 : tableConfig === 'operacional' ? 8 : 6
+                        }
+                        className="h-32 text-center"
                       >
-                        <TableCell className="py-4 font-medium text-slate-900">
-                          {projeto.codigo}
-                        </TableCell>
+                        <Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" />
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredProjetos.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={
+                          tableConfig === 'completa' ? 12 : tableConfig === 'operacional' ? 8 : 6
+                        }
+                        className="h-32 text-center text-slate-500 font-medium"
+                      >
+                        Nenhum projeto encontrado com os filtros atuais.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredProjetos.map((projeto) => {
+                      const valorTotal = getValorTotal(projeto)
 
-                        {viewMode === 'completa' && (
-                          <TableCell className="py-4 text-slate-600">
-                            {projeto.nivel_estrategico || '-'}
-                          </TableCell>
-                        )}
-
-                        <TableCell
-                          className="py-4 font-semibold text-slate-900 max-w-[200px] truncate"
-                          title={projeto.nome || ''}
+                      return (
+                        <TableRow
+                          key={projeto.id}
+                          className="cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
+                          onClick={() => setSelectedProjeto(projeto)}
                         >
-                          {projeto.nome || 'Sem nome'}
-                        </TableCell>
+                          <TableCell className="py-4 font-medium text-slate-900">
+                            {projeto.codigo}
+                          </TableCell>
 
-                        {viewMode === 'completa' && (
-                          <>
-                            <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
-                              {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
-                            </TableCell>
-                            <TableCell className="py-4 whitespace-nowrap text-slate-500">
-                              {formatDate(projeto.data_entrada)}
-                            </TableCell>
-                            <TableCell className="py-4">
-                              {projeto.status ? (
-                                <Badge
-                                  variant={
-                                    projeto.status === 'Concluído' ||
-                                    projeto.status === 'Completo' ||
-                                    projeto.status === 'Finalizado'
-                                      ? 'default'
-                                      : 'secondary'
-                                  }
-                                  className="font-medium shadow-sm"
-                                >
-                                  {projeto.status}
-                                </Badge>
-                              ) : (
-                                <span className="text-slate-400 text-sm">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
-                              {projeto.arquiteto?.nome || '-'}
-                            </TableCell>
-                            <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
-                              {projeto.engenheiro?.nome || '-'}
-                            </TableCell>
-                            <TableCell
-                              className="py-4 text-slate-700 max-w-[150px] truncate"
-                              title={projeto.cidade || ''}
-                            >
-                              {projeto.cidade || '-'}
-                            </TableCell>
+                          {tableConfig === 'completa' && (
                             <TableCell className="py-4 text-slate-600">
-                              {projeto.estado || '-'}
+                              {projeto.nivel_estrategico || '-'}
                             </TableCell>
-                          </>
-                        )}
+                          )}
 
-                        {viewMode === 'operacional' && (
-                          <>
-                            <TableCell className="py-4">
-                              {projeto.status ? (
-                                <Badge
-                                  variant={
-                                    projeto.status === 'Concluído' ||
-                                    projeto.status === 'Completo' ||
-                                    projeto.status === 'Finalizado'
-                                      ? 'default'
-                                      : 'secondary'
-                                  }
-                                  className="font-medium shadow-sm"
-                                >
-                                  {projeto.status}
-                                </Badge>
-                              ) : (
-                                <span className="text-slate-400 text-sm">-</span>
-                              )}
-                            </TableCell>
+                          <TableCell
+                            className="py-4 font-semibold text-slate-900 max-w-[200px] truncate"
+                            title={projeto.nome || ''}
+                          >
+                            {projeto.nome || 'Sem nome'}
+                          </TableCell>
 
-                            <TableCell className="py-4 max-w-[150px] truncate text-slate-600">
-                              {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
-                            </TableCell>
-
-                            <TableCell className="py-4 whitespace-nowrap text-slate-500">
-                              {formatDate(projeto.data_entrada)}
-                            </TableCell>
-
-                            <TableCell className="py-4">
-                              <span
-                                className="text-slate-700 font-medium truncate max-w-[150px] block"
+                          {tableConfig === 'completa' && (
+                            <>
+                              <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
+                                {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
+                              </TableCell>
+                              <TableCell className="py-4 whitespace-nowrap text-slate-500">
+                                {formatDate(projeto.data_entrada)}
+                              </TableCell>
+                              <TableCell className="py-4">
+                                {projeto.status ? (
+                                  <Badge
+                                    variant={
+                                      projeto.status === 'Concluído' ||
+                                      projeto.status === 'Completo' ||
+                                      projeto.status === 'Finalizado'
+                                        ? 'default'
+                                        : 'secondary'
+                                    }
+                                    className="font-medium shadow-sm"
+                                  >
+                                    {projeto.status}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-slate-400 text-sm">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
+                                {projeto.arquiteto?.nome || '-'}
+                              </TableCell>
+                              <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
+                                {projeto.engenheiro?.nome || '-'}
+                              </TableCell>
+                              <TableCell
+                                className="py-4 text-slate-700 max-w-[150px] truncate"
                                 title={projeto.cidade || ''}
                               >
                                 {projeto.cidade || '-'}
-                              </span>
-                            </TableCell>
-                          </>
-                        )}
+                              </TableCell>
+                              <TableCell className="py-4 text-slate-600">
+                                {projeto.estado || '-'}
+                              </TableCell>
+                            </>
+                          )}
 
-                        {viewMode === 'resumida' && (
-                          <>
-                            <TableCell className="py-4">
-                              {projeto.status ? (
-                                <Badge
-                                  variant={
-                                    projeto.status === 'Concluído' ||
-                                    projeto.status === 'Completo' ||
-                                    projeto.status === 'Finalizado'
-                                      ? 'default'
-                                      : 'secondary'
-                                  }
-                                  className="font-medium shadow-sm"
-                                >
-                                  {projeto.status}
-                                </Badge>
-                              ) : (
-                                <span className="text-slate-400 text-sm">-</span>
-                              )}
-                            </TableCell>
-
-                            <TableCell className="py-4 max-w-[150px] truncate text-slate-600">
-                              {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
-                            </TableCell>
-                          </>
-                        )}
-
-                        <TableCell className="py-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm whitespace-nowrap">
-                            {formatCurrency(valorTotal)}
-                          </span>
-                        </TableCell>
-
-                        <TableCell className="py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => navigate(`/projeto/${projeto.id}`)}
-                            >
-                              <Edit2 className="w-4 h-4 text-slate-600" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-destructive hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Excluir Projeto</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Tem certeza que deseja excluir o projeto?
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(projeto.id)}
-                                    className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                          {tableConfig === 'operacional' && (
+                            <>
+                              <TableCell className="py-4">
+                                {projeto.status ? (
+                                  <Badge
+                                    variant={
+                                      projeto.status === 'Concluído' ||
+                                      projeto.status === 'Completo' ||
+                                      projeto.status === 'Finalizado'
+                                        ? 'default'
+                                        : 'secondary'
+                                    }
+                                    className="font-medium shadow-sm"
                                   >
-                                    Excluir
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                                    {projeto.status}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-slate-400 text-sm">-</span>
+                                )}
+                              </TableCell>
+
+                              <TableCell className="py-4 max-w-[150px] truncate text-slate-600">
+                                {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
+                              </TableCell>
+
+                              <TableCell className="py-4 whitespace-nowrap text-slate-500">
+                                {formatDate(projeto.data_entrada)}
+                              </TableCell>
+
+                              <TableCell className="py-4">
+                                <span
+                                  className="text-slate-700 font-medium truncate max-w-[150px] block"
+                                  title={projeto.cidade || ''}
+                                >
+                                  {projeto.cidade || '-'}
+                                </span>
+                              </TableCell>
+                            </>
+                          )}
+
+                          {tableConfig === 'resumida' && (
+                            <>
+                              <TableCell className="py-4">
+                                {projeto.status ? (
+                                  <Badge
+                                    variant={
+                                      projeto.status === 'Concluído' ||
+                                      projeto.status === 'Completo' ||
+                                      projeto.status === 'Finalizado'
+                                        ? 'default'
+                                        : 'secondary'
+                                    }
+                                    className="font-medium shadow-sm"
+                                  >
+                                    {projeto.status}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-slate-400 text-sm">-</span>
+                                )}
+                              </TableCell>
+
+                              <TableCell className="py-4 max-w-[150px] truncate text-slate-600">
+                                {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
+                              </TableCell>
+                            </>
+                          )}
+
+                          <TableCell className="py-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm whitespace-nowrap">
+                              {formatCurrency(valorTotal)}
+                            </span>
+                          </TableCell>
+
+                          <TableCell
+                            className="py-4 text-right"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigate(`/projeto/${projeto.id}`)}
+                              >
+                                <Edit2 className="w-4 h-4 text-slate-600" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive hover:bg-destructive/10"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Excluir Projeto</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja excluir o projeto?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDelete(projeto.id)}
+                                      className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                    >
+                                      Excluir
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog
         open={!!selectedProjeto}

@@ -73,6 +73,16 @@ import { toast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/supabase/types'
 import { useAuth } from '@/hooks/use-auth'
+import { LayoutGrid, List } from 'lucide-react'
+import { useViewMode } from '@/hooks/use-view-mode'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type ContatoRow = Database['public']['Tables']['contatos']['Row']
 
@@ -195,6 +205,7 @@ export default function Clientes() {
   const navigate = useNavigate()
   const [cameFromView, setCameFromView] = useState(false)
   const { user } = useAuth()
+  const [viewMode, setViewMode] = useViewMode('clientes', 'cards')
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
@@ -477,9 +488,41 @@ export default function Clientes() {
             Gestão visual do portfólio de clientes e empresas do sistema.
           </p>
         </div>
-        <Button onClick={openNewModal} className="w-full sm:w-auto shadow-elevation h-11" size="lg">
-          <Plus className="mr-2 h-5 w-5" /> NOVO CLIENTE
-        </Button>
+        <div className="flex items-center gap-4 w-full sm:w-auto flex-col sm:flex-row">
+          <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0 w-full sm:w-auto">
+            <Button
+              variant={viewMode === 'cards' ? 'secondary' : 'ghost'}
+              size="sm"
+              className={
+                viewMode === 'cards'
+                  ? 'bg-white shadow-sm flex-1 sm:flex-none'
+                  : 'flex-1 sm:flex-none'
+              }
+              onClick={() => setViewMode('cards')}
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" /> Cards
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+              size="sm"
+              className={
+                viewMode === 'table'
+                  ? 'bg-white shadow-sm flex-1 sm:flex-none'
+                  : 'flex-1 sm:flex-none'
+              }
+              onClick={() => setViewMode('table')}
+            >
+              <List className="h-4 w-4 mr-2" /> Planilha
+            </Button>
+          </div>
+          <Button
+            onClick={openNewModal}
+            className="w-full sm:w-auto shadow-elevation h-11"
+            size="lg"
+          >
+            <Plus className="mr-2 h-5 w-5" /> NOVO CLIENTE
+          </Button>
+        </div>
       </div>
 
       <div className="bg-card p-5 rounded-xl border shadow-sm space-y-4 mb-6">
@@ -543,7 +586,7 @@ export default function Clientes() {
             Limpar Filtros
           </Button>
         </div>
-      ) : (
+      ) : viewMode === 'cards' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredClients.map((client) => (
             <Card
@@ -638,6 +681,89 @@ export default function Clientes() {
               </CardFooter>
             </Card>
           ))}
+        </div>
+      ) : (
+        <div className="rounded-md border bg-card overflow-hidden shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="font-semibold">Nome / Empresa</TableHead>
+                <TableHead className="font-semibold">Contato</TableHead>
+                <TableHead className="font-semibold">Localização</TableHead>
+                <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="text-right font-semibold">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredClients.map((client) => (
+                <TableRow
+                  key={client.id}
+                  className="hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => openViewDrawer(client)}
+                >
+                  <TableCell>
+                    <div className="font-medium text-foreground">{client.nome}</div>
+                    {client.nome_empresa && (
+                      <div className="text-sm text-muted-foreground">{client.nome_empresa}</div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1 text-sm">
+                      {client.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-3 w-3" />{' '}
+                          <span className="truncate max-w-[200px]">{client.email}</span>
+                        </div>
+                      )}
+                      {(client.celular || client.telefone) && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-3 w-3" />{' '}
+                          <span>{client.celular || client.telefone}</span>
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {[client.cidade, client.estado].filter(Boolean).join(' - ') || '-'}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={client.ativo !== false ? 'default' : 'secondary'}
+                      className={
+                        client.ativo !== false
+                          ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'
+                          : ''
+                      }
+                    >
+                      {client.ativo !== false ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell
+                    className="text-right whitespace-nowrap"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEditModal(client)}
+                      title="Editar"
+                    >
+                      <Edit2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setClientToDelete(client)}
+                      title="Excluir"
+                      className="hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
 

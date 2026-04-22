@@ -1,6 +1,16 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Plus, Search, Edit2, Trash2, Eye } from 'lucide-react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useViewMode } from '@/hooks/use-view-mode'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { LayoutGrid, List, Mail, Phone, MapPin, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -91,6 +101,7 @@ export default function Engenheiros() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const [cameFromView, setCameFromView] = useState(false)
+  const [viewMode, setViewMode] = useViewMode('engenheiros', 'cards')
 
   const form = useForm<EngineerFormValues>({
     resolver: zodResolver(engineerSchema),
@@ -272,9 +283,41 @@ export default function Engenheiros() {
             Gestão do portfólio de parceiros e engenheiros técnicos.
           </p>
         </div>
-        <Button onClick={openNewModal} className="w-full sm:w-auto shadow-elevation h-11" size="lg">
-          <Plus className="mr-2 h-5 w-5" /> NOVO ENGENHEIRO
-        </Button>
+        <div className="flex items-center gap-4 w-full sm:w-auto flex-col sm:flex-row">
+          <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0 w-full sm:w-auto">
+            <Button
+              variant={viewMode === 'cards' ? 'secondary' : 'ghost'}
+              size="sm"
+              className={
+                viewMode === 'cards'
+                  ? 'bg-white shadow-sm flex-1 sm:flex-none'
+                  : 'flex-1 sm:flex-none'
+              }
+              onClick={() => setViewMode('cards')}
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" /> Cards
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+              size="sm"
+              className={
+                viewMode === 'table'
+                  ? 'bg-white shadow-sm flex-1 sm:flex-none'
+                  : 'flex-1 sm:flex-none'
+              }
+              onClick={() => setViewMode('table')}
+            >
+              <List className="h-4 w-4 mr-2" /> Planilha
+            </Button>
+          </div>
+          <Button
+            onClick={openNewModal}
+            className="w-full sm:w-auto shadow-elevation h-11"
+            size="lg"
+          >
+            <Plus className="mr-2 h-5 w-5" /> NOVO ENGENHEIRO
+          </Button>
+        </div>
       </div>
 
       <div className="bg-card p-5 rounded-lg border shadow-sm space-y-4">
@@ -288,34 +331,124 @@ export default function Engenheiros() {
           />
         </div>
 
-        <div className="rounded-md border bg-card overflow-hidden shadow-subtle">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="font-semibold">Nome</TableHead>
-                <TableHead className="font-semibold">Especialidade</TableHead>
-                <TableHead className="font-semibold">Empresa</TableHead>
-                <TableHead className="font-semibold">Contato</TableHead>
-                <TableHead className="hidden lg:table-cell font-semibold">End. Comercial</TableHead>
-                <TableHead className="text-right font-semibold">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                    Carregando engenheiros...
-                  </TableCell>
+        {loading ? (
+          <div className="py-20 flex flex-col items-center justify-center text-muted-foreground">
+            Carregando engenheiros...
+          </div>
+        ) : filteredEngineers.length === 0 ? (
+          <div className="py-20 flex flex-col items-center justify-center bg-card rounded-xl border border-dashed">
+            <h3 className="text-lg font-medium text-foreground">Nenhum engenheiro encontrado</h3>
+            <p className="text-muted-foreground mt-1">
+              Ajuste os filtros ou cadastre um novo engenheiro.
+            </p>
+          </div>
+        ) : viewMode === 'cards' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredEngineers.map((engineer) => (
+              <Card
+                key={engineer.id}
+                className="group cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-primary/50 flex flex-col animate-fade-in"
+                onClick={() => openViewModal(engineer)}
+              >
+                <CardHeader className="pb-3 relative">
+                  <div className="absolute top-4 right-4 flex opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 bg-background/80 hover:bg-background shadow-sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openEditModal(engineer)
+                      }}
+                    >
+                      <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 bg-background/80 hover:bg-background shadow-sm hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEngineerToDelete(engineer.id)
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <div className="pr-16">
+                    <CardTitle className="text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                      {engineer.nome}
+                    </CardTitle>
+                    {engineer.nome_empresa && (
+                      <CardDescription className="text-sm font-medium mt-1 line-clamp-1">
+                        {engineer.nome_empresa}
+                      </CardDescription>
+                    )}
+                    {engineer.especialidade && (
+                      <div className="text-xs font-semibold text-primary mt-1">
+                        {engineer.especialidade}
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 space-y-3 text-sm text-muted-foreground pt-2">
+                  {engineer.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{engineer.email}</span>
+                    </div>
+                  )}
+                  {(engineer.celular || engineer.telefone) && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 shrink-0" />
+                      <span>{engineer.celular || engineer.telefone}</span>
+                    </div>
+                  )}
+                  {engineer.endereco_comercial && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{engineer.endereco_comercial}</span>
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="pt-3 border-t bg-slate-50/50">
+                  <Button
+                    variant="default"
+                    className="w-full shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openViewModal(engineer)
+                    }}
+                  >
+                    Ver Detalhes
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-md border bg-card overflow-hidden shadow-subtle animate-fade-in">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="font-semibold">Nome</TableHead>
+                  <TableHead className="font-semibold">Especialidade</TableHead>
+                  <TableHead className="font-semibold">Empresa</TableHead>
+                  <TableHead className="font-semibold">Contato</TableHead>
+                  <TableHead className="hidden lg:table-cell font-semibold">
+                    End. Comercial
+                  </TableHead>
+                  <TableHead className="text-right font-semibold">Ações</TableHead>
                 </TableRow>
-              ) : filteredEngineers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                    Nenhum engenheiro encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredEngineers.map((engineer) => (
-                  <TableRow key={engineer.id} className="hover:bg-muted/50 transition-colors">
+              </TableHeader>
+              <TableBody>
+                {filteredEngineers.map((engineer) => (
+                  <TableRow
+                    key={engineer.id}
+                    className="hover:bg-muted/50 transition-colors"
+                    onClick={() => openViewModal(engineer)}
+                  >
                     <TableCell className="font-medium text-foreground">{engineer.nome}</TableCell>
                     <TableCell>{engineer.especialidade || '-'}</TableCell>
                     <TableCell>{engineer.nome_empresa || '-'}</TableCell>
@@ -335,7 +468,10 @@ export default function Engenheiros() {
                     >
                       {engineer.endereco_comercial || '-'}
                     </TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
+                    <TableCell
+                      className="text-right whitespace-nowrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Button
                         variant="ghost"
                         size="icon"
@@ -363,11 +499,11 @@ export default function Engenheiros() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
