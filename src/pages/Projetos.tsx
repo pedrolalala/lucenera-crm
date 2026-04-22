@@ -24,7 +24,7 @@ import {
   LayoutGrid,
   List,
 } from 'lucide-react'
-import { useViewMode } from '@/hooks/use-view-mode'
+import { useViewMode as useDisplayMode } from '@/hooks/use-view-mode'
 import { ProjectMobileCards } from '@/components/ProjectMobileCards'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -133,10 +133,13 @@ export default function Projetos() {
   const { toast } = useToast()
   const [projetos, setProjetos] = useState<Projeto[]>([])
   const [loading, setLoading] = useState(true)
-  const [tableConfig, setTableConfig] = useState<ViewMode>('resumida')
-  const [displayMode, setDisplayMode] = useViewMode('projetos', 'cards')
-  const [selectedProjeto, setSelectedProjeto] = useState<Projeto | null>(null)
 
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    return (localStorage.getItem('projetos-view-mode') as ViewMode) || 'resumida'
+  })
+  const [displayMode, setDisplayMode] = useDisplayMode('projetos', 'cards')
+
+  const [selectedProjeto, setSelectedProjeto] = useState<Projeto | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editedProjeto, setEditedProjeto] = useState<Projeto | null>(null)
   const [editedPagamentos, setEditedPagamentos] = useState<any[]>([])
@@ -160,6 +163,10 @@ export default function Projetos() {
   useEffect(() => {
     loadProjetos()
   }, [])
+
+  useEffect(() => {
+    localStorage.setItem('projetos-view-mode', viewMode)
+  }, [viewMode])
 
   const filterConfigs = [
     { label: 'Status', state: filterStatus, set: setFilterStatus, key: 'status' },
@@ -204,12 +211,16 @@ export default function Projetos() {
     return Number(projeto.valor_total) || 0
   }
 
-  const filteredProjetos = projetos.filter((p) => {
-    if (tableConfig === 'operacional') {
-      const status = p.status || ''
-      if (status === 'Completo' || status === 'Finalizado' || status === 'Concluído') return false
-    }
+  const getDataFechamento = (projeto: Projeto) => {
+    if (!projeto.projeto_parcelas || !Array.isArray(projeto.projeto_parcelas)) return null
+    const datas = projeto.projeto_parcelas
+      .map((p: any) => p.data_fechamento)
+      .filter(Boolean)
+      .sort()
+    return datas.length > 0 ? datas[datas.length - 1] : null
+  }
 
+  const filteredProjetos = projetos.filter((p) => {
     if (filterValorTotal === '>0') {
       const total = getValorTotal(p)
       if (total <= 0) return false
@@ -233,7 +244,7 @@ export default function Projetos() {
     try {
       const d = new Date(dateStr)
       if (isNaN(d.getTime())) return dateStr
-      return d.toLocaleDateString('pt-BR')
+      return format(d, 'dd/MM/yyyy')
     } catch {
       return dateStr
     }
@@ -398,7 +409,7 @@ export default function Projetos() {
 
   return (
     <div className="space-y-8 animate-fade-in-up">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Projetos</h1>
           <p className="text-slate-500">
@@ -406,6 +417,45 @@ export default function Projetos() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
+          <div className="bg-slate-100 p-1.5 rounded-lg flex items-center border border-slate-200">
+            <Button
+              variant={viewMode === 'resumida' ? 'secondary' : 'ghost'}
+              size="sm"
+              className={
+                viewMode === 'resumida'
+                  ? 'bg-primary text-primary-foreground shadow-sm font-medium hover:bg-primary/90'
+                  : 'text-slate-600'
+              }
+              onClick={() => setViewMode('resumida')}
+            >
+              Resumida
+            </Button>
+            <Button
+              variant={viewMode === 'operacional' ? 'secondary' : 'ghost'}
+              size="sm"
+              className={
+                viewMode === 'operacional'
+                  ? 'bg-primary text-primary-foreground shadow-sm font-medium hover:bg-primary/90'
+                  : 'text-slate-600'
+              }
+              onClick={() => setViewMode('operacional')}
+            >
+              Operacional
+            </Button>
+            <Button
+              variant={viewMode === 'completa' ? 'secondary' : 'ghost'}
+              size="sm"
+              className={
+                viewMode === 'completa'
+                  ? 'bg-primary text-primary-foreground shadow-sm font-medium hover:bg-primary/90'
+                  : 'text-slate-600'
+              }
+              onClick={() => setViewMode('completa')}
+            >
+              Completa
+            </Button>
+          </div>
+
           <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0">
             <Button
               variant={displayMode === 'cards' ? 'secondary' : 'ghost'}
@@ -425,42 +475,6 @@ export default function Projetos() {
             </Button>
           </div>
 
-          {displayMode === 'table' && (
-            <div className="bg-slate-100 p-1.5 rounded-lg flex items-center border border-slate-200">
-              <Button
-                variant={tableConfig === 'resumida' ? 'secondary' : 'ghost'}
-                size="sm"
-                className={
-                  tableConfig === 'resumida' ? 'bg-white shadow-sm font-medium' : 'text-slate-600'
-                }
-                onClick={() => setTableConfig('resumida')}
-              >
-                Resumida
-              </Button>
-              <Button
-                variant={tableConfig === 'operacional' ? 'secondary' : 'ghost'}
-                size="sm"
-                className={
-                  tableConfig === 'operacional'
-                    ? 'bg-white shadow-sm font-medium'
-                    : 'text-slate-600'
-                }
-                onClick={() => setTableConfig('operacional')}
-              >
-                Operacional
-              </Button>
-              <Button
-                variant={tableConfig === 'completa' ? 'secondary' : 'ghost'}
-                size="sm"
-                className={
-                  tableConfig === 'completa' ? 'bg-white shadow-sm font-medium' : 'text-slate-600'
-                }
-                onClick={() => setTableConfig('completa')}
-              >
-                Completa
-              </Button>
-            </div>
-          )}
           <Button onClick={() => navigate('/novo')} className="shadow-sm font-medium">
             <Plus className="mr-2 h-4 w-4" />
             Novo Projeto
@@ -517,9 +531,11 @@ export default function Projetos() {
         ) : (
           <div className="animate-fade-in">
             <ProjectMobileCards
+              viewMode={viewMode}
               projects={
                 filteredProjetos.map((p) => ({
                   id: p.id,
+                  codigo: p.codigo,
                   name: p.nome,
                   status: p.status,
                   strategicLevel: p.nivel_estrategico,
@@ -527,10 +543,11 @@ export default function Projetos() {
                   entryDate: p.data_entrada,
                   client: p.cliente?.nome || '-',
                   architect: p.arquiteto?.nome || '-',
-                  engineer: p.engenheiro?.nome || '-',
+                  engineer: p.engenheiro?.nome || p.arquiteto?.nome || '-',
                   city: p.cidade || '-',
                   state: p.estado || '-',
                   valor_fechado: formatCurrency(getValorTotal(p)),
+                  data_fechamento: getDataFechamento(p),
                 })) as any
               }
             />
@@ -546,56 +563,49 @@ export default function Projetos() {
                     <TableHead className="w-[100px] py-4 text-slate-600 font-semibold">
                       Código
                     </TableHead>
-                    {tableConfig === 'completa' && (
+                    {viewMode === 'completa' && (
                       <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
                         Nível Estratégico
                       </TableHead>
                     )}
                     <TableHead className="py-4 text-slate-600 font-semibold">Projeto</TableHead>
 
-                    {tableConfig === 'completa' && (
+                    {viewMode === 'completa' && (
                       <>
                         <TableHead className="py-4 text-slate-600 font-semibold">
                           Responsável
                         </TableHead>
                         <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
                           Data Entrada
-                        </TableHead>
-                        <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
-                        <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                          Arquiteto
-                        </TableHead>
-                        <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                          Engenheiro
-                        </TableHead>
-                        <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
-                        <TableHead className="py-4 text-slate-600 font-semibold">Estado</TableHead>
-                      </>
-                    )}
-                    {tableConfig === 'operacional' && (
-                      <>
-                        <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
-                        <TableHead className="py-4 text-slate-600 font-semibold">
-                          Responsável
-                        </TableHead>
-                        <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                          Data Entrada
-                        </TableHead>
-                        <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
-                      </>
-                    )}
-                    {tableConfig === 'resumida' && (
-                      <>
-                        <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
-                        <TableHead className="py-4 text-slate-600 font-semibold">
-                          Responsável
                         </TableHead>
                       </>
                     )}
 
+                    <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
+
+                    {(viewMode === 'operacional' || viewMode === 'completa') && (
+                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                        Data Fechamento
+                      </TableHead>
+                    )}
+
                     <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                      Valor Total
+                      Engenheiro/Arquiteto
                     </TableHead>
+
+                    {(viewMode === 'operacional' || viewMode === 'completa') && (
+                      <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
+                    )}
+
+                    {viewMode === 'completa' && (
+                      <TableHead className="py-4 text-slate-600 font-semibold">Estado</TableHead>
+                    )}
+
+                    {viewMode === 'completa' && (
+                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                        Valor Total
+                      </TableHead>
+                    )}
                     <TableHead className="w-[100px] py-4 text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -603,9 +613,7 @@ export default function Projetos() {
                   {loading ? (
                     <TableRow>
                       <TableCell
-                        colSpan={
-                          tableConfig === 'completa' ? 12 : tableConfig === 'operacional' ? 8 : 6
-                        }
+                        colSpan={viewMode === 'completa' ? 12 : viewMode === 'operacional' ? 8 : 6}
                         className="h-32 text-center"
                       >
                         <Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" />
@@ -614,9 +622,7 @@ export default function Projetos() {
                   ) : filteredProjetos.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={
-                          tableConfig === 'completa' ? 12 : tableConfig === 'operacional' ? 8 : 6
-                        }
+                        colSpan={viewMode === 'completa' ? 12 : viewMode === 'operacional' ? 8 : 6}
                         className="h-32 text-center text-slate-500 font-medium"
                       >
                         Nenhum projeto encontrado com os filtros atuais.
@@ -636,7 +642,7 @@ export default function Projetos() {
                             {projeto.codigo}
                           </TableCell>
 
-                          {tableConfig === 'completa' && (
+                          {viewMode === 'completa' && (
                             <TableCell className="py-4 text-slate-600">
                               {projeto.nivel_estrategico || '-'}
                             </TableCell>
@@ -649,122 +655,68 @@ export default function Projetos() {
                             {projeto.nome || 'Sem nome'}
                           </TableCell>
 
-                          {tableConfig === 'completa' && (
+                          {viewMode === 'completa' && (
                             <>
                               <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
                                 {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
                               </TableCell>
                               <TableCell className="py-4 whitespace-nowrap text-slate-500">
                                 {formatDate(projeto.data_entrada)}
-                              </TableCell>
-                              <TableCell className="py-4">
-                                {projeto.status ? (
-                                  <Badge
-                                    variant={
-                                      projeto.status === 'Concluído' ||
-                                      projeto.status === 'Completo' ||
-                                      projeto.status === 'Finalizado'
-                                        ? 'default'
-                                        : 'secondary'
-                                    }
-                                    className="font-medium shadow-sm"
-                                  >
-                                    {projeto.status}
-                                  </Badge>
-                                ) : (
-                                  <span className="text-slate-400 text-sm">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
-                                {projeto.arquiteto?.nome || '-'}
-                              </TableCell>
-                              <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
-                                {projeto.engenheiro?.nome || '-'}
-                              </TableCell>
-                              <TableCell
-                                className="py-4 text-slate-700 max-w-[150px] truncate"
-                                title={projeto.cidade || ''}
-                              >
-                                {projeto.cidade || '-'}
-                              </TableCell>
-                              <TableCell className="py-4 text-slate-600">
-                                {projeto.estado || '-'}
-                              </TableCell>
-                            </>
-                          )}
-
-                          {tableConfig === 'operacional' && (
-                            <>
-                              <TableCell className="py-4">
-                                {projeto.status ? (
-                                  <Badge
-                                    variant={
-                                      projeto.status === 'Concluído' ||
-                                      projeto.status === 'Completo' ||
-                                      projeto.status === 'Finalizado'
-                                        ? 'default'
-                                        : 'secondary'
-                                    }
-                                    className="font-medium shadow-sm"
-                                  >
-                                    {projeto.status}
-                                  </Badge>
-                                ) : (
-                                  <span className="text-slate-400 text-sm">-</span>
-                                )}
-                              </TableCell>
-
-                              <TableCell className="py-4 max-w-[150px] truncate text-slate-600">
-                                {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
-                              </TableCell>
-
-                              <TableCell className="py-4 whitespace-nowrap text-slate-500">
-                                {formatDate(projeto.data_entrada)}
-                              </TableCell>
-
-                              <TableCell className="py-4">
-                                <span
-                                  className="text-slate-700 font-medium truncate max-w-[150px] block"
-                                  title={projeto.cidade || ''}
-                                >
-                                  {projeto.cidade || '-'}
-                                </span>
-                              </TableCell>
-                            </>
-                          )}
-
-                          {tableConfig === 'resumida' && (
-                            <>
-                              <TableCell className="py-4">
-                                {projeto.status ? (
-                                  <Badge
-                                    variant={
-                                      projeto.status === 'Concluído' ||
-                                      projeto.status === 'Completo' ||
-                                      projeto.status === 'Finalizado'
-                                        ? 'default'
-                                        : 'secondary'
-                                    }
-                                    className="font-medium shadow-sm"
-                                  >
-                                    {projeto.status}
-                                  </Badge>
-                                ) : (
-                                  <span className="text-slate-400 text-sm">-</span>
-                                )}
-                              </TableCell>
-
-                              <TableCell className="py-4 max-w-[150px] truncate text-slate-600">
-                                {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
                               </TableCell>
                             </>
                           )}
 
                           <TableCell className="py-4">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm whitespace-nowrap">
-                              {formatCurrency(valorTotal)}
-                            </span>
+                            {projeto.status ? (
+                              <Badge
+                                variant={
+                                  projeto.status === 'Concluído' ||
+                                  projeto.status === 'Completo' ||
+                                  projeto.status === 'Finalizado'
+                                    ? 'default'
+                                    : 'secondary'
+                                }
+                                className="font-medium shadow-sm"
+                              >
+                                {projeto.status}
+                              </Badge>
+                            ) : (
+                              <span className="text-slate-400 text-sm">-</span>
+                            )}
                           </TableCell>
+
+                          {(viewMode === 'operacional' || viewMode === 'completa') && (
+                            <TableCell className="py-4 whitespace-nowrap text-emerald-700 font-medium">
+                              {formatDate(getDataFechamento(projeto))}
+                            </TableCell>
+                          )}
+
+                          <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
+                            {projeto.engenheiro?.nome || projeto.arquiteto?.nome || '-'}
+                          </TableCell>
+
+                          {(viewMode === 'operacional' || viewMode === 'completa') && (
+                            <TableCell
+                              className="py-4 text-slate-700 max-w-[150px] truncate"
+                              title={projeto.cidade || ''}
+                            >
+                              {projeto.cidade || '-'}
+                            </TableCell>
+                          )}
+
+                          {viewMode === 'completa' && (
+                            <TableCell className="py-4 text-slate-600">
+                              {projeto.estado || '-'}
+                            </TableCell>
+                          )}
+
+                          {viewMode === 'completa' && (
+                            <TableCell className="py-4">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm whitespace-nowrap">
+                                {formatCurrency(valorTotal)}
+                              </span>
+                            </TableCell>
+                          )}
 
                           <TableCell
                             className="py-4 text-right"
