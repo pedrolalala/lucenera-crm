@@ -370,84 +370,97 @@ export default function ProjectNew() {
                         <User className="h-4 w-4" /> Cliente{' '}
                         <span className="text-destructive">*</span>
                       </FormLabel>
-                      <Popover open={openCliente} onOpenChange={setOpenCliente}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={openCliente}
-                              className={cn(
-                                'w-full justify-between h-11 font-normal',
-                                (!field.value || field.value === 'null') && 'text-muted-foreground',
-                              )}
-                            >
-                              {field.value && field.value !== 'null'
-                                ? clientes.find((o) => o.id === field.value)?.nome
-                                : 'Não Informado'}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder="Buscar cliente..." />
-                            <CommandList>
-                              <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                              <CommandGroup>
-                                <CommandItem
-                                  value="nao-informado"
-                                  onSelect={() => {
-                                    form.setValue('cliente_id', 'null')
-                                    setOpenCliente(false)
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      'mr-2 h-4 w-4',
-                                      field.value === 'null' || !field.value
-                                        ? 'opacity-100'
-                                        : 'opacity-0',
-                                    )}
-                                  />
-                                  Não Informado
-                                </CommandItem>
-                                {clientes.map((o) => (
+                      <div className="flex items-center gap-2">
+                        <Popover open={openCliente} onOpenChange={setOpenCliente}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={openCliente}
+                                className={cn(
+                                  'flex-1 justify-between h-11 font-normal',
+                                  (!field.value || field.value === 'null') &&
+                                    'text-muted-foreground',
+                                )}
+                              >
+                                {field.value && field.value !== 'null'
+                                  ? clientes.find((o) => o.id === field.value)?.nome
+                                  : 'Não Informado'}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Buscar cliente..." />
+                              <CommandList>
+                                <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                                <CommandGroup>
                                   <CommandItem
-                                    value={o.nome}
-                                    key={o.id}
+                                    value="nao-informado"
                                     onSelect={() => {
-                                      form.setValue('cliente_id', o.id)
+                                      form.setValue('cliente_id', 'null')
                                       setOpenCliente(false)
                                     }}
                                   >
                                     <Check
                                       className={cn(
                                         'mr-2 h-4 w-4',
-                                        o.id === field.value ? 'opacity-100' : 'opacity-0',
+                                        field.value === 'null' || !field.value
+                                          ? 'opacity-100'
+                                          : 'opacity-0',
                                       )}
                                     />
-                                    {o.nome}
+                                    Não Informado
                                   </CommandItem>
-                                ))}
-                              </CommandGroup>
-                              <CommandSeparator />
-                              <CommandGroup>
-                                <CommandItem
-                                  onSelect={() => {
-                                    setOpenCliente(false)
-                                    setModalType('cliente')
-                                  }}
-                                  className="text-primary font-medium cursor-pointer"
-                                >
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  Novo Cliente
-                                </CommandItem>
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
+                                  {clientes.map((o) => (
+                                    <CommandItem
+                                      value={o.nome}
+                                      key={o.id}
+                                      onSelect={() => {
+                                        form.setValue('cliente_id', o.id)
+                                        setOpenCliente(false)
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          'mr-2 h-4 w-4',
+                                          o.id === field.value ? 'opacity-100' : 'opacity-0',
+                                        )}
+                                      />
+                                      {o.nome}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                                <CommandSeparator />
+                                <CommandGroup>
+                                  <CommandItem
+                                    onSelect={() => {
+                                      setOpenCliente(false)
+                                      setModalType('cliente')
+                                    }}
+                                    className="text-primary font-medium cursor-pointer"
+                                  >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Novo Cliente
+                                  </CommandItem>
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0 h-11 w-11"
+                          onClick={() => setModalType('cliente')}
+                          title="Adicionar Novo Cliente"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -461,84 +474,97 @@ export default function ProjectNew() {
                       <FormLabel className="flex items-center gap-1.5">
                         <Building2 className="h-4 w-4" /> Arquiteto
                       </FormLabel>
-                      <Popover open={openArquiteto} onOpenChange={setOpenArquiteto}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={openArquiteto}
-                              className={cn(
-                                'w-full justify-between h-11 font-normal',
-                                (!field.value || field.value === 'null') && 'text-muted-foreground',
-                              )}
-                            >
-                              {field.value && field.value !== 'null'
-                                ? arquitetos.find((o) => o.id === field.value)?.nome
-                                : 'Não Informado'}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder="Buscar arquiteto..." />
-                            <CommandList>
-                              <CommandEmpty>Nenhum arquiteto encontrado.</CommandEmpty>
-                              <CommandGroup>
-                                <CommandItem
-                                  value="nao-informado"
-                                  onSelect={() => {
-                                    form.setValue('arquiteto_id', 'null')
-                                    setOpenArquiteto(false)
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      'mr-2 h-4 w-4',
-                                      field.value === 'null' || !field.value
-                                        ? 'opacity-100'
-                                        : 'opacity-0',
-                                    )}
-                                  />
-                                  Não Informado
-                                </CommandItem>
-                                {arquitetos.map((o) => (
+                      <div className="flex items-center gap-2">
+                        <Popover open={openArquiteto} onOpenChange={setOpenArquiteto}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={openArquiteto}
+                                className={cn(
+                                  'flex-1 justify-between h-11 font-normal',
+                                  (!field.value || field.value === 'null') &&
+                                    'text-muted-foreground',
+                                )}
+                              >
+                                {field.value && field.value !== 'null'
+                                  ? arquitetos.find((o) => o.id === field.value)?.nome
+                                  : 'Não Informado'}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Buscar arquiteto..." />
+                              <CommandList>
+                                <CommandEmpty>Nenhum arquiteto encontrado.</CommandEmpty>
+                                <CommandGroup>
                                   <CommandItem
-                                    value={o.nome}
-                                    key={o.id}
+                                    value="nao-informado"
                                     onSelect={() => {
-                                      form.setValue('arquiteto_id', o.id)
+                                      form.setValue('arquiteto_id', 'null')
                                       setOpenArquiteto(false)
                                     }}
                                   >
                                     <Check
                                       className={cn(
                                         'mr-2 h-4 w-4',
-                                        o.id === field.value ? 'opacity-100' : 'opacity-0',
+                                        field.value === 'null' || !field.value
+                                          ? 'opacity-100'
+                                          : 'opacity-0',
                                       )}
                                     />
-                                    {o.nome}
+                                    Não Informado
                                   </CommandItem>
-                                ))}
-                              </CommandGroup>
-                              <CommandSeparator />
-                              <CommandGroup>
-                                <CommandItem
-                                  onSelect={() => {
-                                    setOpenArquiteto(false)
-                                    setModalType('arquiteto')
-                                  }}
-                                  className="text-primary font-medium cursor-pointer"
-                                >
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  Novo Arquiteto
-                                </CommandItem>
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
+                                  {arquitetos.map((o) => (
+                                    <CommandItem
+                                      value={o.nome}
+                                      key={o.id}
+                                      onSelect={() => {
+                                        form.setValue('arquiteto_id', o.id)
+                                        setOpenArquiteto(false)
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          'mr-2 h-4 w-4',
+                                          o.id === field.value ? 'opacity-100' : 'opacity-0',
+                                        )}
+                                      />
+                                      {o.nome}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                                <CommandSeparator />
+                                <CommandGroup>
+                                  <CommandItem
+                                    onSelect={() => {
+                                      setOpenArquiteto(false)
+                                      setModalType('arquiteto')
+                                    }}
+                                    className="text-primary font-medium cursor-pointer"
+                                  >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Novo Arquiteto
+                                  </CommandItem>
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0 h-11 w-11"
+                          onClick={() => setModalType('arquiteto')}
+                          title="Adicionar Novo Arquiteto"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -552,84 +578,97 @@ export default function ProjectNew() {
                       <FormLabel className="flex items-center gap-1.5">
                         <HardHat className="h-4 w-4" /> Engenheiro
                       </FormLabel>
-                      <Popover open={openEngenheiro} onOpenChange={setOpenEngenheiro}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={openEngenheiro}
-                              className={cn(
-                                'w-full justify-between h-11 font-normal',
-                                (!field.value || field.value === 'null') && 'text-muted-foreground',
-                              )}
-                            >
-                              {field.value && field.value !== 'null'
-                                ? engenheiros.find((o) => o.id === field.value)?.nome
-                                : 'Não Informado'}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder="Buscar engenheiro..." />
-                            <CommandList>
-                              <CommandEmpty>Nenhum engenheiro encontrado.</CommandEmpty>
-                              <CommandGroup>
-                                <CommandItem
-                                  value="nao-informado"
-                                  onSelect={() => {
-                                    form.setValue('responsavel_obra_id', 'null')
-                                    setOpenEngenheiro(false)
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      'mr-2 h-4 w-4',
-                                      field.value === 'null' || !field.value
-                                        ? 'opacity-100'
-                                        : 'opacity-0',
-                                    )}
-                                  />
-                                  Não Informado
-                                </CommandItem>
-                                {engenheiros.map((o) => (
+                      <div className="flex items-center gap-2">
+                        <Popover open={openEngenheiro} onOpenChange={setOpenEngenheiro}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={openEngenheiro}
+                                className={cn(
+                                  'flex-1 justify-between h-11 font-normal',
+                                  (!field.value || field.value === 'null') &&
+                                    'text-muted-foreground',
+                                )}
+                              >
+                                {field.value && field.value !== 'null'
+                                  ? engenheiros.find((o) => o.id === field.value)?.nome
+                                  : 'Não Informado'}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Buscar engenheiro..." />
+                              <CommandList>
+                                <CommandEmpty>Nenhum engenheiro encontrado.</CommandEmpty>
+                                <CommandGroup>
                                   <CommandItem
-                                    value={o.nome}
-                                    key={o.id}
+                                    value="nao-informado"
                                     onSelect={() => {
-                                      form.setValue('responsavel_obra_id', o.id)
+                                      form.setValue('responsavel_obra_id', 'null')
                                       setOpenEngenheiro(false)
                                     }}
                                   >
                                     <Check
                                       className={cn(
                                         'mr-2 h-4 w-4',
-                                        o.id === field.value ? 'opacity-100' : 'opacity-0',
+                                        field.value === 'null' || !field.value
+                                          ? 'opacity-100'
+                                          : 'opacity-0',
                                       )}
                                     />
-                                    {o.nome}
+                                    Não Informado
                                   </CommandItem>
-                                ))}
-                              </CommandGroup>
-                              <CommandSeparator />
-                              <CommandGroup>
-                                <CommandItem
-                                  onSelect={() => {
-                                    setOpenEngenheiro(false)
-                                    setModalType('engenheiro')
-                                  }}
-                                  className="text-primary font-medium cursor-pointer"
-                                >
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  Novo Engenheiro
-                                </CommandItem>
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
+                                  {engenheiros.map((o) => (
+                                    <CommandItem
+                                      value={o.nome}
+                                      key={o.id}
+                                      onSelect={() => {
+                                        form.setValue('responsavel_obra_id', o.id)
+                                        setOpenEngenheiro(false)
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          'mr-2 h-4 w-4',
+                                          o.id === field.value ? 'opacity-100' : 'opacity-0',
+                                        )}
+                                      />
+                                      {o.nome}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                                <CommandSeparator />
+                                <CommandGroup>
+                                  <CommandItem
+                                    onSelect={() => {
+                                      setOpenEngenheiro(false)
+                                      setModalType('engenheiro')
+                                    }}
+                                    className="text-primary font-medium cursor-pointer"
+                                  >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Novo Engenheiro
+                                  </CommandItem>
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0 h-11 w-11"
+                          onClick={() => setModalType('engenheiro')}
+                          title="Adicionar Novo Engenheiro"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
