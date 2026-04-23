@@ -76,11 +76,25 @@ export function ProjectMobileCards({
                 </span>
               </div>
 
-              {(viewMode === 'operacional' || viewMode === 'completa') && (
+              {viewMode === 'completa' && (
                 <div className="flex items-center gap-1.5 col-span-2">
                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
                   <span className="font-medium text-emerald-700">
                     Fechamento: {formatDateStr(p.data_fechamento)}
+                  </span>
+                </div>
+              )}
+
+              {(viewMode === 'operacional' || viewMode === 'completa') && p.valor_fechado && (
+                <div className="flex items-center justify-between col-span-2 mt-1 pt-2 border-t border-border">
+                  <div className="flex items-center gap-1.5 text-emerald-700">
+                    <DollarSign className="h-3.5 w-3.5 shrink-0" />
+                    <span className="text-xs font-semibold uppercase tracking-wider">
+                      Valor Total
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
+                    {p.valor_fechado}
                   </span>
                 </div>
               )}
@@ -90,20 +104,6 @@ export function ProjectMobileCards({
                   <MapPin className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">
                     {p.city} {viewMode === 'completa' ? `- ${p.state}` : ''}
-                  </span>
-                </div>
-              )}
-
-              {viewMode === 'completa' && p.valor_fechado && (
-                <div className="flex items-center justify-between col-span-2 mt-1 pt-2 border-t border-border">
-                  <div className="flex items-center gap-1.5 text-emerald-700">
-                    <DollarSign className="h-3.5 w-3.5 shrink-0" />
-                    <span className="text-xs font-semibold uppercase tracking-wider">
-                      Valor Total
-                    </span>
-                  </div>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                    {p.valor_fechado}
                   </span>
                 </div>
               )}

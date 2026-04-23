@@ -588,9 +588,15 @@ export default function Projetos() {
 
                     <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
 
-                    {(viewMode === 'operacional' || viewMode === 'completa') && (
+                    {viewMode === 'completa' && (
                       <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
                         Data Fechamento
+                      </TableHead>
+                    )}
+
+                    {(viewMode === 'operacional' || viewMode === 'completa') && (
+                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                        Valor Total
                       </TableHead>
                     )}
 
@@ -606,11 +612,6 @@ export default function Projetos() {
                       <TableHead className="py-4 text-slate-600 font-semibold">Estado</TableHead>
                     )}
 
-                    {viewMode === 'completa' && (
-                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
-                        Valor Total
-                      </TableHead>
-                    )}
                     <TableHead className="w-[100px] py-4 text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -618,7 +619,7 @@ export default function Projetos() {
                   {loading ? (
                     <TableRow>
                       <TableCell
-                        colSpan={viewMode === 'completa' ? 12 : viewMode === 'operacional' ? 8 : 6}
+                        colSpan={viewMode === 'completa' ? 12 : viewMode === 'operacional' ? 7 : 5}
                         className="h-32 text-center"
                       >
                         <Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" />
@@ -627,7 +628,7 @@ export default function Projetos() {
                   ) : filteredProjetos.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={viewMode === 'completa' ? 12 : viewMode === 'operacional' ? 8 : 6}
+                        colSpan={viewMode === 'completa' ? 12 : viewMode === 'operacional' ? 7 : 5}
                         className="h-32 text-center text-slate-500 font-medium"
                       >
                         Nenhum projeto encontrado com os filtros atuais.
@@ -690,9 +691,17 @@ export default function Projetos() {
                             )}
                           </TableCell>
 
-                          {(viewMode === 'operacional' || viewMode === 'completa') && (
+                          {viewMode === 'completa' && (
                             <TableCell className="py-4 whitespace-nowrap text-emerald-700 font-medium">
                               {formatDate(getDataFechamento(projeto))}
+                            </TableCell>
+                          )}
+
+                          {(viewMode === 'operacional' || viewMode === 'completa') && (
+                            <TableCell className="py-4">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm whitespace-nowrap">
+                                {formatCurrency(valorTotal)}
+                              </span>
                             </TableCell>
                           )}
 
@@ -712,14 +721,6 @@ export default function Projetos() {
                           {viewMode === 'completa' && (
                             <TableCell className="py-4 text-slate-600">
                               {projeto.estado || '-'}
-                            </TableCell>
-                          )}
-
-                          {viewMode === 'completa' && (
-                            <TableCell className="py-4">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm whitespace-nowrap">
-                                {formatCurrency(valorTotal)}
-                              </span>
                             </TableCell>
                           )}
 
@@ -1054,6 +1055,66 @@ export default function Projetos() {
                         </>
                       )}
                     </div>
+
+                    {selectedProjeto.projeto_parcelas &&
+                      selectedProjeto.projeto_parcelas.length > 0 && (
+                        <div className="mt-2 pt-6 border-t border-slate-200">
+                          <h4 className="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">
+                            Parcelas do Projeto
+                          </h4>
+                          <div className="rounded-md border border-slate-200 overflow-hidden bg-white shadow-sm">
+                            <Table>
+                              <TableHeader className="bg-slate-50/80">
+                                <TableRow>
+                                  <TableHead className="w-[50px] py-2 text-xs font-semibold text-slate-600">
+                                    Nº
+                                  </TableHead>
+                                  <TableHead className="py-2 text-xs font-semibold text-slate-600">
+                                    Valor
+                                  </TableHead>
+                                  <TableHead className="py-2 text-xs font-semibold text-slate-600">
+                                    Vencimento
+                                  </TableHead>
+                                  <TableHead className="py-2 text-xs font-semibold text-slate-600">
+                                    Status
+                                  </TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {[...selectedProjeto.projeto_parcelas]
+                                  .sort((a, b) => a.numero_parcela - b.numero_parcela)
+                                  .map((p) => (
+                                    <TableRow key={p.id} className="hover:bg-slate-50/50">
+                                      <TableCell className="py-2.5 text-sm font-medium">
+                                        {p.numero_parcela}
+                                      </TableCell>
+                                      <TableCell className="py-2.5 text-sm font-semibold text-emerald-700">
+                                        {formatCurrency(Number(p.valor))}
+                                      </TableCell>
+                                      <TableCell className="py-2.5 text-sm text-slate-600">
+                                        {formatDate(p.data_vencimento)}
+                                      </TableCell>
+                                      <TableCell className="py-2.5">
+                                        <Badge
+                                          variant={
+                                            p.status === 'paga'
+                                              ? 'default'
+                                              : p.status === 'atrasada'
+                                                ? 'destructive'
+                                                : 'secondary'
+                                          }
+                                          className="text-[10px] uppercase tracking-wider shadow-sm"
+                                        >
+                                          {p.status || 'pendente'}
+                                        </Badge>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      )}
 
                     {(() => {
                       const related = selectedProjeto.cliente_id
