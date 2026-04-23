@@ -36,6 +36,7 @@ import {
   Save,
   X,
   DollarSign,
+  HardHat,
 } from 'lucide-react'
 
 export default function ProjectDetail() {
