@@ -97,11 +97,52 @@ export default function ProjectNew() {
   const [openArquiteto, setOpenArquiteto] = useState(false)
   const [openEngenheiro, setOpenEngenheiro] = useState(false)
 
-  const clientes = contacts.filter((c) => c.tipo === 'cliente')
-  const arquitetos = contacts.filter((c) => c.tipo === 'arquiteto')
-  const engenheiros = contacts.filter((c) => c.tipo === 'engenheiro')
-
   const [responsaveis, setResponsaveis] = useState<string[]>([])
+
+  const [searchCliente, setSearchCliente] = useState('')
+  const [searchArquiteto, setSearchArquiteto] = useState('')
+  const [searchEngenheiro, setSearchEngenheiro] = useState('')
+
+  const [dbClientes, setDbClientes] = useState<{ id: string; nome: string }[]>([])
+  const [dbArquitetos, setDbArquitetos] = useState<{ id: string; nome: string }[]>([])
+  const [dbEngenheiros, setDbEngenheiros] = useState<{ id: string; nome: string }[]>([])
+
+  const [selectedClienteName, setSelectedClienteName] = useState('')
+  const [selectedArquitetoName, setSelectedArquitetoName] = useState('')
+  const [selectedEngenheiroName, setSelectedEngenheiroName] = useState('')
+
+  useEffect(() => {
+    const fetchClientes = async () => {
+      let q = supabase.from('contatos').select('id, nome').eq('tipo', 'cliente').order('nome')
+      if (searchCliente) q = q.ilike('nome', `%${searchCliente}%`)
+      const { data } = await q.limit(100)
+      if (data) setDbClientes(data)
+    }
+    const timeout = setTimeout(fetchClientes, 300)
+    return () => clearTimeout(timeout)
+  }, [searchCliente])
+
+  useEffect(() => {
+    const fetchArquitetos = async () => {
+      let q = supabase.from('contatos').select('id, nome').eq('tipo', 'arquiteto').order('nome')
+      if (searchArquiteto) q = q.ilike('nome', `%${searchArquiteto}%`)
+      const { data } = await q.limit(100)
+      if (data) setDbArquitetos(data)
+    }
+    const timeout = setTimeout(fetchArquitetos, 300)
+    return () => clearTimeout(timeout)
+  }, [searchArquiteto])
+
+  useEffect(() => {
+    const fetchEngenheiros = async () => {
+      let q = supabase.from('contatos').select('id, nome').eq('tipo', 'engenheiro').order('nome')
+      if (searchEngenheiro) q = q.ilike('nome', `%${searchEngenheiro}%`)
+      const { data } = await q.limit(100)
+      if (data) setDbEngenheiros(data)
+    }
+    const timeout = setTimeout(fetchEngenheiros, 300)
+    return () => clearTimeout(timeout)
+  }, [searchEngenheiro])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -211,9 +252,16 @@ export default function ProjectNew() {
   const handleSaveNewContact = async (contactData: any) => {
     await refreshContacts()
 
-    if (modalType === 'cliente') form.setValue('cliente_id', contactData.id)
-    else if (modalType === 'arquiteto') form.setValue('arquiteto_id', contactData.id)
-    else if (modalType === 'engenheiro') form.setValue('responsavel_obra_id', contactData.id)
+    if (modalType === 'cliente') {
+      form.setValue('cliente_id', contactData.id)
+      setSelectedClienteName(contactData.nome)
+    } else if (modalType === 'arquiteto') {
+      form.setValue('arquiteto_id', contactData.id)
+      setSelectedArquitetoName(contactData.nome)
+    } else if (modalType === 'engenheiro') {
+      form.setValue('responsavel_obra_id', contactData.id)
+      setSelectedEngenheiroName(contactData.nome)
+    }
 
     setModalType(null)
   }
@@ -423,21 +471,27 @@ export default function ProjectNew() {
                                 role="combobox"
                                 aria-expanded={openCliente}
                                 className={cn(
-                                  'flex-1 justify-between h-11 font-normal',
+                                  'flex-1 justify-between h-11 font-normal truncate',
                                   (!field.value || field.value === 'null') &&
                                     'text-muted-foreground',
                                 )}
                               >
-                                {field.value && field.value !== 'null'
-                                  ? clientes.find((o) => o.id === field.value)?.nome
-                                  : 'Não Informado'}
+                                <span className="truncate">
+                                  {field.value && field.value !== 'null'
+                                    ? selectedClienteName || 'Selecionado'
+                                    : 'Não Informado'}
+                                </span>
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-[300px] p-0" align="start">
-                            <Command>
-                              <CommandInput placeholder="Buscar cliente..." />
+                            <Command shouldFilter={false}>
+                              <CommandInput
+                                placeholder="Buscar cliente..."
+                                value={searchCliente}
+                                onValueChange={setSearchCliente}
+                              />
                               <CommandList>
                                 <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                                 <CommandGroup>
@@ -445,6 +499,7 @@ export default function ProjectNew() {
                                     value="nao-informado"
                                     onSelect={() => {
                                       form.setValue('cliente_id', 'null')
+                                      setSelectedClienteName('')
                                       setOpenCliente(false)
                                     }}
                                   >
@@ -458,12 +513,13 @@ export default function ProjectNew() {
                                     />
                                     Não Informado
                                   </CommandItem>
-                                  {clientes.map((o) => (
+                                  {dbClientes.map((o) => (
                                     <CommandItem
-                                      value={o.nome}
+                                      value={o.id}
                                       key={o.id}
                                       onSelect={() => {
                                         form.setValue('cliente_id', o.id)
+                                        setSelectedClienteName(o.nome)
                                         setOpenCliente(false)
                                       }}
                                     >
@@ -527,21 +583,27 @@ export default function ProjectNew() {
                                 role="combobox"
                                 aria-expanded={openArquiteto}
                                 className={cn(
-                                  'flex-1 justify-between h-11 font-normal',
+                                  'flex-1 justify-between h-11 font-normal truncate',
                                   (!field.value || field.value === 'null') &&
                                     'text-muted-foreground',
                                 )}
                               >
-                                {field.value && field.value !== 'null'
-                                  ? arquitetos.find((o) => o.id === field.value)?.nome
-                                  : 'Não Informado'}
+                                <span className="truncate">
+                                  {field.value && field.value !== 'null'
+                                    ? selectedArquitetoName || 'Selecionado'
+                                    : 'Não Informado'}
+                                </span>
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-[300px] p-0" align="start">
-                            <Command>
-                              <CommandInput placeholder="Buscar arquiteto..." />
+                            <Command shouldFilter={false}>
+                              <CommandInput
+                                placeholder="Buscar arquiteto..."
+                                value={searchArquiteto}
+                                onValueChange={setSearchArquiteto}
+                              />
                               <CommandList>
                                 <CommandEmpty>Nenhum arquiteto encontrado.</CommandEmpty>
                                 <CommandGroup>
@@ -549,6 +611,7 @@ export default function ProjectNew() {
                                     value="nao-informado"
                                     onSelect={() => {
                                       form.setValue('arquiteto_id', 'null')
+                                      setSelectedArquitetoName('')
                                       setOpenArquiteto(false)
                                     }}
                                   >
@@ -562,12 +625,13 @@ export default function ProjectNew() {
                                     />
                                     Não Informado
                                   </CommandItem>
-                                  {arquitetos.map((o) => (
+                                  {dbArquitetos.map((o) => (
                                     <CommandItem
-                                      value={o.nome}
+                                      value={o.id}
                                       key={o.id}
                                       onSelect={() => {
                                         form.setValue('arquiteto_id', o.id)
+                                        setSelectedArquitetoName(o.nome)
                                         setOpenArquiteto(false)
                                       }}
                                     >
@@ -631,21 +695,27 @@ export default function ProjectNew() {
                                 role="combobox"
                                 aria-expanded={openEngenheiro}
                                 className={cn(
-                                  'flex-1 justify-between h-11 font-normal',
+                                  'flex-1 justify-between h-11 font-normal truncate',
                                   (!field.value || field.value === 'null') &&
                                     'text-muted-foreground',
                                 )}
                               >
-                                {field.value && field.value !== 'null'
-                                  ? engenheiros.find((o) => o.id === field.value)?.nome
-                                  : 'Não Informado'}
+                                <span className="truncate">
+                                  {field.value && field.value !== 'null'
+                                    ? selectedEngenheiroName || 'Selecionado'
+                                    : 'Não Informado'}
+                                </span>
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-[300px] p-0" align="start">
-                            <Command>
-                              <CommandInput placeholder="Buscar engenheiro..." />
+                            <Command shouldFilter={false}>
+                              <CommandInput
+                                placeholder="Buscar engenheiro..."
+                                value={searchEngenheiro}
+                                onValueChange={setSearchEngenheiro}
+                              />
                               <CommandList>
                                 <CommandEmpty>Nenhum engenheiro encontrado.</CommandEmpty>
                                 <CommandGroup>
@@ -653,6 +723,7 @@ export default function ProjectNew() {
                                     value="nao-informado"
                                     onSelect={() => {
                                       form.setValue('responsavel_obra_id', 'null')
+                                      setSelectedEngenheiroName('')
                                       setOpenEngenheiro(false)
                                     }}
                                   >
@@ -666,12 +737,13 @@ export default function ProjectNew() {
                                     />
                                     Não Informado
                                   </CommandItem>
-                                  {engenheiros.map((o) => (
+                                  {dbEngenheiros.map((o) => (
                                     <CommandItem
-                                      value={o.nome}
+                                      value={o.id}
                                       key={o.id}
                                       onSelect={() => {
                                         form.setValue('responsavel_obra_id', o.id)
+                                        setSelectedEngenheiroName(o.nome)
                                         setOpenEngenheiro(false)
                                       }}
                                     >
