@@ -63,6 +63,34 @@ export async function deleteProjeto(id: string) {
   if (error) throw error
 }
 
+export async function saveProjetoParcelas(
+  projetoId: string,
+  parcelas: Partial<ProjetoParcela>[],
+  originalIds: string[],
+) {
+  const currentIds = parcelas.map((p) => p.id).filter(Boolean) as string[]
+  const toDelete = originalIds.filter((id) => !currentIds.includes(id))
+
+  if (toDelete.length > 0) {
+    const { error } = await supabase.from('projeto_parcelas').delete().in('id', toDelete)
+    if (error) throw error
+  }
+
+  for (const p of parcelas) {
+    if (p.id) {
+      const { id, created_at, projeto_id, ...updateData } = p
+      const { error } = await supabase.from('projeto_parcelas').update(updateData).eq('id', id)
+      if (error) throw error
+    } else {
+      const { id, created_at, ...insertData } = p
+      const { error } = await supabase
+        .from('projeto_parcelas')
+        .insert({ ...insertData, projeto_id: projetoId } as any)
+      if (error) throw error
+    }
+  }
+}
+
 export async function updateProjetoEdge(id: string, data: any) {
   const { data: result, error } = await supabase.functions.invoke('update-project', {
     body: { id, ...data },

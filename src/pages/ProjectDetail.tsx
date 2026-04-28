@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { getProjeto, updateProjetoById, type Projeto } from '@/services/projetos'
+import {
+  getProjeto,
+  updateProjetoById,
+  saveProjetoParcelas,
+  type Projeto,
+} from '@/services/projetos'
 import { Constants, type Database } from '@/lib/supabase/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -52,6 +57,9 @@ export default function ProjectDetail() {
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editForm, setEditForm] = useState<Partial<Projeto>>({})
+  const [editParcelas, setEditParcelas] = useState<
+    Partial<Database['public']['Tables']['projeto_parcelas']['Row']>[]
+  >([])
 
   useEffect(() => {
     if (!id) return
@@ -59,6 +67,7 @@ export default function ProjectDetail() {
       .then((data) => {
         setProjeto(data)
         setEditForm(data)
+        setEditParcelas(data.projeto_parcelas || [])
       })
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -87,8 +96,37 @@ export default function ProjectDetail() {
   const handleEditToggle = () => {
     if (isEditing) {
       setEditForm(projeto)
+      setEditParcelas(projeto.projeto_parcelas || [])
     }
     setIsEditing(!isEditing)
+  }
+
+  const handleParcelaChange = (
+    index: number,
+    field: keyof Database['public']['Tables']['projeto_parcelas']['Row'],
+    value: any,
+  ) => {
+    const newParcelas = [...editParcelas]
+    newParcelas[index] = { ...newParcelas[index], [field]: value }
+    setEditParcelas(newParcelas)
+  }
+
+  const handleAddParcela = () => {
+    const maxNum = editParcelas.reduce((max, p) => Math.max(max, p.numero_parcela || 0), 0)
+    setEditParcelas([
+      ...editParcelas,
+      {
+        numero_parcela: maxNum + 1,
+        valor: 0,
+        status: 'pendente',
+      },
+    ])
+  }
+
+  const handleRemoveParcela = (index: number) => {
+    const newParcelas = [...editParcelas]
+    newParcelas.splice(index, 1)
+    setEditParcelas(newParcelas)
   }
 
   const handleSave = async () => {
@@ -111,9 +149,13 @@ export default function ProjectDetail() {
 
       await updateProjetoById(projeto.id, payload)
 
+      const originalIds = projeto.projeto_parcelas?.map((p) => p.id) || []
+      await saveProjetoParcelas(projeto.id, editParcelas, originalIds)
+
       const updated = await getProjeto(projeto.id)
       setProjeto(updated)
       setEditForm(updated)
+      setEditParcelas(updated.projeto_parcelas || [])
       setIsEditing(false)
       toast({ title: 'Projeto atualizado com sucesso' })
     } catch (error: any) {
@@ -498,7 +540,127 @@ export default function ProjectDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {projeto.projeto_parcelas && projeto.projeto_parcelas.length > 0 ? (
+            {isEditing ? (
+              <div className="space-y-4">
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead className="w-[80px]">Nº</TableHead>
+                        <TableHead>Valor</TableHead>
+                        <TableHead>Vencimento</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Valor Pago</TableHead>
+                        <TableHead>Pagamento</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {editParcelas.map((p, index) => (
+                        <TableRow key={p.id || index}>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={p.numero_parcela || ''}
+                              onChange={(e) =>
+                                handleParcelaChange(
+                                  index,
+                                  'numero_parcela',
+                                  e.target.value ? parseInt(e.target.value) : null,
+                                )
+                              }
+                              className="w-16 h-8"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={p.valor || ''}
+                              onChange={(e) =>
+                                handleParcelaChange(
+                                  index,
+                                  'valor',
+                                  e.target.value ? parseFloat(e.target.value) : null,
+                                )
+                              }
+                              className="w-24 h-8"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="date"
+                              value={p.data_vencimento || ''}
+                              onChange={(e) =>
+                                handleParcelaChange(
+                                  index,
+                                  'data_vencimento',
+                                  e.target.value || null,
+                                )
+                              }
+                              className="h-8"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={p.status || 'pendente'}
+                              onValueChange={(v) => handleParcelaChange(index, 'status', v)}
+                            >
+                              <SelectTrigger className="h-8 w-28">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Constants.public.Enums.parcela_status.map((s) => (
+                                  <SelectItem key={s} value={s}>
+                                    {s}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={p.valor_pago || ''}
+                              onChange={(e) =>
+                                handleParcelaChange(
+                                  index,
+                                  'valor_pago',
+                                  e.target.value ? parseFloat(e.target.value) : null,
+                                )
+                              }
+                              className="w-24 h-8"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="date"
+                              value={p.data_pagamento || ''}
+                              onChange={(e) =>
+                                handleParcelaChange(index, 'data_pagamento', e.target.value || null)
+                              }
+                              className="h-8"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveParcela(index)}
+                              className="h-8 w-8 text-destructive"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleAddParcela}>
+                  Adicionar Parcela
+                </Button>
+              </div>
+            ) : projeto.projeto_parcelas && projeto.projeto_parcelas.length > 0 ? (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader className="bg-muted/50">
