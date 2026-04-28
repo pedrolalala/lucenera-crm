@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { getProjeto, updateProjetoById, type Projeto } from '@/services/projetos'
-import { Constants } from '@/lib/supabase/types'
+import { Constants, type Database } from '@/lib/supabase/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -95,11 +95,11 @@ export default function ProjectDetail() {
     if (!projeto.id) return
     setSaving(true)
     try {
-      const payload = {
+      const payload: Database['public']['Tables']['projetos']['Update'] = {
         codigo: editForm.codigo,
         nome: editForm.nome,
-        status: editForm.status || null,
-        nivel_estrategico: editForm.nivel_estrategico || null,
+        status: editForm.status,
+        nivel_estrategico: editForm.nivel_estrategico,
         data_entrada: editForm.data_entrada || null,
         cidade: editForm.cidade,
         estado: editForm.estado,
@@ -107,7 +107,7 @@ export default function ProjectDetail() {
         cliente_id: editForm.cliente_id,
         arquiteto_id: editForm.arquiteto_id,
         responsavel_obra_id: editForm.responsavel_obra_id,
-      } as any
+      }
 
       await updateProjetoById(projeto.id, payload)
 
