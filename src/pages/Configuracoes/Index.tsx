@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import { Link } from 'react-router-dom'
 import { Shield, Users, Settings, Terminal, Activity, Key, ChevronRight } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -12,6 +14,16 @@ import {
 import { Button } from '@/components/ui/button'
 
 export default function Configuracoes() {
+  const [equipe, setEquipe] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchEquipe = async () => {
+      const { data } = await supabase.from('usuarios').select('*').limit(5)
+      if (data) setEquipe(data)
+    }
+    fetchEquipe()
+  }, [])
+
   return (
     <div className="flex-1 space-y-4 pt-2">
       <div className="flex items-center justify-between space-y-2 mb-6">
@@ -142,17 +154,42 @@ export default function Configuracoes() {
                 Gerencie os usuários do sistema, permissões e convites para novos membros.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center py-10 text-center border rounded-lg border-dashed bg-muted/30">
-                <Users className="h-12 w-12 text-primary/60 mb-4" />
-                <h3 className="text-lg font-semibold tracking-tight">Módulo de Usuários</h3>
-                <p className="text-sm text-muted-foreground mb-6 max-w-md">
+            <CardContent className="space-y-6">
+              {equipe.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Equipe Recente</h4>
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {equipe.map((user) => (
+                      <div
+                        key={user.id}
+                        className="flex items-center gap-3 p-3 border rounded-lg bg-card"
+                      >
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-sm">
+                          {user.nome?.substring(0, 2).toUpperCase() || 'US'}
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="text-sm font-medium truncate">{user.nome}</p>
+                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                        </div>
+                        <div className="text-xs px-2 py-1 bg-muted rounded-full font-medium">
+                          {user.role || 'viewer'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col items-center justify-center py-8 text-center border rounded-lg border-dashed bg-muted/30">
+                <Users className="h-10 w-10 text-primary/60 mb-3" />
+                <h3 className="text-base font-semibold tracking-tight">Módulo de Usuários</h3>
+                <p className="text-sm text-muted-foreground mb-5 max-w-md">
                   Acesse o painel completo de gestão de usuários para adicionar novos membros à
                   equipe, editar papéis e revogar acessos.
                 </p>
-                <Button asChild>
+                <Button asChild variant="default">
                   <Link to="/configuracoes/usuarios" className="flex items-center gap-2">
-                    Acessar Gestão de Usuários <ChevronRight className="h-4 w-4" />
+                    Acessar Gestão Completa <ChevronRight className="h-4 w-4" />
                   </Link>
                 </Button>
               </div>

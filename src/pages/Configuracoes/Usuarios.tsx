@@ -20,14 +20,14 @@ export default function Usuarios() {
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState('User')
+  const [role, setRole] = useState('viewer')
   const [isLoading, setIsLoading] = useState(false)
   const [usuarios, setUsuarios] = useState<any[]>([])
 
   const fetchUsuarios = async () => {
     try {
       const { data, error } = await supabase
-        .from('usuarios_crm' as any)
+        .from('usuarios')
         .select('*')
         .order('created_at', { ascending: false })
 
@@ -47,19 +47,15 @@ export default function Usuarios() {
     setIsLoading(true)
 
     try {
-      const { data: userId, error } = await supabase.rpc('create_user', {
+      const { data: userId, error } = await supabase.rpc('criar_usuario', {
         p_email: email,
-        p_name: name,
+        p_nome: name,
         p_password: password,
-        p_role: role,
+        p_role: role as any,
       })
 
       if (error) {
         throw new Error(error.message)
-      }
-
-      if (!userId) {
-        throw new Error('Falha ao obter ID do usuário criado.')
       }
 
       toast({
@@ -83,29 +79,28 @@ export default function Usuarios() {
   }
 
   const handleDeleteUser = async (id: string) => {
-    if (
-      !confirm(
-        'Tem certeza que deseja remover este usuário da lista (o acesso via Auth pode ser mantido)?',
-      )
-    )
+    const user = usuarios.find((u) => u.id === id)
+    const newStatus = !user?.ativo
+
+    if (!confirm(`Tem certeza que deseja ${newStatus ? 'ativar' : 'desativar'} este usuário?`))
       return
 
     try {
-      const { error } = await supabase
-        .from('usuarios_crm' as any)
-        .delete()
-        .eq('id', id)
+      const { error } = await supabase.rpc('admin_update_user_status', {
+        p_user_id: id,
+        p_ativo: newStatus,
+      })
 
       if (error) throw error
 
       toast({
-        title: 'Usuário removido',
-        description: 'O registro foi apagado do banco de dados.',
+        title: `Usuário ${newStatus ? 'ativado' : 'desativado'}`,
+        description: 'O status do usuário foi atualizado.',
       })
       fetchUsuarios()
     } catch (err: any) {
       toast({
-        title: 'Erro ao remover usuário',
+        title: 'Erro ao atualizar status',
         description: err.message,
         variant: 'destructive',
       })
@@ -177,8 +172,11 @@ export default function Usuarios() {
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                 >
-                  <option value="User">Usuário Padrão</option>
-                  <option value="Admin">Administrador</option>
+                  <option value="viewer">Viewer (Leitura)</option>
+                  <option value="funcionario">Funcionário</option>
+                  <option value="operador">Operador</option>
+                  <option value="gerente">Gerente</option>
+                  <option value="admin">Administrador</option>
                 </select>
               </div>
 
@@ -188,7 +186,7 @@ export default function Usuarios() {
                 </Button>
                 <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                   <ShieldAlert className="h-3 w-3 text-amber-500" />
-                  <span>Acesso imediato e registro na tabela usuarios_crm</span>
+                  <span>Acesso imediato e registro na tabela usuarios</span>
                 </div>
               </div>
             </form>
@@ -199,7 +197,7 @@ export default function Usuarios() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Equipe Cadastrada (usuarios_crm)
+              Equipe Cadastrada (usuarios)
             </CardTitle>
             <CardDescription>
               Lista de todos os usuários gerenciados de forma centralizada pelo banco de dados.
@@ -213,19 +211,20 @@ export default function Usuarios() {
                     <TableHead>Nome</TableHead>
                     <TableHead>E-mail</TableHead>
                     <TableHead>Nível</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {usuarios.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                        Nenhum usuário encontrado na tabela usuarios_crm.
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        Nenhum usuário encontrado na tabela usuarios.
                       </TableCell>
                     </TableRow>
                   ) : (
                     usuarios.map((user) => (
-                      <TableRow key={user.id}>
+                      <TableRow key={user.id} className={!user.ativo ? 'opacity-50' : ''}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
@@ -240,22 +239,37 @@ export default function Usuarios() {
                         <TableCell>
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              user.role === 'Admin'
+                              user.role === 'admin'
                                 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
                                 : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                             }`}
                           >
-                            {user.role}
+                            {user.role || 'viewer'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              user.ativo
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            }`}
+                          >
+                            {user.ativo ? 'Ativo' : 'Inativo'}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
-                            size="icon"
+                            size="sm"
                             onClick={() => handleDeleteUser(user.id)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            className={
+                              user.ativo
+                                ? 'text-red-500 hover:text-red-700 hover:bg-red-50'
+                                : 'text-green-500 hover:text-green-700 hover:bg-green-50'
+                            }
                           >
-                            <Trash2 className="h-4 w-4" />
+                            {user.ativo ? 'Desativar' : 'Ativar'}
                           </Button>
                         </TableCell>
                       </TableRow>
