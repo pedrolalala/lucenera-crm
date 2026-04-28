@@ -103,6 +103,23 @@ export default function ProjectNew() {
 
   const [responsaveis, setResponsaveis] = useState<string[]>([])
 
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      codigo: '',
+      nome: '',
+      nivel_estrategico: '3',
+      cliente_id: 'null',
+      arquiteto_id: 'null',
+      responsavel_obra_id: 'null',
+      responsavel_nome: '',
+      cidade: '',
+      estado: 'SP',
+      status: 'Estudo Inicial',
+      data_entrada: new Date(),
+    },
+  })
+
   useEffect(() => {
     supabase
       .from('projetos')
@@ -155,23 +172,6 @@ export default function ProjectNew() {
     const contact = contacts.find((c) => c.cidade?.toLowerCase() === city.toLowerCase())
     return contact?.estado || ''
   }
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      codigo: '',
-      nome: '',
-      nivel_estrategico: '3',
-      cliente_id: 'null',
-      arquiteto_id: 'null',
-      responsavel_obra_id: 'null',
-      responsavel_nome: '',
-      cidade: '',
-      estado: 'SP',
-      status: 'Estudo Inicial',
-      data_entrada: new Date(),
-    },
-  })
 
   const onSubmit = async (v: z.infer<typeof formSchema>) => {
     setLoading(true)
