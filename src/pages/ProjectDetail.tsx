@@ -117,8 +117,11 @@ export default function ProjectDetail() {
       ...editParcelas,
       {
         numero_parcela: maxNum + 1,
-        valor: 0,
+        valor: 1, // Start with 1 to avoid constraint error (valor > 0)
         status: 'pendente',
+        juros: 0,
+        multa: 0,
+        desconto: 0,
       },
     ])
   }
@@ -131,6 +134,47 @@ export default function ProjectDetail() {
 
   const handleSave = async () => {
     if (!projeto.id) return
+
+    const projectStatus = editForm.status || projeto.status
+    const hasNewParcelas = editParcelas.some((p) => !p.id)
+
+    if (hasNewParcelas && projectStatus !== 'Ajustes finais' && projectStatus !== 'Finalizado') {
+      toast({
+        title: 'Ação não permitida',
+        description:
+          'Novas parcelas só podem ser adicionadas quando o projeto está em "Ajustes finais" ou "Finalizado".',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    for (const p of editParcelas) {
+      if (!p.valor || p.valor <= 0) {
+        toast({
+          title: 'Valor inválido',
+          description: `A parcela ${p.numero_parcela} precisa ter valor maior que 0.`,
+          variant: 'destructive',
+        })
+        return
+      }
+      if (p.valor_pago !== null && p.valor_pago !== undefined && p.valor_pago < 0) {
+        toast({
+          title: 'Valor inválido',
+          description: `O valor pago da parcela ${p.numero_parcela} não pode ser negativo.`,
+          variant: 'destructive',
+        })
+        return
+      }
+      if ((p.juros && p.juros < 0) || (p.multa && p.multa < 0) || (p.desconto && p.desconto < 0)) {
+        toast({
+          title: 'Valor inválido',
+          description: `Juros, multa e desconto não podem ser negativos na parcela ${p.numero_parcela}.`,
+          variant: 'destructive',
+        })
+        return
+      }
+    }
+
     setSaving(true)
     try {
       const payload: Database['public']['Tables']['projetos']['Update'] = {
@@ -186,7 +230,13 @@ export default function ProjectDetail() {
   const outros = contacts.filter((c) => c.tipo === 'outro')
 
   const valorTotal =
-    projeto.projeto_parcelas?.reduce((acc, p) => acc + Number(p.valor), 0) ||
+    projeto.projeto_parcelas?.reduce((acc, p) => {
+      const v = Number(p.valor) || 0
+      const j = Number(p.juros) || 0
+      const m = Number(p.multa) || 0
+      const d = Number(p.desconto) || 0
+      return acc + v + j + m - d
+    }, 0) ||
     Number(projeto.valor_total) ||
     0
 
@@ -546,12 +596,16 @@ export default function ProjectDetail() {
                   <Table>
                     <TableHeader className="bg-muted/50">
                       <TableRow>
-                        <TableHead className="w-[80px]">Nº</TableHead>
-                        <TableHead>Valor</TableHead>
-                        <TableHead>Vencimento</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Valor Pago</TableHead>
-                        <TableHead>Pagamento</TableHead>
+                        <TableHead className="w-[60px]">Nº</TableHead>
+                        <TableHead className="min-w-[100px]">Valor</TableHead>
+                        <TableHead className="min-w-[130px]">Vencimento</TableHead>
+                        <TableHead className="min-w-[140px]">Forma Pgto</TableHead>
+                        <TableHead className="min-w-[120px]">Status</TableHead>
+                        <TableHead className="min-w-[100px]">Valor Pago</TableHead>
+                        <TableHead className="min-w-[130px]">Pagamento</TableHead>
+                        <TableHead className="min-w-[80px]">Juros</TableHead>
+                        <TableHead className="min-w-[80px]">Multa</TableHead>
+                        <TableHead className="min-w-[80px]">Desc.</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -569,12 +623,14 @@ export default function ProjectDetail() {
                                   e.target.value ? parseInt(e.target.value) : null,
                                 )
                               }
-                              className="w-16 h-8"
+                              className="w-14 h-8 px-2"
                             />
                           </TableCell>
                           <TableCell>
                             <Input
                               type="number"
+                              min="0.01"
+                              step="0.01"
                               value={p.valor || ''}
                               onChange={(e) =>
                                 handleParcelaChange(
@@ -583,7 +639,7 @@ export default function ProjectDetail() {
                                   e.target.value ? parseFloat(e.target.value) : null,
                                 )
                               }
-                              className="w-24 h-8"
+                              className="w-full h-8 px-2"
                             />
                           </TableCell>
                           <TableCell>
@@ -597,15 +653,39 @@ export default function ProjectDetail() {
                                   e.target.value || null,
                                 )
                               }
-                              className="h-8"
+                              className="w-full h-8 px-2"
                             />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={p.forma_pagamento || 'null'}
+                              onValueChange={(v) =>
+                                handleParcelaChange(
+                                  index,
+                                  'forma_pagamento',
+                                  v === 'null' ? null : v,
+                                )
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-full px-2 text-xs">
+                                <SelectValue placeholder="Forma" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="null">Nenhuma</SelectItem>
+                                {Constants.public.Enums.pagamento_forma.map((s) => (
+                                  <SelectItem key={s} value={s}>
+                                    {s}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             <Select
                               value={p.status || 'pendente'}
                               onValueChange={(v) => handleParcelaChange(index, 'status', v)}
                             >
-                              <SelectTrigger className="h-8 w-28">
+                              <SelectTrigger className="h-8 w-full px-2 text-xs">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -620,7 +700,9 @@ export default function ProjectDetail() {
                           <TableCell>
                             <Input
                               type="number"
-                              value={p.valor_pago || ''}
+                              min="0"
+                              step="0.01"
+                              value={p.valor_pago ?? ''}
                               onChange={(e) =>
                                 handleParcelaChange(
                                   index,
@@ -628,7 +710,7 @@ export default function ProjectDetail() {
                                   e.target.value ? parseFloat(e.target.value) : null,
                                 )
                               }
-                              className="w-24 h-8"
+                              className="w-full h-8 px-2"
                             />
                           </TableCell>
                           <TableCell>
@@ -638,7 +720,58 @@ export default function ProjectDetail() {
                               onChange={(e) =>
                                 handleParcelaChange(index, 'data_pagamento', e.target.value || null)
                               }
-                              className="h-8"
+                              className="w-full h-8 px-2"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={p.juros ?? ''}
+                              onChange={(e) =>
+                                handleParcelaChange(
+                                  index,
+                                  'juros',
+                                  e.target.value ? parseFloat(e.target.value) : 0,
+                                )
+                              }
+                              className="w-full h-8 px-2"
+                              placeholder="Juros"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={p.multa ?? ''}
+                              onChange={(e) =>
+                                handleParcelaChange(
+                                  index,
+                                  'multa',
+                                  e.target.value ? parseFloat(e.target.value) : 0,
+                                )
+                              }
+                              className="w-full h-8 px-2"
+                              placeholder="Multa"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={p.desconto ?? ''}
+                              onChange={(e) =>
+                                handleParcelaChange(
+                                  index,
+                                  'desconto',
+                                  e.target.value ? parseFloat(e.target.value) : 0,
+                                )
+                              }
+                              className="w-full h-8 px-2"
+                              placeholder="Desc."
                             />
                           </TableCell>
                           <TableCell>
@@ -665,47 +798,73 @@ export default function ProjectDetail() {
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow>
-                      <TableHead className="w-[80px]">Nº</TableHead>
+                      <TableHead className="w-[60px]">Nº</TableHead>
                       <TableHead>Valor</TableHead>
                       <TableHead>Vencimento</TableHead>
+                      <TableHead>Forma Pgto</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Valor Pago</TableHead>
+                      <TableHead>Adicionais</TableHead>
                       <TableHead className="text-right">Pagamento</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {[...projeto.projeto_parcelas]
                       .sort((a, b) => a.numero_parcela - b.numero_parcela)
-                      .map((p) => (
-                        <TableRow key={p.id}>
-                          <TableCell className="font-medium">{p.numero_parcela}</TableCell>
-                          <TableCell className="font-semibold text-emerald-600">
-                            {formatCurrency(Number(p.valor))}
-                          </TableCell>
-                          <TableCell>{formatDate(p.data_vencimento)}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                p.status === 'paga'
-                                  ? 'default'
-                                  : p.status === 'atrasada'
-                                    ? 'destructive'
-                                    : 'secondary'
-                              }
-                            >
-                              {p.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-semibold text-emerald-600">
-                            {p.valor_pago ? formatCurrency(Number(p.valor_pago)) : '-'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {formatDate(p.data_pagamento)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      .map((p) => {
+                        const hasAdicionais =
+                          Number(p.juros) > 0 || Number(p.multa) > 0 || Number(p.desconto) > 0
+                        return (
+                          <TableRow key={p.id}>
+                            <TableCell className="font-medium">{p.numero_parcela}</TableCell>
+                            <TableCell className="font-semibold text-emerald-600">
+                              {formatCurrency(Number(p.valor))}
+                            </TableCell>
+                            <TableCell>{formatDate(p.data_vencimento)}</TableCell>
+                            <TableCell className="capitalize">{p.forma_pagamento || '-'}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  p.status === 'paga'
+                                    ? 'default'
+                                    : p.status === 'atrasada'
+                                      ? 'destructive'
+                                      : 'secondary'
+                                }
+                              >
+                                {p.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-semibold text-emerald-600">
+                              {p.valor_pago !== null ? formatCurrency(Number(p.valor_pago)) : '-'}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                              {hasAdicionais ? (
+                                <div className="flex flex-col gap-0.5">
+                                  {Number(p.juros) > 0 && (
+                                    <span>Juros: {formatCurrency(Number(p.juros))}</span>
+                                  )}
+                                  {Number(p.multa) > 0 && (
+                                    <span>Multa: {formatCurrency(Number(p.multa))}</span>
+                                  )}
+                                  {Number(p.desconto) > 0 && (
+                                    <span className="text-red-500">
+                                      Desc: -{formatCurrency(Number(p.desconto))}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                '-'
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatDate(p.data_pagamento)}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
                   </TableBody>
-                </Table>
+                </Table>{' '}
               </div>
             ) : (
               <div className="text-center py-6 text-muted-foreground border rounded-md bg-muted/20">

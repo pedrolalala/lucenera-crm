@@ -77,15 +77,28 @@ export async function saveProjetoParcelas(
   }
 
   for (const p of parcelas) {
+    const payload = {
+      numero_parcela: p.numero_parcela,
+      valor: p.valor,
+      status: p.status || 'pendente',
+      data_vencimento: p.data_vencimento || null,
+      data_pagamento: p.data_pagamento || null,
+      valor_pago: p.valor_pago || null,
+      forma_pagamento: p.forma_pagamento || null,
+      juros: p.juros || 0,
+      multa: p.multa || 0,
+      desconto: p.desconto || 0,
+      descricao: p.descricao || null,
+      observacoes: p.observacoes || null,
+    }
+
     if (p.id) {
-      const { id, created_at, projeto_id, ...updateData } = p
-      const { error } = await supabase.from('projeto_parcelas').update(updateData).eq('id', id)
+      const { error } = await supabase.from('projeto_parcelas').update(payload).eq('id', p.id)
       if (error) throw error
     } else {
-      const { id, created_at, ...insertData } = p
       const { error } = await supabase
         .from('projeto_parcelas')
-        .insert({ ...insertData, projeto_id: projetoId } as any)
+        .insert({ ...payload, projeto_id: projetoId } as any)
       if (error) throw error
     }
   }
