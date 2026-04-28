@@ -95,6 +95,8 @@ export default function ProjectDetail() {
     setSaving(true)
     try {
       const payload = {
+        codigo: editForm.codigo,
+        nome: editForm.nome,
         status: editForm.status,
         nivel_estrategico: editForm.nivel_estrategico,
         data_entrada: editForm.data_entrada,
@@ -154,12 +156,37 @@ export default function ProjectDetail() {
           </Button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">
-                {projeto.nome || 'Projeto sem nome'}
-              </h1>
-              <Badge variant="secondary" className="text-sm">
-                #{projeto.codigo}
-              </Badge>
+              {isEditing ? (
+                <Input
+                  value={editForm.nome || ''}
+                  onChange={(e) => handleChange('nome', e.target.value)}
+                  className="h-10 text-2xl font-bold max-w-[400px]"
+                />
+              ) : (
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {projeto.nome || 'Projeto sem nome'}
+                </h1>
+              )}
+              {isEditing ? (
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground font-medium">#</span>
+                  <Input
+                    value={editForm.codigo || ''}
+                    onChange={(e) => handleChange('codigo', e.target.value.replace(/[^\d.]/g, ''))}
+                    onBlur={(e) => {
+                      const onlyNumbers = e.target.value.replace(/\D/g, '')
+                      if (onlyNumbers.length >= 3) {
+                        handleChange('codigo', `${onlyNumbers.slice(0, 2)}.${onlyNumbers.slice(2)}`)
+                      }
+                    }}
+                    className="h-8 w-24 text-sm"
+                  />
+                </div>
+              ) : (
+                <Badge variant="secondary" className="text-sm">
+                  #{projeto.codigo}
+                </Badge>
+              )}
             </div>
             <p className="text-muted-foreground mt-1">Visualizando detalhes completos do projeto</p>
           </div>

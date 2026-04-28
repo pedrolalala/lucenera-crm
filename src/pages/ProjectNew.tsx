@@ -219,7 +219,22 @@ export default function ProjectNew() {
                       Código <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: 26083" className="h-11 text-base" {...field} />
+                      <Input
+                        placeholder="Ex: 26.083"
+                        className="h-11 text-base"
+                        {...field}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^\d.]/g, '')
+                          field.onChange(val)
+                        }}
+                        onBlur={(e) => {
+                          const onlyNumbers = e.target.value.replace(/\D/g, '')
+                          if (onlyNumbers.length >= 3) {
+                            field.onChange(`${onlyNumbers.slice(0, 2)}.${onlyNumbers.slice(2)}`)
+                          }
+                          field.onBlur()
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
