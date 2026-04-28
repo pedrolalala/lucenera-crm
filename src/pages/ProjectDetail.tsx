@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { getProjeto, updateProjetoById, type Projeto } from '@/services/projetos'
+import { Constants } from '@/lib/supabase/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -97,9 +98,9 @@ export default function ProjectDetail() {
       const payload = {
         codigo: editForm.codigo,
         nome: editForm.nome,
-        status: editForm.status,
-        nivel_estrategico: editForm.nivel_estrategico,
-        data_entrada: editForm.data_entrada,
+        status: editForm.status || null,
+        nivel_estrategico: editForm.nivel_estrategico || null,
+        data_entrada: editForm.data_entrada || null,
         cidade: editForm.cidade,
         estado: editForm.estado,
         responsavel_id: editForm.responsavel_id,
@@ -228,15 +229,25 @@ export default function ProjectDetail() {
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center py-2 border-b">
               <span className="text-muted-foreground w-1/3">Status</span>
-              <div className="w-2/3 text-right flex justify-end">
+              <div className="w-2/3 flex justify-end">
                 {isEditing ? (
-                  <Input
+                  <Select
                     value={editForm.status || ''}
-                    onChange={(e) => handleChange('status', e.target.value)}
-                    className="h-8 max-w-[200px] text-right"
-                  />
+                    onValueChange={(v) => handleChange('status', v)}
+                  >
+                    <SelectTrigger className="h-8 max-w-[200px]">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Constants.public.Enums.projeto_status.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
-                  <Badge variant={projeto.status === 'Concluído' ? 'default' : 'secondary'}>
+                  <Badge variant={projeto.status === 'Finalizado' ? 'default' : 'secondary'}>
                     {projeto.status || 'Não informado'}
                   </Badge>
                 )}
@@ -246,11 +257,24 @@ export default function ProjectDetail() {
               <span className="text-muted-foreground w-1/3">Nível Estratégico</span>
               <div className="w-2/3 flex justify-end">
                 {isEditing ? (
-                  <Input
-                    value={editForm.nivel_estrategico || ''}
-                    onChange={(e) => handleChange('nivel_estrategico', e.target.value as any)}
-                    className="h-8 max-w-[200px] text-right"
-                  />
+                  <Select
+                    value={editForm.nivel_estrategico || 'null'}
+                    onValueChange={(v) =>
+                      handleChange('nivel_estrategico', v === 'null' ? null : v)
+                    }
+                  >
+                    <SelectTrigger className="h-8 max-w-[200px]">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="null">Nenhum</SelectItem>
+                      {Constants.public.Enums.projeto_nivel.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <span className="font-medium">
                     {projeto.nivel_estrategico || 'Não informado'}
