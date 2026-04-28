@@ -72,7 +72,7 @@ const NEW_STATUS_OPTIONS = [
 ]
 
 const formSchema = z.object({
-  codigo: z.string().min(1, 'O campo Código é obrigatório'),
+  codigo: z.string().regex(/^\d{2}\.\d{3}$/, 'Formato inválido. Use o padrão XX.XXX (ex: 26.083)'),
   nome: z.string().min(2, 'Obrigatório'),
   nivel_estrategico: z.enum(['1', '2', '3', '4']),
   responsavel_nome: z.string().optional(),
@@ -116,7 +116,36 @@ export default function ProjectNew() {
           setResponsaveis(uniqueNames.sort())
         }
       })
-  }, [])
+
+    const fetchLatestCode = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projetos')
+          .select('codigo')
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        if (!error && data && data.length > 0) {
+          const lastCode = data[0].codigo
+          if (lastCode && lastCode.includes('.')) {
+            const parts = lastCode.split('.')
+            if (parts.length === 2) {
+              const prefix = parts[0]
+              const suffix = parseInt(parts[1], 10)
+              if (!isNaN(suffix)) {
+                const nextSuffix = String(suffix + 1).padStart(3, '0')
+                form.setValue('codigo', `${prefix}.${nextSuffix}`)
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao buscar último código:', err)
+      }
+    }
+
+    fetchLatestCode()
+  }, [form])
 
   const getCities = () => {
     return Array.from(new Set(contacts.map((c) => c.cidade).filter(Boolean))) as string[]
