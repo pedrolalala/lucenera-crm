@@ -53,4 +53,4 @@ BEGIN
     'engineersCount', COALESCE(v_engineers_count, 0)
   );
 END;
-$;
+$$;
