@@ -12,21 +12,41 @@ export type Projeto = Database['public']['Tables']['projetos']['Row'] & {
 }
 
 export async function getProjetos() {
-  const { data, error } = await supabase
-    .from('projetos')
-    .select(`
-      *,
-      cliente:cliente_id(nome),
-      arquiteto:arquiteto_id(nome),
-      responsavel:responsavel_id(nome),
-      engenheiro:responsavel_obra_id(nome),
-      projeto_parcelas(*)
-    `)
-    .order('codigo', { ascending: false })
-    .order('created_at', { ascending: false })
+  let allData: Projeto[] = []
+  let from = 0
+  const step = 1000
+  let hasMore = true
 
-  if (error) throw error
-  return data as Projeto[]
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('projetos')
+      .select(`
+        *,
+        cliente:cliente_id(nome),
+        arquiteto:arquiteto_id(nome),
+        responsavel:responsavel_id(nome),
+        engenheiro:responsavel_obra_id(nome),
+        projeto_parcelas(*)
+      `)
+      .order('codigo', { ascending: false })
+      .order('created_at', { ascending: false })
+      .range(from, from + step - 1)
+
+    if (error) throw error
+
+    if (data && data.length > 0) {
+      allData = [...allData, ...(data as Projeto[])]
+      if (data.length < step) {
+        hasMore = false
+      } else {
+        from += step
+      }
+    } else {
+      hasMore = false
+    }
+  }
+
+  return allData
 }
 
 export async function getProjeto(id: string) {

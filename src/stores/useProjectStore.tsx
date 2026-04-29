@@ -29,7 +29,7 @@ export const ProjectStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const refreshContacts = useCallback(async () => {
     try {
-      const { data } = await supabase.from('contatos').select('*').order('nome')
+      const { data } = await supabase.from('contatos').select('*').order('nome').limit(5000)
       if (data) setContacts(data)
     } catch (e) {
       console.error('Erro ao carregar contatos:', e)

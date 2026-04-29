@@ -20,58 +20,24 @@ export default function Index() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: projetos } = await supabase
-        .from('projetos')
-        .select(`
-          *,
-          projeto_parcelas ( id, valor )
-        `)
-        .order('created_at', { ascending: false })
+      const { data: statsData, error: statsError } = await supabase.rpc(
+        'get_dashboard_stats' as any,
+      )
 
-      const { data: contatos } = await supabase.from('contatos').select('tipo')
-
-      if (projetos) {
-        const active = projetos.filter(
-          (p) => p.status !== 'Finalizado' && p.status !== 'Arquivado' && p.status !== 'Não fechou',
-        )
-
-        const currentMonth = new Date().getMonth()
-        const currentYear = new Date().getFullYear()
-
-        const completed = projetos.filter((p) => {
-          if (p.status !== 'Finalizado') return false
-          const dateStr = p.created_at || new Date().toISOString()
-          const d = new Date(dateStr)
-          return d.getMonth() === currentMonth && d.getFullYear() === currentYear
-        })
-
-        const value = projetos.reduce((acc, p) => {
-          const parcelasSum =
-            p.projeto_parcelas?.reduce(
-              (sum: number, parc: any) => sum + Number(parc.valor || 0),
-              0,
-            ) || 0
-          const pVal = parcelasSum > 0 ? parcelasSum : Number(p.valor_total || 0)
-          return acc + pVal
-        }, 0)
-
-        setStats((prev) => ({
-          ...prev,
-          activeProjects: active.length,
-          completedThisMonth: completed.length,
-          totalValue: value,
-        }))
-
-        setRecentProjects(projetos.slice(0, 5))
+      if (!statsError && statsData) {
+        setStats(statsData as any)
+      } else if (statsError) {
+        console.error('Erro ao buscar stats do dashboard:', statsError)
       }
 
-      if (contatos) {
-        setStats((prev) => ({
-          ...prev,
-          clientsCount: contatos.filter((c) => c.tipo === 'cliente').length,
-          architectsCount: contatos.filter((c) => c.tipo === 'arquiteto').length,
-          engineersCount: contatos.filter((c) => c.tipo === 'engenheiro').length,
-        }))
+      const { data: projetosData, error: projError } = await supabase
+        .from('projetos')
+        .select('id, nome, codigo, cidade, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      if (!projError && projetosData) {
+        setRecentProjects(projetosData)
       }
     }
 
