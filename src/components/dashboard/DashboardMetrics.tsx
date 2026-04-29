@@ -21,8 +21,9 @@ export function DashboardMetrics({ projetos }: { projetos: Projeto[] }) {
   useEffect(() => {
     const fetchClientes = async () => {
       const { count } = await supabase
-        .from('clientes_crm')
+        .from('contatos')
         .select('*', { count: 'exact', head: true })
+        .eq('tipo', 'cliente')
       setTotalClientes(count || 0)
     }
     fetchClientes()
@@ -31,7 +32,8 @@ export function DashboardMetrics({ projetos }: { projetos: Projeto[] }) {
   const countByStatus = useMemo(() => {
     const counts: Record<string, number> = {}
     projetos.forEach((p) => {
-      const status = p.Status?.trim() || 'Sem Status'
+      // @ts-expect-error fallback para maiúsculo caso venha assim
+      const status = (p.status || p.Status)?.trim() || 'Sem Status'
       counts[status] = (counts[status] || 0) + 1
     })
     return counts

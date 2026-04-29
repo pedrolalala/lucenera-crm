@@ -4,10 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import useProjectStore from '@/stores/useProjectStore'
 
 export default function Index() {
-  const { projects, contacts } = useProjectStore()
   const navigate = useNavigate()
   const [stats, setStats] = useState({
     activeProjects: 0,
@@ -18,38 +16,82 @@ export default function Index() {
     engineersCount: 0,
   })
 
+  const [recentProjects, setRecentProjects] = useState<any[]>([])
+
   useEffect(() => {
-    const active = projects.filter(
-      (p) => p.status !== 'Finalizado' && p.status !== 'Arquivado' && p.status !== 'Não fechou',
-    )
+    const fetchData = async () => {
+      const { data: projetos } = await supabase
+        .from('projetos')
+        .select(`
+          *,
+          projeto_parcelas ( id, valor )
+        `)
+        .order('created_at', { ascending: false })
 
-    const currentMonth = new Date().getMonth()
-    const currentYear = new Date().getFullYear()
+      const { data: contatos } = await supabase.from('contatos').select('tipo')
 
-    const completed = projects.filter((p) => {
-      if (p.status !== 'Finalizado') return false
-      // Find the payment date of the last installment or fallback to created_at
-      const dateStr = p.created_at || new Date().toISOString()
-      const d = new Date(dateStr)
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear
-    })
+      if (projetos) {
+        const active = projetos.filter(
+          (p) => p.status !== 'Finalizado' && p.status !== 'Arquivado' && p.status !== 'Não fechou',
+        )
 
-    const value = projects.reduce((acc, p) => {
-      const pVal =
-        p.projeto_parcelas?.reduce((sum, parc) => sum + Number(parc.valor || 0), 0) ||
-        Number(p.valor_total || 0)
-      return acc + pVal
-    }, 0)
+        const currentMonth = new Date().getMonth()
+        const currentYear = new Date().getFullYear()
 
-    setStats({
-      activeProjects: active.length,
-      completedThisMonth: completed.length,
-      totalValue: value,
-      clientsCount: contacts.filter((c) => c.tipo === 'cliente').length,
-      architectsCount: contacts.filter((c) => c.tipo === 'arquiteto').length,
-      engineersCount: contacts.filter((c) => c.tipo === 'engenheiro').length,
-    })
-  }, [projects, contacts])
+        const completed = projetos.filter((p) => {
+          if (p.status !== 'Finalizado') return false
+          const dateStr = p.created_at || new Date().toISOString()
+          const d = new Date(dateStr)
+          return d.getMonth() === currentMonth && d.getFullYear() === currentYear
+        })
+
+        const value = projetos.reduce((acc, p) => {
+          const parcelasSum =
+            p.projeto_parcelas?.reduce(
+              (sum: number, parc: any) => sum + Number(parc.valor || 0),
+              0,
+            ) || 0
+          const pVal = parcelasSum > 0 ? parcelasSum : Number(p.valor_total || 0)
+          return acc + pVal
+        }, 0)
+
+        setStats((prev) => ({
+          ...prev,
+          activeProjects: active.length,
+          completedThisMonth: completed.length,
+          totalValue: value,
+        }))
+
+        setRecentProjects(projetos.slice(0, 5))
+      }
+
+      if (contatos) {
+        setStats((prev) => ({
+          ...prev,
+          clientsCount: contatos.filter((c) => c.tipo === 'cliente').length,
+          architectsCount: contatos.filter((c) => c.tipo === 'arquiteto').length,
+          engineersCount: contatos.filter((c) => c.tipo === 'engenheiro').length,
+        }))
+      }
+    }
+
+    fetchData()
+
+    const channel = supabase
+      .channel('dashboard_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projetos' }, fetchData)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'projeto_parcelas' },
+        fetchData,
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contatos' }, fetchData)
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
@@ -135,7 +177,7 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {projects.slice(0, 5).map((project) => (
+              {recentProjects.map((project) => (
                 <div
                   key={project.id}
                   className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
@@ -143,7 +185,7 @@ export default function Index() {
                   <div className="space-y-1">
                     <p className="text-sm font-medium leading-none">{project.nome}</p>
                     <p className="text-sm text-muted-foreground">
-                      {project.codigo} • {project.cidade}
+                      {project.codigo} {project.cidade ? `• ${project.cidade}` : ''}
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -156,7 +198,7 @@ export default function Index() {
                   </div>
                 </div>
               ))}
-              {projects.length === 0 && (
+              {recentProjects.length === 0 && (
                 <div className="text-center py-4 text-muted-foreground">
                   Nenhum projeto encontrado.
                 </div>

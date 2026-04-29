@@ -8,7 +8,8 @@ export function DashboardCharts({ projetos }: { projetos: Projeto[] }) {
   const statusData = useMemo(() => {
     const statusCount = projetos.reduce(
       (acc, p) => {
-        const status = p.Status || 'Sem Status'
+        // @ts-expect-error fallback para maiúsculo caso venha assim
+        const status = p.status || p.Status || 'Sem Status'
         acc[status] = (acc[status] || 0) + 1
         return acc
       },
