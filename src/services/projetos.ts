@@ -28,8 +28,8 @@ export async function getProjetos() {
         engenheiro:responsavel_obra_id(nome),
         projeto_parcelas(*)
       `)
+      .order('data_entrada', { ascending: false, nullsFirst: false })
       .order('codigo', { ascending: false })
-      .order('created_at', { ascending: false })
       .range(from, from + step - 1)
 
     if (error) throw error
