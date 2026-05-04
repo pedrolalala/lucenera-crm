@@ -1,6 +1,7 @@
 import { ArrowRight, BarChart3, Users, Building2, HardHat, ListTodo, Plus } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { StrategicDashboard } from '@/components/dashboard/StrategicDashboard'
 import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
@@ -135,8 +136,11 @@ export default function Index() {
         </Card>
       </div>
 
+      <StrategicDashboard />
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4 shadow-subtle">
+          {' '}
           <CardHeader>
             <CardTitle>Projetos Recentes</CardTitle>
             <CardDescription>Últimos projetos cadastrados ou atualizados.</CardDescription>
