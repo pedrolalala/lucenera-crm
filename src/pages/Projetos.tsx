@@ -53,8 +53,24 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
+import { format } from 'date-fns'
 
 type ViewMode = 'resumida' | 'operacional' | 'completa'
+
+const MESES = [
+  { label: 'Janeiro', value: '01' },
+  { label: 'Fevereiro', value: '02' },
+  { label: 'Março', value: '03' },
+  { label: 'Abril', value: '04' },
+  { label: 'Maio', value: '05' },
+  { label: 'Junho', value: '06' },
+  { label: 'Julho', value: '07' },
+  { label: 'Agosto', value: '08' },
+  { label: 'Setembro', value: '09' },
+  { label: 'Outubro', value: '10' },
+  { label: 'Novembro', value: '11' },
+  { label: 'Dezembro', value: '12' },
+]
 
 function FilterCombobox({
   label,
@@ -152,6 +168,8 @@ export default function Projetos() {
   const [filterEngenheiro, setFilterEngenheiro] = useState('all')
   const [filterCidade, setFilterCidade] = useState('all')
   const [filterValorTotal, setFilterValorTotal] = useState('all')
+  const [filterAnoFechamento, setFilterAnoFechamento] = useState('all')
+  const [filterMesFechamento, setFilterMesFechamento] = useState('all')
 
   const loadProjetos = () => {
     setLoading(true)
@@ -221,10 +239,58 @@ export default function Projetos() {
     return datas.length > 0 ? datas[datas.length - 1] : null
   }
 
+  const anosFechamento = Array.from(
+    new Set(
+      projetos
+        .map((p) => {
+          const data = getDataFechamento(p)
+          if (!data) return null
+          const match = data.match(/^(\d{4})-(\d{2})/)
+          if (match) return match[1]
+          try {
+            const d = new Date(data)
+            if (!isNaN(d.getTime())) return d.getFullYear().toString()
+          } catch {
+            /* intentionally ignored */
+          }
+          return null
+        })
+        .filter(Boolean),
+    ),
+  ).sort((a, b) => Number(b) - Number(a)) as string[]
+
   const filteredProjetos = projetos.filter((p) => {
     if (filterValorTotal === '>0') {
       const total = getValorTotal(p)
       if (total <= 0) return false
+    }
+
+    if (filterAnoFechamento !== 'all' || filterMesFechamento !== 'all') {
+      const data = getDataFechamento(p)
+      if (!data) return false
+
+      let ano = ''
+      let mes = ''
+      const match = data.match(/^(\d{4})-(\d{2})/)
+      if (match) {
+        ano = match[1]
+        mes = match[2]
+      } else {
+        try {
+          const d = new Date(data)
+          if (!isNaN(d.getTime())) {
+            ano = d.getFullYear().toString()
+            mes = (d.getMonth() + 1).toString().padStart(2, '0')
+          } else {
+            return false
+          }
+        } catch {
+          return false
+        }
+      }
+
+      if (filterAnoFechamento !== 'all' && ano !== filterAnoFechamento) return false
+      if (filterMesFechamento !== 'all' && mes !== filterMesFechamento) return false
     }
 
     return filterConfigs.every((config) => {
@@ -237,6 +303,8 @@ export default function Projetos() {
   const clearFilters = () => {
     filterConfigs.forEach((c) => c.set('all'))
     setFilterValorTotal('all')
+    setFilterAnoFechamento('all')
+    setFilterMesFechamento('all')
   }
 
   const formatDate = (dateStr: string | null) => {
@@ -499,6 +567,28 @@ export default function Projetos() {
                 />
               </div>
             ))}
+            <div className="space-y-2 flex-1 min-w-[150px]">
+              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                Ano Fechamento
+              </label>
+              <FilterCombobox
+                label="Ano Fechamento"
+                value={filterAnoFechamento}
+                onChange={setFilterAnoFechamento}
+                options={anosFechamento.map((a) => ({ label: a, value: a }))}
+              />
+            </div>
+            <div className="space-y-2 flex-1 min-w-[150px]">
+              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                Mês Fechamento
+              </label>
+              <FilterCombobox
+                label="Mês Fechamento"
+                value={filterMesFechamento}
+                onChange={setFilterMesFechamento}
+                options={MESES}
+              />
+            </div>
             <div className="space-y-2 flex-1 min-w-[150px]">
               <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
                 Valor Total
