@@ -33,7 +33,6 @@ const formatDate = (dStr: string) => {
 
 export function StrategicDashboard() {
   const [data, setData] = useState<any[]>([])
-  const [contatosMap, setContatosMap] = useState<Record<string, string>>({})
 
   const [year, setYear] = useState(new Date().getFullYear().toString())
   const [month, setMonth] = useState('all')
@@ -51,19 +50,6 @@ export function StrategicDashboard() {
       .select('*')
       .gt('valor_total', 0)
       .then(({ data: res }) => res && setData(res))
-
-    supabase
-      .from('contatos')
-      .select('id, nome')
-      .then(({ data: res }) => {
-        if (res) {
-          const map: Record<string, string> = {}
-          res.forEach((c) => {
-            map[c.id] = c.nome
-          })
-          setContatosMap(map)
-        }
-      })
   }, [])
 
   const filters = useMemo(() => {
@@ -78,8 +64,8 @@ export function StrategicDashboard() {
       if (d.ano_fechamento) yrs.add(String(d.ano_fechamento))
       if (d.status) sts.add(d.status)
       if (d.responsavel_nome) resp.add(d.responsavel_nome)
-      if (d.arquiteto_id) arq.add(d.arquiteto_id)
-      if (d.engenheiro_id) eng.add(d.engenheiro_id)
+      if (d.arquiteto_nome) arq.add(d.arquiteto_nome)
+      if (d.engenheiro_nome) eng.add(d.engenheiro_nome)
       if (d.cidade) cid.add(d.cidade)
     })
 
@@ -87,8 +73,8 @@ export function StrategicDashboard() {
       years: Array.from(yrs).sort((a, b) => b.localeCompare(a)),
       statuses: Array.from(sts).sort(),
       responsaveis: Array.from(resp).sort(),
-      arquitetos: Array.from(arq),
-      engenheiros: Array.from(eng),
+      arquitetos: Array.from(arq).sort(),
+      engenheiros: Array.from(eng).sort(),
       cidades: Array.from(cid).sort(),
     }
   }, [data])
@@ -129,8 +115,8 @@ export function StrategicDashboard() {
       if (month !== 'all' && String(d.mes_fechamento) !== month) return
       if (statusFilter !== 'all' && d.status !== statusFilter) return
       if (responsavel !== 'all' && d.responsavel_nome !== responsavel) return
-      if (arquiteto !== 'all' && d.arquiteto_id !== arquiteto) return
-      if (engenheiro !== 'all' && d.engenheiro_id !== engenheiro) return
+      if (arquiteto !== 'all' && d.arquiteto_nome !== arquiteto) return
+      if (engenheiro !== 'all' && d.engenheiro_nome !== engenheiro) return
       if (cidade !== 'all' && d.cidade !== cidade) return
 
       const val = Number(d.valor_total || 0)
@@ -285,7 +271,7 @@ export function StrategicDashboard() {
                   <SelectItem value="all">Todos</SelectItem>
                   {filters.arquitetos.map((a) => (
                     <SelectItem key={a} value={a}>
-                      {contatosMap[a] || 'Desconhecido'}
+                      {a}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -301,7 +287,7 @@ export function StrategicDashboard() {
                   <SelectItem value="all">Todos</SelectItem>
                   {filters.engenheiros.map((e) => (
                     <SelectItem key={e} value={e}>
-                      {contatosMap[e] || 'Desconhecido'}
+                      {e}
                     </SelectItem>
                   ))}
                 </SelectContent>
