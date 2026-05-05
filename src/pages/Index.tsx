@@ -25,8 +25,18 @@ export default function Index() {
         'get_dashboard_stats' as any,
       )
 
+      let totalValueView = 0
+      const { data: vwData } = await supabase
+        .from('vw_dashboard_crm_fechamento')
+        .select('valor_total')
+        .gt('valor_total', 0)
+
+      if (vwData) {
+        totalValueView = vwData.reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0)
+      }
+
       if (!statsError && statsData) {
-        setStats(statsData as any)
+        setStats({ ...(statsData as any), totalValue: totalValueView })
       } else if (statsError) {
         console.error('Erro ao buscar stats do dashboard:', statsError)
       }

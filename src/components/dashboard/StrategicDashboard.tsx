@@ -19,6 +19,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Filter, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
@@ -31,25 +33,75 @@ const formatDate = (dStr: string) => {
 
 export function StrategicDashboard() {
   const [data, setData] = useState<any[]>([])
+  const [contatosMap, setContatosMap] = useState<Record<string, string>>({})
+
   const [year, setYear] = useState(new Date().getFullYear().toString())
   const [month, setMonth] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [responsavel, setResponsavel] = useState('all')
+  const [arquiteto, setArquiteto] = useState('all')
+  const [engenheiro, setEngenheiro] = useState('all')
+  const [cidade, setCidade] = useState('all')
+
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     supabase
       .from('vw_dashboard_crm_fechamento')
       .select('*')
+      .gt('valor_total', 0)
       .then(({ data: res }) => res && setData(res))
+
+    supabase
+      .from('contatos')
+      .select('id, nome')
+      .then(({ data: res }) => {
+        if (res) {
+          const map: Record<string, string> = {}
+          res.forEach((c) => {
+            map[c.id] = c.nome
+          })
+          setContatosMap(map)
+        }
+      })
   }, [])
 
   const filters = useMemo(() => {
     const yrs = new Set<string>()
+    const sts = new Set<string>()
+    const resp = new Set<string>()
+    const arq = new Set<string>()
+    const eng = new Set<string>()
+    const cid = new Set<string>()
+
     data.forEach((d) => {
       if (d.ano_fechamento) yrs.add(String(d.ano_fechamento))
+      if (d.status) sts.add(d.status)
+      if (d.responsavel_nome) resp.add(d.responsavel_nome)
+      if (d.arquiteto_id) arq.add(d.arquiteto_id)
+      if (d.engenheiro_id) eng.add(d.engenheiro_id)
+      if (d.cidade) cid.add(d.cidade)
     })
+
     return {
       years: Array.from(yrs).sort((a, b) => b.localeCompare(a)),
+      statuses: Array.from(sts).sort(),
+      responsaveis: Array.from(resp).sort(),
+      arquitetos: Array.from(arq),
+      engenheiros: Array.from(eng),
+      cidades: Array.from(cid).sort(),
     }
   }, [data])
+
+  const clearFilters = () => {
+    setYear('all')
+    setMonth('all')
+    setStatusFilter('all')
+    setResponsavel('all')
+    setArquiteto('all')
+    setEngenheiro('all')
+    setCidade('all')
+  }
 
   const metrics = useMemo(() => {
     let receita = 0
@@ -75,6 +127,11 @@ export function StrategicDashboard() {
     data.forEach((d) => {
       if (year !== 'all' && String(d.ano_fechamento) !== year) return
       if (month !== 'all' && String(d.mes_fechamento) !== month) return
+      if (statusFilter !== 'all' && d.status !== statusFilter) return
+      if (responsavel !== 'all' && d.responsavel_nome !== responsavel) return
+      if (arquiteto !== 'all' && d.arquiteto_id !== arquiteto) return
+      if (engenheiro !== 'all' && d.engenheiro_id !== engenheiro) return
+      if (cidade !== 'all' && d.cidade !== cidade) return
 
       const val = Number(d.valor_total || 0)
       receita += val
@@ -114,7 +171,7 @@ export function StrategicDashboard() {
         .sort((a, b) => b.quantidade - a.quantidade),
       table: tableData,
     }
-  }, [data, year, month])
+  }, [data, year, month, statusFilter, responsavel, arquiteto, engenheiro, cidade])
 
   return (
     <div className="mt-8 mb-8 space-y-6 animate-fade-in">
@@ -122,59 +179,169 @@ export function StrategicDashboard() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Análise Estratégica</h2>
           <p className="text-muted-foreground text-sm">
-            Métricas financeiras e performance do período.
+            Métricas financeiras baseadas em projetos com valor maior que zero.
           </p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Select value={year} onValueChange={setYear}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Ano" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Anos</SelectItem>
-              {filters.years.map((y) => (
-                <SelectItem key={y} value={y}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Mês" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Meses</SelectItem>
-              <SelectItem value="01">Janeiro</SelectItem>
-              <SelectItem value="02">Fevereiro</SelectItem>
-              <SelectItem value="03">Março</SelectItem>
-              <SelectItem value="04">Abril</SelectItem>
-              <SelectItem value="05">Maio</SelectItem>
-              <SelectItem value="06">Junho</SelectItem>
-              <SelectItem value="07">Julho</SelectItem>
-              <SelectItem value="08">Agosto</SelectItem>
-              <SelectItem value="09">Setembro</SelectItem>
-              <SelectItem value="10">Outubro</SelectItem>
-              <SelectItem value="11">Novembro</SelectItem>
-              <SelectItem value="12">Dezembro</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
+            <Filter className="mr-2 h-4 w-4" />
+            Filtros Avançados
+          </Button>
+          {(year !== 'all' ||
+            month !== 'all' ||
+            statusFilter !== 'all' ||
+            responsavel !== 'all' ||
+            arquiteto !== 'all' ||
+            engenheiro !== 'all' ||
+            cidade !== 'all') && (
+            <Button variant="ghost" onClick={clearFilters} className="px-2" title="Limpar Filtros">
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
+
+      {showFilters && (
+        <Card className="shadow-subtle border-primary/20 animate-fade-in-down">
+          <CardContent className="p-4 grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Ano Fechamento</label>
+              <Select value={year} onValueChange={setYear}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {filters.years.map((y) => (
+                    <SelectItem key={y} value={y}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Mês Fechamento</label>
+              <Select value={month} onValueChange={setMonth}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="01">Janeiro</SelectItem>
+                  <SelectItem value="02">Fevereiro</SelectItem>
+                  <SelectItem value="03">Março</SelectItem>
+                  <SelectItem value="04">Abril</SelectItem>
+                  <SelectItem value="05">Maio</SelectItem>
+                  <SelectItem value="06">Junho</SelectItem>
+                  <SelectItem value="07">Julho</SelectItem>
+                  <SelectItem value="08">Agosto</SelectItem>
+                  <SelectItem value="09">Setembro</SelectItem>
+                  <SelectItem value="10">Outubro</SelectItem>
+                  <SelectItem value="11">Novembro</SelectItem>
+                  <SelectItem value="12">Dezembro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {filters.statuses.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Responsável</label>
+              <Select value={responsavel} onValueChange={setResponsavel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {filters.responsaveis.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Arquiteto</label>
+              <Select value={arquiteto} onValueChange={setArquiteto}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Arquiteto" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {filters.arquitetos.map((a) => (
+                    <SelectItem key={a} value={a}>
+                      {contatosMap[a] || 'Desconhecido'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Engenheiro</label>
+              <Select value={engenheiro} onValueChange={setEngenheiro}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Engenheiro" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {filters.engenheiros.map((e) => (
+                    <SelectItem key={e} value={e}>
+                      {contatosMap[e] || 'Desconhecido'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Cidade</label>
+              <Select value={cidade} onValueChange={setCidade}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Cidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {filters.cidades.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="shadow-subtle">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Receita no Período</CardTitle>
+            <CardTitle className="text-sm font-medium">Valor Total (SUM)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-600">
               {formatCurrency(metrics.receita)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">Soma de valor_total (distintos)</p>
           </CardContent>
         </Card>
         <Card className="shadow-subtle">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Projetos Fechados</CardTitle>
+            <CardTitle className="text-sm font-medium">Projetos Financeiros</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{metrics.projetos}</div>
@@ -191,6 +358,7 @@ export function StrategicDashboard() {
           </CardContent>
         </Card>
       </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="shadow-subtle">
           <CardHeader>
@@ -262,6 +430,7 @@ export function StrategicDashboard() {
           </CardContent>
         </Card>
       </div>
+
       <Card className="shadow-subtle mt-4">
         <CardHeader>
           <CardTitle>Detalhamento Financeiro</CardTitle>
@@ -274,7 +443,7 @@ export function StrategicDashboard() {
                   <TableHead>Código</TableHead>
                   <TableHead>Projeto</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Data Fechamento</TableHead>
+                  <TableHead>Data de Referência (Fechamento)</TableHead>
                   <TableHead className="text-right">Valor Total</TableHead>
                 </TableRow>
               </TableHeader>
@@ -293,7 +462,7 @@ export function StrategicDashboard() {
                 {metrics.table.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
-                      Nenhum projeto encontrado para o filtro selecionado.
+                      Nenhum projeto encontrado para os filtros selecionados.
                     </TableCell>
                   </TableRow>
                 )}
