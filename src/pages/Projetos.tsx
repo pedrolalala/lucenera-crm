@@ -121,17 +121,17 @@ function FilterCombobox({
               </CommandItem>
               {options.map((option) => (
                 <CommandItem
-                  key={option.value}
-                  value={option.label}
+                  key={String(option.value)}
+                  value={String(option.label)}
                   onSelect={() => {
-                    onChange(option.value === value ? 'all' : option.value)
+                    onChange(option.value === value ? 'all' : String(option.value))
                     setOpen(false)
                   }}
                 >
                   <Check
                     className={cn(
                       'mr-2 h-4 w-4',
-                      value === option.value ? 'opacity-100' : 'opacity-0',
+                      value === String(option.value) ? 'opacity-100' : 'opacity-0',
                     )}
                   />
                   {option.label}
@@ -230,13 +230,41 @@ export default function Projetos() {
     return Number(projeto.valor_total) || 0
   }
 
+  const getSortableString = (dateStr: string) => {
+    let match = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
+    if (match) return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`
+    match = dateStr.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/)
+    if (match) return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`
+    return dateStr
+  }
+
   const getDataFechamento = (projeto: Projeto) => {
     if (!projeto.projeto_parcelas || !Array.isArray(projeto.projeto_parcelas)) return null
     const datas = projeto.projeto_parcelas
       .map((p: any) => p.data_fechamento)
       .filter(Boolean)
-      .sort()
+      .sort((a, b) => getSortableString(a).localeCompare(getSortableString(b)))
     return datas.length > 0 ? datas[datas.length - 1] : null
+  }
+
+  const parseDateRobust = (data: string | null) => {
+    if (!data) return { ano: null, mes: null }
+    let match = data.match(/^(\d{4})-(\d{1,2})/)
+    if (match) return { ano: match[1], mes: match[2].padStart(2, '0') }
+    match = data.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/)
+    if (match) return { ano: match[3], mes: match[2].padStart(2, '0') }
+    try {
+      const d = new Date(data)
+      if (!isNaN(d.getTime())) {
+        return {
+          ano: d.getFullYear().toString(),
+          mes: (d.getMonth() + 1).toString().padStart(2, '0'),
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return { ano: null, mes: null }
   }
 
   const anosFechamento = Array.from(
@@ -244,16 +272,8 @@ export default function Projetos() {
       projetos
         .map((p) => {
           const data = getDataFechamento(p)
-          if (!data) return null
-          const match = data.match(/^(\d{4})-(\d{2})/)
-          if (match) return match[1]
-          try {
-            const d = new Date(data)
-            if (!isNaN(d.getTime())) return d.getFullYear().toString()
-          } catch {
-            /* intentionally ignored */
-          }
-          return null
+          const { ano } = parseDateRobust(data)
+          return ano
         })
         .filter(Boolean),
     ),
@@ -269,25 +289,8 @@ export default function Projetos() {
       const data = getDataFechamento(p)
       if (!data) return false
 
-      let ano = ''
-      let mes = ''
-      const match = data.match(/^(\d{4})-(\d{2})/)
-      if (match) {
-        ano = match[1]
-        mes = match[2]
-      } else {
-        try {
-          const d = new Date(data)
-          if (!isNaN(d.getTime())) {
-            ano = d.getFullYear().toString()
-            mes = (d.getMonth() + 1).toString().padStart(2, '0')
-          } else {
-            return false
-          }
-        } catch {
-          return false
-        }
-      }
+      const { ano, mes } = parseDateRobust(data)
+      if (!ano || !mes) return false
 
       if (filterAnoFechamento !== 'all' && ano !== filterAnoFechamento) return false
       if (filterMesFechamento !== 'all' && mes !== filterMesFechamento) return false
