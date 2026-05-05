@@ -239,12 +239,7 @@ export default function Projetos() {
   }
 
   const getDataFechamento = (projeto: Projeto) => {
-    if (!projeto.projeto_parcelas || !Array.isArray(projeto.projeto_parcelas)) return null
-    const datas = projeto.projeto_parcelas
-      .map((p: any) => p.data_fechamento)
-      .filter(Boolean)
-      .sort((a, b) => getSortableString(a).localeCompare(getSortableString(b)))
-    return datas.length > 0 ? datas[datas.length - 1] : null
+    return projeto.data_fechamento || null
   }
 
   const parseDateRobust = (data: string | null) => {
@@ -268,15 +263,7 @@ export default function Projetos() {
   }
 
   const anosFechamento = Array.from(
-    new Set(
-      projetos
-        .map((p) => {
-          const data = getDataFechamento(p)
-          const { ano } = parseDateRobust(data)
-          return ano
-        })
-        .filter(Boolean),
-    ),
+    new Set(projetos.map((p) => p.ano_fechamento).filter(Boolean)),
   ).sort((a, b) => Number(b) - Number(a)) as string[]
 
   const filteredProjetos = projetos.filter((p) => {
@@ -285,16 +272,10 @@ export default function Projetos() {
       if (total <= 0) return false
     }
 
-    if (filterAnoFechamento !== 'all' || filterMesFechamento !== 'all') {
-      const data = getDataFechamento(p)
-      if (!data) return false
-
-      const { ano, mes } = parseDateRobust(data)
-      if (!ano || !mes) return false
-
-      if (filterAnoFechamento !== 'all' && ano !== filterAnoFechamento) return false
-      if (filterMesFechamento !== 'all' && mes !== filterMesFechamento) return false
-    }
+    if (filterAnoFechamento !== 'all' && String(p.ano_fechamento) !== filterAnoFechamento)
+      return false
+    if (filterMesFechamento !== 'all' && String(p.mes_fechamento) !== filterMesFechamento)
+      return false
 
     return filterConfigs.every((config) => {
       if (config.state === 'all') return true

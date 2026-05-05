@@ -8,18 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import {
   Table,
@@ -34,43 +23,38 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
 const formatDate = (dStr: string) => {
-  if (!dStr) return ''
+  if (!dStr) return '-'
   const [y, m, d] = dStr.split('-')
+  if (!y || !m || !d) return dStr
   return `${d}/${m}/${y}`
 }
 
 export function StrategicDashboard() {
   const [data, setData] = useState<any[]>([])
   const [year, setYear] = useState(new Date().getFullYear().toString())
-  const [resp, setResp] = useState('all')
+  const [month, setMonth] = useState('all')
 
   useEffect(() => {
     supabase
-      .from('projeto_parcelas')
-      .select(
-        `id, valor, data_pagamento, projeto_id, projetos(id, codigo, nome, responsavel_nome, status)`,
-      )
-      .not('data_pagamento', 'is', null)
+      .from('vw_dashboard_crm_fechamento')
+      .select('*')
       .then(({ data: res }) => res && setData(res))
   }, [])
 
   const filters = useMemo(() => {
-    const yrs = new Set<string>(),
-      rs = new Set<string>()
+    const yrs = new Set<string>()
     data.forEach((d) => {
-      if (d.data_pagamento) yrs.add(d.data_pagamento.substring(0, 4))
-      if (d.projetos?.responsavel_nome) rs.add(d.projetos.responsavel_nome)
+      if (d.ano_fechamento) yrs.add(String(d.ano_fechamento))
     })
     return {
       years: Array.from(yrs).sort((a, b) => b.localeCompare(a)),
-      resps: Array.from(rs).sort(),
     }
   }, [data])
 
   const metrics = useMemo(() => {
     let receita = 0
     const projSet = new Set<string>()
-    const months = [
+    const monthsKeys = [
       'Jan',
       'Fev',
       'Mar',
@@ -84,69 +68,61 @@ export function StrategicDashboard() {
       'Nov',
       'Dez',
     ]
-    const evolMap = new Map(months.map((m) => [m, 0]))
-    const perfMap = new Map<string, number>()
+    const evolMap = new Map(monthsKeys.map((m) => [m, 0]))
     const statusMap = new Map<string, Set<string>>()
-    const tableMap = new Map<string, any>()
+    const tableData: any[] = []
 
     data.forEach((d) => {
-      if (
-        (year !== 'all' && !d.data_pagamento?.startsWith(year)) ||
-        (resp !== 'all' && d.projetos?.responsavel_nome !== resp)
-      )
-        return
-      const val = Number(d.valor || 0)
-      receita += val
-      projSet.add(d.projeto_id)
-      if (d.data_pagamento) {
-        const m = parseInt(d.data_pagamento.substring(5, 7), 10) - 1
-        if (m >= 0 && m < 12) evolMap.set(months[m], evolMap.get(months[m])! + val)
-      }
-      const rName = d.projetos?.responsavel_nome || 'Sem Responsável'
-      perfMap.set(rName, (perfMap.get(rName) || 0) + val)
-      const s = d.projetos?.status || 'Sem Status'
-      if (!statusMap.has(s)) statusMap.set(s, new Set())
-      statusMap.get(s)!.add(d.projeto_id)
+      if (year !== 'all' && String(d.ano_fechamento) !== year) return
+      if (month !== 'all' && String(d.mes_fechamento) !== month) return
 
-      const pid = d.projeto_id
-      if (!tableMap.has(pid))
-        tableMap.set(pid, {
-          id: pid,
-          codigo: d.projetos?.codigo,
-          nome: d.projetos?.nome,
-          responsavel: rName,
-          valor_total: 0,
-          ultima_data: d.data_pagamento || '',
-        })
-      const item = tableMap.get(pid)!
-      item.valor_total += val
-      if (d.data_pagamento > item.ultima_data) item.ultima_data = d.data_pagamento
+      const val = Number(d.valor_total || 0)
+      receita += val
+      if (d.id) projSet.add(d.id)
+
+      if (d.mes_fechamento) {
+        const m = parseInt(d.mes_fechamento, 10) - 1
+        if (m >= 0 && m < 12) evolMap.set(monthsKeys[m], evolMap.get(monthsKeys[m])! + val)
+      }
+
+      const s = d.status || 'Sem Status'
+      if (!statusMap.has(s)) statusMap.set(s, new Set())
+      if (d.id) statusMap.get(s)!.add(d.id)
+
+      tableData.push({
+        id: d.id,
+        codigo: d.codigo,
+        nome: d.nome,
+        status: d.status || 'Sem Status',
+        valor_total: val,
+        data_fechamento: d.data_fechamento || '',
+      })
     })
+
+    tableData.sort((a, b) => b.data_fechamento.localeCompare(a.data_fechamento))
 
     return {
       receita,
       projetos: projSet.size,
       ticketMedio: projSet.size > 0 ? receita / projSet.size : 0,
-      evolucao: Array.from(evolMap.entries()).map(([month, valor]) => ({ month, valor })),
-      performance: Array.from(perfMap.entries())
-        .map(([name, valor]) => ({ name, valor }))
-        .sort((a, b) => b.valor - a.valor),
+      evolucao: Array.from(evolMap.entries()).map(([monthKey, valor]) => ({
+        month: monthKey,
+        valor,
+      })),
       status: Array.from(statusMap.entries())
-        .map(([status, set]) => ({ status, quantidade: set.size }))
+        .map(([statusKey, set]) => ({ status: statusKey, quantidade: set.size }))
         .sort((a, b) => b.quantidade - a.quantidade),
-      table: Array.from(tableMap.values()).sort((a, b) =>
-        b.ultima_data.localeCompare(a.ultima_data),
-      ),
+      table: tableData,
     }
-  }, [data, year, resp])
+  }, [data, year, month])
 
   return (
-    <div className="mt-8 mb-8 space-y-6">
+    <div className="mt-8 mb-8 space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Análise Estratégica</h2>
           <p className="text-muted-foreground text-sm">
-            Métricas financeiras e performance da equipe.
+            Métricas financeiras e performance do período.
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
@@ -163,17 +139,24 @@ export function StrategicDashboard() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={resp} onValueChange={setResp}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Responsável" />
+          <Select value={month} onValueChange={setMonth}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Mês" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos Responsáveis</SelectItem>
-              {filters.resps.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {r}
-                </SelectItem>
-              ))}
+              <SelectItem value="all">Todos Meses</SelectItem>
+              <SelectItem value="01">Janeiro</SelectItem>
+              <SelectItem value="02">Fevereiro</SelectItem>
+              <SelectItem value="03">Março</SelectItem>
+              <SelectItem value="04">Abril</SelectItem>
+              <SelectItem value="05">Maio</SelectItem>
+              <SelectItem value="06">Junho</SelectItem>
+              <SelectItem value="07">Julho</SelectItem>
+              <SelectItem value="08">Agosto</SelectItem>
+              <SelectItem value="09">Setembro</SelectItem>
+              <SelectItem value="10">Outubro</SelectItem>
+              <SelectItem value="11">Novembro</SelectItem>
+              <SelectItem value="12">Dezembro</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -191,7 +174,7 @@ export function StrategicDashboard() {
         </Card>
         <Card className="shadow-subtle">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Projetos com Receita</CardTitle>
+            <CardTitle className="text-sm font-medium">Projetos Fechados</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{metrics.projetos}</div>
@@ -208,8 +191,8 @@ export function StrategicDashboard() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="col-span-2 shadow-subtle">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="shadow-subtle">
           <CardHeader>
             <CardTitle>Evolução Mensal</CardTitle>
           </CardHeader>
@@ -279,82 +262,46 @@ export function StrategicDashboard() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="shadow-subtle">
-          <CardHeader>
-            <CardTitle>Performance por Responsável</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer
-              config={{ valor: { label: 'Receita', color: 'hsl(var(--chart-2))' } }}
-              className="h-[300px] w-full"
-            >
-              <BarChart
-                data={metrics.performance}
-                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="name"
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => `R$${v / 1000}k`}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="valor" fill="var(--color-valor)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card className="shadow-subtle">
-          <CardHeader>
-            <CardTitle>Detalhamento Financeiro</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[300px] rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Projeto</TableHead>
-                    <TableHead>Resp.</TableHead>
-                    <TableHead>Últ. Pgto</TableHead>
-                    <TableHead className="text-right">Valor Total</TableHead>
+      <Card className="shadow-subtle mt-4">
+        <CardHeader>
+          <CardTitle>Detalhamento Financeiro</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[300px] rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Projeto</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Data Fechamento</TableHead>
+                  <TableHead className="text-right">Valor Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {metrics.table.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-medium">{row.codigo}</TableCell>
+                    <TableCell>{row.nome}</TableCell>
+                    <TableCell>{row.status}</TableCell>
+                    <TableCell>{formatDate(row.data_fechamento)}</TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatCurrency(row.valor_total)}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {metrics.table.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-medium">{row.codigo}</TableCell>
-                      <TableCell>{row.nome}</TableCell>
-                      <TableCell>{row.responsavel}</TableCell>
-                      <TableCell>{formatDate(row.ultima_data)}</TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(row.valor_total)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {metrics.table.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-4">
-                        Nenhum dado.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      </div>
+                ))}
+                {metrics.table.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                      Nenhum projeto encontrado para o filtro selecionado.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
     </div>
   )
 }

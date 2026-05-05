@@ -9,6 +9,9 @@ export type Projeto = Database['public']['Tables']['projetos']['Row'] & {
   responsavel?: { nome: string } | null
   engenheiro?: { nome: string } | null
   projeto_parcelas?: ProjetoParcela[]
+  ano_fechamento?: string | null
+  mes_fechamento?: string | null
+  data_fechamento?: string | null
 }
 
 export async function getProjetos() {
@@ -16,6 +19,17 @@ export async function getProjetos() {
   let from = 0
   const step = 1000
   let hasMore = true
+
+  const { data: fechamentoData } = await supabase
+    .from('vw_dashboard_crm_fechamento')
+    .select('id, ano_fechamento, mes_fechamento, data_fechamento')
+
+  const fechamentoMap = new Map()
+  if (fechamentoData) {
+    fechamentoData.forEach((f) => {
+      if (f.id) fechamentoMap.set(f.id, f)
+    })
+  }
 
   while (hasMore) {
     const { data, error } = await supabase
@@ -35,7 +49,17 @@ export async function getProjetos() {
     if (error) throw error
 
     if (data && data.length > 0) {
-      allData = [...allData, ...(data as Projeto[])]
+      const mappedData = data.map((d: any) => {
+        const f = fechamentoMap.get(d.id)
+        return {
+          ...d,
+          ano_fechamento: f?.ano_fechamento || null,
+          mes_fechamento: f?.mes_fechamento || null,
+          data_fechamento: f?.data_fechamento || null,
+        }
+      }) as Projeto[]
+
+      allData = [...allData, ...mappedData]
       if (data.length < step) {
         hasMore = false
       } else {
