@@ -4,7 +4,8 @@ import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib@1.17.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, x-supabase-client-platform, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, x-supabase-client-platform, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
@@ -72,7 +73,9 @@ Deno.serve(async (req: Request) => {
       global: { headers: { Authorization: authHeader } },
     })
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return new Response(JSON.stringify({ error: 'Usuário não autenticado.' }), {
         status: 401,
@@ -87,15 +90,20 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (reportType !== 'orcamento' && profile?.role !== 'admin' && profile?.role !== 'gerente') {
-      return new Response(JSON.stringify({ error: 'Acesso negado. Apenas administradores e gerentes podem gerar relatórios.' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return new Response(
+        JSON.stringify({
+          error: 'Acesso negado. Apenas administradores e gerentes podem gerar relatórios.',
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      )
     }
 
     if (reportType === 'orcamento') {
-      const { id, logoBase64 } = filters || {};
-      
+      const { id, logoBase64 } = filters || {}
+
       if (!id) {
         return new Response(JSON.stringify({ error: 'ID do orçamento não fornecido.' }), {
           status: 400,
@@ -116,7 +124,7 @@ Deno.serve(async (req: Request) => {
           )
         `)
         .eq('id', id)
-        .single();
+        .single()
 
       if (budgetError || !budget) {
         return new Response(JSON.stringify({ error: 'Orçamento não encontrado.' }), {
@@ -125,208 +133,286 @@ Deno.serve(async (req: Request) => {
         })
       }
 
-      const pdfDoc = await PDFDocument.create();
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-      let page = pdfDoc.addPage();
-      const { width, height } = page.getSize();
-      let y = height - 50;
+      const pdfDoc = await PDFDocument.create()
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+      let page = pdfDoc.addPage()
+      const { width, height } = page.getSize()
+      let y = height - 50
 
-      let logoBottomY = height - 40;
-      let headerTextX = 40;
-      const maxLogoWidth = 140;
-      const maxLogoHeight = 80;
+      let logoBottomY = height - 40
+      let headerTextX = 40
+      const maxLogoWidth = 140
+      const maxLogoHeight = 80
 
       if (logoBase64) {
         try {
-          const base64Data = logoBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
-          const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-          let image;
+          const base64Data = logoBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '')
+          const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0))
+          let image
           if (logoBase64.includes('image/jpeg') || logoBase64.includes('image/jpg')) {
-            image = await pdfDoc.embedJpg(imageBytes);
+            image = await pdfDoc.embedJpg(imageBytes)
           } else {
-            image = await pdfDoc.embedPng(imageBytes);
+            image = await pdfDoc.embedPng(imageBytes)
           }
-          
-          const scale = Math.min(maxLogoWidth / image.width, maxLogoHeight / image.height);
-          const imgWidth = image.width * scale;
-          const imgHeight = image.height * scale;
-          
-          const containerX = 40;
-          const logoX = containerX + (maxLogoWidth - imgWidth) / 2;
-          const logoY = height - 40 - imgHeight;
-          
+
+          const scale = Math.min(maxLogoWidth / image.width, maxLogoHeight / image.height)
+          const imgWidth = image.width * scale
+          const imgHeight = image.height * scale
+
+          const containerX = 40
+          const logoX = containerX + (maxLogoWidth - imgWidth) / 2
+          const logoY = height - 40 - imgHeight
+
           page.drawImage(image, {
             x: logoX,
-            y: logoY, 
+            y: logoY,
             width: imgWidth,
             height: imgHeight,
-          });
-          
-          headerTextX = containerX + maxLogoWidth + 20; 
-          logoBottomY = height - 40; 
+          })
+
+          headerTextX = containerX + maxLogoWidth + 20
+          logoBottomY = height - 40
         } catch (e) {
-          console.error('Error embedding logo:', e);
+          console.error('Error embedding logo:', e)
         }
       }
 
-      const empresa = budget.empresa || {};
-      const empresaNomeLogo = empresa.nome || 'Luce Nera';
-      const empresaNomeAssinatura = empresa.nome || 'Lucenera';
-      const empresaRazao = empresa.razao_social || 'Manoella Zauith Leite Lopes';
-      const empresaEnd = `${empresa.cep || '14.025-270'} ${empresa.logradouro || 'Rua Ayrton Roxo'} ${empresa.numero || '867'}`;
-      const empresaCidade = `${empresa.bairro || 'Alto Da Boa Vista'}, ${empresa.cidade || 'Ribeirao Preto'}/${empresa.estado || 'SP'}`;
-      
-      let textY = logoBottomY - 14;
-      page.drawText(empresaNomeLogo, { x: headerTextX, y: textY, size: 14, font: boldFont });
-      page.drawText(empresaRazao, { x: headerTextX, y: textY - 15, size: 9, font });
-      page.drawText(empresaEnd, { x: headerTextX, y: textY - 27, size: 9, font });
-      page.drawText(empresaCidade, { x: headerTextX, y: textY - 39, size: 9, font });
-      page.drawText('(16) 3442 - 3545', { x: headerTextX, y: textY - 51, size: 9, font });
+      const empresa = budget.empresa || {}
+      const empresaNomeLogo = empresa.nome || 'Luce Nera'
+      const empresaNomeAssinatura = empresa.nome || 'Lucenera'
+      const empresaRazao = empresa.razao_social || 'Manoella Zauith Leite Lopes'
+      const empresaEnd = `${empresa.cep || '14.025-270'} ${empresa.logradouro || 'Rua Ayrton Roxo'} ${empresa.numero || '867'}`
+      const empresaCidade = `${empresa.bairro || 'Alto Da Boa Vista'}, ${empresa.cidade || 'Ribeirao Preto'}/${empresa.estado || 'SP'}`
 
-      page.drawText('1 de 1', { x: width - 60, y: textY, size: 9, font: boldFont });
-      page.drawLine({ start: { x: width - 200, y: textY - 20 }, end: { x: width - 40, y: textY - 20 }, thickness: 1 });
-      page.drawText('Aprovação do Cliente', { x: width - 195, y: textY - 15, size: 8, font });
+      let textY = logoBottomY - 14
+      page.drawText(empresaNomeLogo, { x: headerTextX, y: textY, size: 14, font: boldFont })
+      page.drawText(empresaRazao, { x: headerTextX, y: textY - 15, size: 9, font })
+      page.drawText(empresaEnd, { x: headerTextX, y: textY - 27, size: 9, font })
+      page.drawText(empresaCidade, { x: headerTextX, y: textY - 39, size: 9, font })
+      page.drawText('(16) 3442 - 3545', { x: headerTextX, y: textY - 51, size: 9, font })
 
-      page.drawLine({ start: { x: width - 200, y: textY - 50 }, end: { x: width - 40, y: textY - 50 }, thickness: 1 });
-      page.drawText(empresaNomeAssinatura, { x: width - 195, y: textY - 45, size: 8, font });
+      page.drawText('1 de 1', { x: width - 60, y: textY, size: 9, font: boldFont })
+      page.drawLine({
+        start: { x: width - 200, y: textY - 20 },
+        end: { x: width - 40, y: textY - 20 },
+        thickness: 1,
+      })
+      page.drawText('Aprovação do Cliente', { x: width - 195, y: textY - 15, size: 8, font })
 
-      page.drawText(`Data Impressão ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`, { x: width - 150, y: textY - 62, size: 6, font, color: rgb(0.4,0.4,0.4) });
-      
-      y = textY - maxLogoHeight - 10;
-      page.drawLine({ start: { x: 40, y }, end: { x: width - 40, y }, thickness: 2 });
-      
-      y -= 25;
-      page.drawText('Orçamento para', { x: 40, y, size: 11, font });
-      
-      const projName = budget.cliente?.nome || 'CLIENTE NÃO INFORMADO';
-      page.drawText(projName.toUpperCase(), { x: 40, y: y - 18, size: 13, font: boldFont });
-      
-      page.drawText(`CPF/CNPJ: ${budget.cliente?.cpf_cnpj || '-'}`, { x: 40, y: y - 35, size: 9, font });
-      page.drawText(`TEL: ${budget.cliente?.telefone || '-'}`, { x: 40, y: y - 47, size: 9, font });
+      page.drawLine({
+        start: { x: width - 200, y: textY - 50 },
+        end: { x: width - 40, y: textY - 50 },
+        thickness: 1,
+      })
+      page.drawText(empresaNomeAssinatura, { x: width - 195, y: textY - 45, size: 8, font })
 
-      page.drawText('Orçamento', { x: width - 120, y, size: 11, font });
-      page.drawText(`${budget.numero || budget.id.split('-')[0].toUpperCase()}`, { x: width - 120, y: y - 18, size: 13, font: boldFont });
+      page.drawText(
+        `Data Impressão ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
+        { x: width - 150, y: textY - 62, size: 6, font, color: rgb(0.4, 0.4, 0.4) },
+      )
 
-      y -= 75;
-      
-      page.drawText('Vendedor', { x: 40, y, size: 9, font });
-      
-      let vendedorNome = 'Equipe Comercial';
+      y = textY - maxLogoHeight - 10
+      page.drawLine({ start: { x: 40, y }, end: { x: width - 40, y }, thickness: 2 })
+
+      y -= 25
+      page.drawText('Orçamento para', { x: 40, y, size: 11, font })
+
+      const projName = budget.cliente?.nome || 'CLIENTE NÃO INFORMADO'
+      page.drawText(projName.toUpperCase(), { x: 40, y: y - 18, size: 13, font: boldFont })
+
+      page.drawText(`CPF/CNPJ: ${budget.cliente?.cpf_cnpj || '-'}`, {
+        x: 40,
+        y: y - 35,
+        size: 9,
+        font,
+      })
+      page.drawText(`TEL: ${budget.cliente?.telefone || '-'}`, { x: 40, y: y - 47, size: 9, font })
+
+      page.drawText('Orçamento', { x: width - 120, y, size: 11, font })
+      page.drawText(`${budget.numero || budget.id.split('-')[0].toUpperCase()}`, {
+        x: width - 120,
+        y: y - 18,
+        size: 13,
+        font: boldFont,
+      })
+
+      y -= 75
+
+      page.drawText('Vendedor', { x: 40, y, size: 9, font })
+
+      let vendedorNome = 'Equipe Comercial'
       if (budget.vendedor?.nome) {
-         vendedorNome = budget.vendedor.nome;
+        vendedorNome = budget.vendedor.nome
       }
-      
-      page.drawText(vendedorNome, { x: 40, y: y - 12, size: 9, font: boldFont });
 
-      y -= 30;
+      page.drawText(vendedorNome, { x: 40, y: y - 12, size: 9, font: boldFont })
 
-      const headersList = ['Código', 'Descrição', 'Qtd.', 'Vl. Unit.', 'Subtotal'];
-      const xOffsets = [40, 90, 390, 430, 490];
-      
+      y -= 30
+
+      const headersList = ['Código', 'Descrição', 'Qtd.', 'Vl. Unit.', 'Subtotal']
+      const xOffsets = [40, 90, 390, 430, 490]
+
       headersList.forEach((h, i) => {
-        page.drawText(h, { x: xOffsets[i], y, size: 9, font: boldFont });
-      });
-      y -= 10;
-      page.drawLine({ start: { x: 40, y }, end: { x: width - 40, y }, thickness: 1 });
-      y -= 15;
+        page.drawText(h, { x: xOffsets[i], y, size: 9, font: boldFont })
+      })
+      y -= 10
+      page.drawLine({ start: { x: 40, y }, end: { x: width - 40, y }, thickness: 1 })
+      y -= 15
 
-      let subtotal = 0;
+      let subtotal = 0
 
       const items = (budget.itens || []).sort((a: any, b: any) => {
-        return (a.id > b.id ? 1 : -1);
-      });
+        return a.id > b.id ? 1 : -1
+      })
 
       items.forEach((item: any) => {
         if (y < 60) {
-          page = pdfDoc.addPage();
-          y = height - 50;
+          page = pdfDoc.addPage()
+          y = height - 50
         }
 
-        const cod = item.custom_id || item.produto?.referencia || '-';
-        let desc = String(item.descricao || item.produto?.nome || 'Produto sem nome').substring(0, 55);
-        
-        const qtd = String(item.quantidade || 1);
-        const preco = Number(item.preco_unitario || 0);
-        
-        const descItem = Number(item.desconto || 0);
-        const finalVal = (preco * Number(item.quantidade || 1)) - descItem;
-        
-        subtotal += finalVal;
+        const cod = item.custom_id || item.produto?.referencia || '-'
+        let desc = String(item.descricao || item.produto?.nome || 'Produto sem nome').substring(
+          0,
+          55,
+        )
 
-        page.drawText(cod, { x: xOffsets[0], y, size: 8, font: boldFont });
-        page.drawText(desc, { x: xOffsets[1], y, size: 8, font });
-        page.drawText(qtd, { x: xOffsets[2], y, size: 8, font });
-        
-        const fmtPreco = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(preco);
-        const fmtFinalVal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finalVal);
-        page.drawText(fmtPreco, { x: xOffsets[3], y, size: 8, font });
-        page.drawText(fmtFinalVal, { x: xOffsets[4], y, size: 8, font });
-        
-        y -= 15;
-      });
+        const qtd = String(item.quantidade || 1)
+        const preco = Number(item.preco_unitario || 0)
 
-      y -= 5;
-      
-      const globalDesc = Number(budget.desconto_global || 0);
-      const finalTotal = Number(budget.valor_total || (subtotal - globalDesc));
+        const descItem = Number(item.desconto || 0)
+        const finalVal = preco * Number(item.quantidade || 1) - descItem
+
+        subtotal += finalVal
+
+        page.drawText(cod, { x: xOffsets[0], y, size: 8, font: boldFont })
+        page.drawText(desc, { x: xOffsets[1], y, size: 8, font })
+        page.drawText(qtd, { x: xOffsets[2], y, size: 8, font })
+
+        const fmtPreco = new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(preco)
+        const fmtFinalVal = new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(finalVal)
+        page.drawText(fmtPreco, { x: xOffsets[3], y, size: 8, font })
+        page.drawText(fmtFinalVal, { x: xOffsets[4], y, size: 8, font })
+
+        y -= 15
+      })
+
+      y -= 5
+
+      const globalDesc = Number(budget.desconto_global || 0)
+      const finalTotal = Number(budget.valor_total || subtotal - globalDesc)
 
       if (y < 200) {
-          page = pdfDoc.addPage();
-          y = height - 50;
+        page = pdfDoc.addPage()
+        y = height - 50
       }
-      
-      page.drawRectangle({ x: width - 270, y: y - 60, width: 230, height: 70, color: rgb(0.95, 0.95, 0.95) });
 
-      const fmtSubtotal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(subtotal);
-      const fmtGlobalDesc = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(globalDesc);
-      const fmtFinalTotal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finalTotal);
+      page.drawRectangle({
+        x: width - 270,
+        y: y - 60,
+        width: 230,
+        height: 70,
+        color: rgb(0.95, 0.95, 0.95),
+      })
 
-      const rightPadX = width - 56;
+      const fmtSubtotal = new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(subtotal)
+      const fmtGlobalDesc = new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(globalDesc)
+      const fmtFinalTotal = new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(finalTotal)
 
-      page.drawText(`SubTotal:`, { x: width - 250, y: y - 15, size: 10, font });
-      page.drawText(fmtSubtotal, { x: rightPadX - font.widthOfTextAtSize(fmtSubtotal, 10), y: y - 15, size: 10, font });
-      
-      page.drawText(`Desconto:`, { x: width - 250, y: y - 30, size: 10, font });
-      page.drawText(fmtGlobalDesc, { x: rightPadX - font.widthOfTextAtSize(fmtGlobalDesc, 10), y: y - 30, size: 10, font });
-      
-      page.drawText(`Valor Total:`, { x: width - 250, y: y - 48, size: 12, font: boldFont });
-      page.drawText(fmtFinalTotal, { x: rightPadX - boldFont.widthOfTextAtSize(fmtFinalTotal, 12), y: y - 48, size: 12, font: boldFont });
-      
-      y -= 80;
-      page.drawText('Condições de Pagamento:', { x: width - 250, y, size: 8, font });
-      
-      page.drawText(budget.condicoes_pagamento || 'A Combinar', { x: width - 250, y: y - 12, size: 9, font: boldFont });
+      const rightPadX = width - 56
 
-      y -= 40;
-      page.drawText('OBSERVAÇÕES: POLÍTICA DE TROCA / DEVOLUÇÃO:', { x: 40, y, size: 9, font: boldFont });
-      y -= 15;
-      
-      const validadeDate = budget.validade ? new Date(budget.validade) : new Date(new Date(budget.created_at || new Date()).getTime() + 10 * 24 * 60 * 60 * 1000);
-      const validadeStr = validadeDate.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-      
+      page.drawText(`SubTotal:`, { x: width - 250, y: y - 15, size: 10, font })
+      page.drawText(fmtSubtotal, {
+        x: rightPadX - font.widthOfTextAtSize(fmtSubtotal, 10),
+        y: y - 15,
+        size: 10,
+        font,
+      })
+
+      page.drawText(`Desconto:`, { x: width - 250, y: y - 30, size: 10, font })
+      page.drawText(fmtGlobalDesc, {
+        x: rightPadX - font.widthOfTextAtSize(fmtGlobalDesc, 10),
+        y: y - 30,
+        size: 10,
+        font,
+      })
+
+      page.drawText(`Valor Total:`, { x: width - 250, y: y - 48, size: 12, font: boldFont })
+      page.drawText(fmtFinalTotal, {
+        x: rightPadX - boldFont.widthOfTextAtSize(fmtFinalTotal, 12),
+        y: y - 48,
+        size: 12,
+        font: boldFont,
+      })
+
+      y -= 80
+      page.drawText('Condições de Pagamento:', { x: width - 250, y, size: 8, font })
+
+      page.drawText(budget.condicoes_pagamento || 'A Combinar', {
+        x: width - 250,
+        y: y - 12,
+        size: 9,
+        font: boldFont,
+      })
+
+      y -= 40
+      page.drawText('OBSERVAÇÕES: POLÍTICA DE TROCA / DEVOLUÇÃO:', {
+        x: 40,
+        y,
+        size: 9,
+        font: boldFont,
+      })
+      y -= 15
+
+      const validadeDate = budget.validade
+        ? new Date(budget.validade)
+        : new Date(new Date(budget.created_at || new Date()).getTime() + 10 * 24 * 60 * 60 * 1000)
+      const validadeStr = validadeDate.toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+
       // Dynamic Policy Filtering: Include only specific items (originally 1, 4, 6) renumbered to 1, 2, 3
       const obsLines = [
         `1- Este orçamento tem validade até ${validadeStr}.`,
         '2- A LuceNera se reserva no direito de não aceitar trocas e devoluções, de acordo com o Código de Defesa do Consumidor.',
-        '3- O prazo de entrega padrão dos materiais é de 30 dias, a partir da aprovação das fichas técnicas. Pelos materiais especiais, prazo a consultar.'
-      ];
+        '3- O prazo de entrega padrão dos materiais é de 30 dias, a partir da aprovação das fichas técnicas. Pelos materiais especiais, prazo a consultar.',
+      ]
 
-      obsLines.forEach(line => {
-         if (y < 40) {
-            page = pdfDoc.addPage();
-            y = height - 50;
-         }
-         page.drawText(line, { x: 40, y, size: 8, font });
-         y -= 12;
-      });
+      obsLines.forEach((line) => {
+        if (y < 40) {
+          page = pdfDoc.addPage()
+          y = height - 50
+        }
+        page.drawText(line, { x: 40, y, size: 8, font })
+        y -= 12
+      })
 
-      page.drawText('Connect Systems Enterprise Technologies, Inc. All rights reserved.', { x: width / 2 - 120, y: 20, size: 7, font, color: rgb(0.5,0.5,0.5) });
+      page.drawText('Connect Systems Enterprise Technologies, Inc. All rights reserved.', {
+        x: width / 2 - 120,
+        y: 20,
+        size: 7,
+        font,
+        color: rgb(0.5, 0.5, 0.5),
+      })
 
-      const pdfBytes = await pdfDoc.save();
+      const pdfBytes = await pdfDoc.save()
       return new Response(pdfBytes, {
-        headers: { ...corsHeaders, 'Content-Type': 'application/pdf' }
-      });
+        headers: { ...corsHeaders, 'Content-Type': 'application/pdf' },
+      })
     }
 
     let query: any
@@ -421,7 +507,7 @@ Deno.serve(async (req: Request) => {
       })
     }
   } catch (error: any) {
-    console.error('Edge Function Error:', error);
+    console.error('Edge Function Error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

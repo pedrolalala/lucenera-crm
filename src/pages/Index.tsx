@@ -26,13 +26,18 @@ export default function Index() {
       )
 
       let totalValueView = 0
-      const { data: vwData } = await supabase
-        .from('vw_dashboard_crm_fechamento')
-        .select('valor_total')
+      const { data: dashProjs } = await supabase.from('vw_projetos_dashboard').select('id')
+
+      const { data: finData } = await supabase
+        .from('vw_financeiro_projetos')
+        .select('id, valor_total')
         .gt('valor_total', 0)
 
-      if (vwData) {
-        totalValueView = vwData.reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0)
+      if (dashProjs && finData) {
+        const validIds = new Set(dashProjs.map((p) => p.id))
+        totalValueView = finData
+          .filter((f) => validIds.has(f.id))
+          .reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0)
       }
 
       if (!statsError && statsData) {
@@ -42,8 +47,8 @@ export default function Index() {
       }
 
       const { data: projetosData, error: projError } = await supabase
-        .from('projetos')
-        .select('id, nome, codigo, cidade, status, created_at')
+        .from('vw_projetos_dashboard')
+        .select('id, nome, codigo, cidade, status, created_at, data_entrada')
         .order('created_at', { ascending: false })
         .limit(5)
 
@@ -157,27 +162,33 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentProjects.map((project) => (
-                <div
-                  key={project.id}
-                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
-                >
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium leading-none">{project.nome}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {project.codigo} {project.cidade ? `• ${project.cidade}` : ''}
-                    </p>
+              {recentProjects.map((project) => {
+                const refDate = project.data_entrada || project.created_at || ''
+                const dateStr = refDate.includes('T') ? refDate.split('T')[0] : refDate
+                const parts = dateStr.split('-')
+                const dateFmt = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : '-'
+                return (
+                  <div
+                    key={project.id}
+                    className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium leading-none">{project.nome}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {project.codigo} • Ref: {dateFmt}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-sm font-medium">{project.status}</div>
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link to={`/projeto/${project.id}`}>
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm font-medium">{project.status}</div>
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link to={`/projeto/${project.id}`}>
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
               {recentProjects.length === 0 && (
                 <div className="text-center py-4 text-muted-foreground">
                   Nenhum projeto encontrado.

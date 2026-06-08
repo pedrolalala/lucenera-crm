@@ -24,11 +24,13 @@ import { Button } from '@/components/ui/button'
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+
 const formatDate = (dStr: string) => {
   if (!dStr) return '-'
-  const [y, m, d] = dStr.split('-')
-  if (!y || !m || !d) return dStr
-  return `${d}/${m}/${y}`
+  const dateStr = dStr.includes('T') ? dStr.split('T')[0] : dStr
+  const parts = dateStr.split('-')
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
+  return dateStr
 }
 
 export function StrategicDashboard() {
@@ -45,11 +47,46 @@ export function StrategicDashboard() {
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
-    supabase
-      .from('vw_dashboard_crm_fechamento')
-      .select('*')
-      .gt('valor_total', 0)
-      .then(({ data: res }) => res && setData(res))
+    const fetchData = async () => {
+      const [resProj, resFin] = await Promise.all([
+        supabase.from('vw_projetos_dashboard').select('*'),
+        supabase.from('vw_financeiro_projetos').select('id, valor_total'),
+      ])
+
+      if (resProj.data && resFin.data) {
+        const financeMap = new Map()
+        resFin.data.forEach((f) => financeMap.set(f.id, Number(f.valor_total || 0)))
+
+        const merged = resProj.data
+          .map((p) => {
+            const valor = financeMap.get(p.id) || 0
+            const dateStr = p.data_entrada || p.created_at || ''
+            let yearStr = ''
+            let monthStr = ''
+
+            if (dateStr) {
+              const dateObj = new Date(dateStr)
+              if (!isNaN(dateObj.getTime())) {
+                yearStr = String(dateObj.getFullYear())
+                monthStr = String(dateObj.getMonth() + 1).padStart(2, '0')
+              }
+            }
+
+            return {
+              ...p,
+              valor_total: valor,
+              ano_fechamento: yearStr,
+              mes_fechamento: monthStr,
+              data_fechamento: dateStr,
+              engenheiro_nome: 'Não informado',
+            }
+          })
+          .filter((p) => p.valor_total > 0)
+
+        setData(merged)
+      }
+    }
+    fetchData()
   }, [])
 
   const filters = useMemo(() => {
@@ -191,7 +228,7 @@ export function StrategicDashboard() {
         <Card className="shadow-subtle border-primary/20 animate-fade-in-down">
           <CardContent className="p-4 grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
             <div className="space-y-1">
-              <label className="text-xs font-medium">Ano Fechamento</label>
+              <label className="text-xs font-medium">Ano Referência</label>
               <Select value={year} onValueChange={setYear}>
                 <SelectTrigger>
                   <SelectValue placeholder="Ano" />
@@ -207,7 +244,7 @@ export function StrategicDashboard() {
               </Select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium">Mês Fechamento</label>
+              <label className="text-xs font-medium">Mês Referência</label>
               <Select value={month} onValueChange={setMonth}>
                 <SelectTrigger>
                   <SelectValue placeholder="Mês" />
@@ -429,7 +466,7 @@ export function StrategicDashboard() {
                   <TableHead>Código</TableHead>
                   <TableHead>Projeto</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Data de Referência (Fechamento)</TableHead>
+                  <TableHead>Data de Referência</TableHead>
                   <TableHead className="text-right">Valor Total</TableHead>
                 </TableRow>
               </TableHeader>
