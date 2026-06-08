@@ -341,51 +341,6 @@ export type Database = {
           },
         ]
       }
-      contatos_connect: {
-        Row: {
-          aparece_cp: boolean
-          aparece_cr: boolean
-          cod_pessoa: number
-          contato_id: string | null
-          created_at: string
-          nome: string
-          telefone: string | null
-        }
-        Insert: {
-          aparece_cp?: boolean
-          aparece_cr?: boolean
-          cod_pessoa: number
-          contato_id?: string | null
-          created_at?: string
-          nome: string
-          telefone?: string | null
-        }
-        Update: {
-          aparece_cp?: boolean
-          aparece_cr?: boolean
-          cod_pessoa?: number
-          contato_id?: string | null
-          created_at?: string
-          nome?: string
-          telefone?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contatos_connect_contato_id_fkey"
-            columns: ["contato_id"]
-            isOneToOne: false
-            referencedRelation: "contatos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contatos_connect_contato_id_fkey"
-            columns: ["contato_id"]
-            isOneToOne: false
-            referencedRelation: "vw_transacoes_completas"
-            referencedColumns: ["contato_id"]
-          },
-        ]
-      }
       contatos_revisao: {
         Row: {
           criado_em: string
@@ -491,13 +446,6 @@ export type Database = {
             foreignKeyName: "controle_ponto_funcionario_id_fkey"
             columns: ["funcionario_id"]
             isOneToOne: false
-            referencedRelation: "vw_calculo_vt_mensal"
-            referencedColumns: ["funcionario_id"]
-          },
-          {
-            foreignKeyName: "controle_ponto_funcionario_id_fkey"
-            columns: ["funcionario_id"]
-            isOneToOne: false
             referencedRelation: "vw_historico_faltas"
             referencedColumns: ["funcionario_id"]
           },
@@ -584,6 +532,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_recorrentes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
           },
         ]
       }
@@ -681,41 +636,95 @@ export type Database = {
         }
         Relationships: []
       }
-      empresas: {
+      empresa_ubiqua: {
         Row: {
-          ativo: boolean
           cidade: string
-          cnpj: string | null
-          codigo: number
+          cnpj: string
           created_at: string
           estado: string
           id: string
-          nome: string
+          nome_fantasia: string
           razao_social: string | null
+        }
+        Insert: {
+          cidade: string
+          cnpj: string
+          created_at?: string
+          estado: string
+          id?: string
+          nome_fantasia: string
+          razao_social?: string | null
+        }
+        Update: {
+          cidade?: string
+          cnpj?: string
+          created_at?: string
+          estado?: string
+          id?: string
+          nome_fantasia?: string
+          razao_social?: string | null
+        }
+        Relationships: []
+      }
+      empresas: {
+        Row: {
+          ativo: boolean
+          bairro: string | null
+          cep: string | null
+          cidade: string
+          cnpj: string | null
+          codigo: number
+          complemento: string | null
+          cor_hex: string | null
+          created_at: string
+          estado: string
+          id: string
+          inscricao_estadual: string | null
+          logradouro: string | null
+          nome: string
+          numero: string | null
+          razao_social: string | null
+          regime_tributario: string | null
           updated_at: string
         }
         Insert: {
           ativo?: boolean
+          bairro?: string | null
+          cep?: string | null
           cidade?: string
           cnpj?: string | null
           codigo: number
+          complemento?: string | null
+          cor_hex?: string | null
           created_at?: string
           estado?: string
           id?: string
+          inscricao_estadual?: string | null
+          logradouro?: string | null
           nome: string
+          numero?: string | null
           razao_social?: string | null
+          regime_tributario?: string | null
           updated_at?: string
         }
         Update: {
           ativo?: boolean
+          bairro?: string | null
+          cep?: string | null
           cidade?: string
           cnpj?: string | null
           codigo?: number
+          complemento?: string | null
+          cor_hex?: string | null
           created_at?: string
           estado?: string
           id?: string
+          inscricao_estadual?: string | null
+          logradouro?: string | null
           nome?: string
+          numero?: string | null
           razao_social?: string | null
+          regime_tributario?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -784,6 +793,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "entregas_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
+          },
+          {
             foreignKeyName: "entregas_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -801,6 +817,13 @@ export type Database = {
             foreignKeyName: "entregas_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
+            referencedRelation: "vw_projetos_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
             referencedRelation: "vw_projetos_pipeline"
             referencedColumns: ["id"]
           },
@@ -809,6 +832,20 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "vw_projetos_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_responsavel"
             referencedColumns: ["id"]
           },
           {
@@ -862,6 +899,72 @@ export type Database = {
           },
         ]
       }
+      entregas_finalizadas: {
+        Row: {
+          cliente: string | null
+          codigo_obra: string | null
+          created_at: string | null
+          data_entrega_real: string | null
+          data_solicitacao: string | null
+          endereco: string | null
+          fotos_urls: string | null
+          gestora_equipe: string | null
+          id: string
+          material_conteudo: string | null
+          material_tipo: string | null
+          numero_entrega: string | null
+          numero_pedido: string | null
+          observacoes: string | null
+          observacoes_internas: string | null
+          recebido_por: string | null
+          separacao_id: string | null
+          telefone: string | null
+          vendedor: string | null
+        }
+        Insert: {
+          cliente?: string | null
+          codigo_obra?: string | null
+          created_at?: string | null
+          data_entrega_real?: string | null
+          data_solicitacao?: string | null
+          endereco?: string | null
+          fotos_urls?: string | null
+          gestora_equipe?: string | null
+          id?: string
+          material_conteudo?: string | null
+          material_tipo?: string | null
+          numero_entrega?: string | null
+          numero_pedido?: string | null
+          observacoes?: string | null
+          observacoes_internas?: string | null
+          recebido_por?: string | null
+          separacao_id?: string | null
+          telefone?: string | null
+          vendedor?: string | null
+        }
+        Update: {
+          cliente?: string | null
+          codigo_obra?: string | null
+          created_at?: string | null
+          data_entrega_real?: string | null
+          data_solicitacao?: string | null
+          endereco?: string | null
+          fotos_urls?: string | null
+          gestora_equipe?: string | null
+          id?: string
+          material_conteudo?: string | null
+          material_tipo?: string | null
+          numero_entrega?: string | null
+          numero_pedido?: string | null
+          observacoes?: string | null
+          observacoes_internas?: string | null
+          recebido_por?: string | null
+          separacao_id?: string | null
+          telefone?: string | null
+          vendedor?: string | null
+        }
+        Relationships: []
+      }
       estoque_itens: {
         Row: {
           atualizado_em: string
@@ -894,6 +997,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_itens_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
           },
           {
             foreignKeyName: "estoque_itens_produto_id_fkey"
@@ -971,18 +1081,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ferias_funcionario_id_fkey"
-            columns: ["funcionario_id"]
+            foreignKeyName: "ferias_aprovado_por_fkey"
+            columns: ["aprovado_por"]
             isOneToOne: false
-            referencedRelation: "funcionarios"
-            referencedColumns: ["id"]
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
           },
           {
             foreignKeyName: "ferias_funcionario_id_fkey"
             columns: ["funcionario_id"]
             isOneToOne: false
-            referencedRelation: "vw_calculo_vt_mensal"
-            referencedColumns: ["funcionario_id"]
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ferias_funcionario_id_fkey"
@@ -1092,13 +1202,6 @@ export type Database = {
             foreignKeyName: "folha_pagamento_funcionario_id_fkey"
             columns: ["funcionario_id"]
             isOneToOne: false
-            referencedRelation: "vw_calculo_vt_mensal"
-            referencedColumns: ["funcionario_id"]
-          },
-          {
-            foreignKeyName: "folha_pagamento_funcionario_id_fkey"
-            columns: ["funcionario_id"]
-            isOneToOne: false
             referencedRelation: "vw_historico_faltas"
             referencedColumns: ["funcionario_id"]
           },
@@ -1115,95 +1218,56 @@ export type Database = {
         Row: {
           cargo: string | null
           codigo_legado: number | null
-          comissao_padrao: number | null
-          cpf: string | null
           created_at: string
           data_admissao: string | null
-          data_aniversario: string | null
           data_demissao: string | null
           data_elegibilidade_ferias: string | null
           departamento_id: string | null
-          email: string
           empresa: string | null
           empresa_id: string | null
-          endereco_completo: string | null
           id: string
           nm_connect: string | null
           nome: string
-          rg: string | null
-          salario_base: number | null
-          salario_liquido: number | null
-          salario_por_fora: number | null
           status: string
-          telefone: string | null
           tipo_contratacao: string | null
           updated_at: string
           usuario_id: string | null
-          valor_vr: number | null
-          valor_vt: number | null
-          valor_vt_dia: number | null
         }
         Insert: {
           cargo?: string | null
           codigo_legado?: number | null
-          comissao_padrao?: number | null
-          cpf?: string | null
           created_at?: string
           data_admissao?: string | null
-          data_aniversario?: string | null
           data_demissao?: string | null
           data_elegibilidade_ferias?: string | null
           departamento_id?: string | null
-          email: string
           empresa?: string | null
           empresa_id?: string | null
-          endereco_completo?: string | null
           id?: string
           nm_connect?: string | null
           nome: string
-          rg?: string | null
-          salario_base?: number | null
-          salario_liquido?: number | null
-          salario_por_fora?: number | null
           status?: string
-          telefone?: string | null
           tipo_contratacao?: string | null
           updated_at?: string
           usuario_id?: string | null
-          valor_vr?: number | null
-          valor_vt?: number | null
-          valor_vt_dia?: number | null
         }
         Update: {
           cargo?: string | null
           codigo_legado?: number | null
-          comissao_padrao?: number | null
-          cpf?: string | null
           created_at?: string
           data_admissao?: string | null
-          data_aniversario?: string | null
           data_demissao?: string | null
           data_elegibilidade_ferias?: string | null
           departamento_id?: string | null
-          email?: string
           empresa?: string | null
           empresa_id?: string | null
-          endereco_completo?: string | null
           id?: string
           nm_connect?: string | null
           nome?: string
-          rg?: string | null
-          salario_base?: number | null
-          salario_liquido?: number | null
-          salario_por_fora?: number | null
           status?: string
-          telefone?: string | null
           tipo_contratacao?: string | null
           updated_at?: string
           usuario_id?: string | null
-          valor_vr?: number | null
-          valor_vt?: number | null
-          valor_vt_dia?: number | null
         }
         Relationships: [
           {
@@ -1232,6 +1296,294 @@ export type Database = {
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionarios_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      funcionarios_beneficios_empresas: {
+        Row: {
+          empresa: string
+          funcionario_id: string
+          id: string
+          valor_vt_dia: number | null
+        }
+        Insert: {
+          empresa: string
+          funcionario_id: string
+          id?: string
+          valor_vt_dia?: number | null
+        }
+        Update: {
+          empresa?: string
+          funcionario_id?: string
+          id?: string
+          valor_vt_dia?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funcionarios_beneficios_empresas_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios_novo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionarios_beneficios_empresas_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_funcionarios_completo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funcionarios_detalhes: {
+        Row: {
+          cpf: string | null
+          data_nascimento: string | null
+          email: string | null
+          endereco: string | null
+          funcionario_id: string
+          id: string
+          rg: string | null
+          telefone: string | null
+        }
+        Insert: {
+          cpf?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          endereco?: string | null
+          funcionario_id: string
+          id?: string
+          rg?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          cpf?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          endereco?: string | null
+          funcionario_id?: string
+          id?: string
+          rg?: string | null
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funcionarios_detalhes_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: true
+            referencedRelation: "funcionarios_novo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionarios_detalhes_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: true
+            referencedRelation: "vw_funcionarios_completo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funcionarios_financeiro: {
+        Row: {
+          comissao_percentual: number | null
+          funcionario_id: string
+          id: string
+          salario_base: number
+          salario_liquido: number | null
+          salario_por_fora: number
+        }
+        Insert: {
+          comissao_percentual?: number | null
+          funcionario_id: string
+          id?: string
+          salario_base?: number
+          salario_liquido?: number | null
+          salario_por_fora?: number
+        }
+        Update: {
+          comissao_percentual?: number | null
+          funcionario_id?: string
+          id?: string
+          salario_base?: number
+          salario_liquido?: number | null
+          salario_por_fora?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funcionarios_financeiro_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: true
+            referencedRelation: "funcionarios_novo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionarios_financeiro_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: true
+            referencedRelation: "vw_funcionarios_completo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funcionarios_novo: {
+        Row: {
+          ativo: boolean | null
+          cargo: string | null
+          created_at: string | null
+          data_admissao: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          cargo?: string | null
+          created_at?: string | null
+          data_admissao?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean | null
+          cargo?: string | null
+          created_at?: string | null
+          data_admissao?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      historico_status_orcamento: {
+        Row: {
+          created_at: string | null
+          id: string
+          observacao: string | null
+          orcamento_id: string
+          status_anterior: string | null
+          status_novo: string
+          usuario: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          observacao?: string | null
+          orcamento_id: string
+          status_anterior?: string | null
+          status_novo: string
+          usuario?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          observacao?: string | null
+          orcamento_id?: string
+          status_anterior?: string | null
+          status_novo?: string
+          usuario?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_status_orcamento_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos_revenda_ubiqua"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      informacoes_cliente_ubiqua: {
+        Row: {
+          cpf_cnpj: string
+          created_at: string | null
+          email: string | null
+          id: string
+          nome: string
+          telefone: string | null
+        }
+        Insert: {
+          cpf_cnpj: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+        }
+        Update: {
+          cpf_cnpj?: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+        }
+        Relationships: []
+      }
+      itens_orcamento_ubiqua: {
+        Row: {
+          created_at: string | null
+          desconto_item: number | null
+          descricao_snapshot: string | null
+          id: string
+          marca_snapshot: string | null
+          observacao_item: string | null
+          orcamento_id: string
+          ordem: number | null
+          produto_id: number
+          quantidade: number
+          referencia_snapshot: string | null
+          valor_total: number | null
+          valor_unitario: number
+        }
+        Insert: {
+          created_at?: string | null
+          desconto_item?: number | null
+          descricao_snapshot?: string | null
+          id?: string
+          marca_snapshot?: string | null
+          observacao_item?: string | null
+          orcamento_id: string
+          ordem?: number | null
+          produto_id: number
+          quantidade: number
+          referencia_snapshot?: string | null
+          valor_total?: number | null
+          valor_unitario: number
+        }
+        Update: {
+          created_at?: string | null
+          desconto_item?: number | null
+          descricao_snapshot?: string | null
+          id?: string
+          marca_snapshot?: string | null
+          observacao_item?: string | null
+          orcamento_id?: string
+          ordem?: number | null
+          produto_id?: number
+          quantidade?: number
+          referencia_snapshot?: string | null
+          valor_total?: number | null
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_orcamento_ubiqua_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos_revenda_ubiqua"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_orcamento_ubiqua_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "revenda_ubiqua"
             referencedColumns: ["id"]
           },
         ]
@@ -1349,13 +1701,6 @@ export type Database = {
             foreignKeyName: "negociacoes_funcionario_id_fkey"
             columns: ["funcionario_id"]
             isOneToOne: false
-            referencedRelation: "vw_calculo_vt_mensal"
-            referencedColumns: ["funcionario_id"]
-          },
-          {
-            foreignKeyName: "negociacoes_funcionario_id_fkey"
-            columns: ["funcionario_id"]
-            isOneToOne: false
             referencedRelation: "vw_historico_faltas"
             referencedColumns: ["funcionario_id"]
           },
@@ -1398,6 +1743,13 @@ export type Database = {
             foreignKeyName: "negociacoes_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
+            referencedRelation: "vw_projetos_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negociacoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
             referencedRelation: "vw_projetos_pipeline"
             referencedColumns: ["id"]
           },
@@ -1406,6 +1758,20 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "vw_projetos_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negociacoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negociacoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_responsavel"
             referencedColumns: ["id"]
           },
           {
@@ -1428,6 +1794,309 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_vendas_por_projeto"
             referencedColumns: ["projeto_id"]
+          },
+        ]
+      }
+      orcamento_itens: {
+        Row: {
+          created_at: string | null
+          custom_id: string | null
+          desconto: number | null
+          descricao: string | null
+          id: string
+          item_pai_id: string | null
+          orcamento_id: string
+          preco_unitario: number | null
+          produto_id: string | null
+          quantidade: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_id?: string | null
+          desconto?: number | null
+          descricao?: string | null
+          id?: string
+          item_pai_id?: string | null
+          orcamento_id: string
+          preco_unitario?: number | null
+          produto_id?: string | null
+          quantidade?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_id?: string | null
+          desconto?: number | null
+          descricao?: string | null
+          id?: string
+          item_pai_id?: string | null
+          orcamento_id?: string
+          preco_unitario?: number | null
+          produto_id?: string | null
+          quantidade?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamento_itens_item_pai_id_fkey"
+            columns: ["item_pai_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_liquido"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vendas_loja"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vendas_por_projeto"
+            referencedColumns: ["produto_id"]
+          },
+        ]
+      }
+      orcamentos: {
+        Row: {
+          arquiteto_id: string | null
+          cliente_id: string | null
+          condicoes_pagamento: string | null
+          created_at: string | null
+          data_emissao: string | null
+          desconto_global: number | null
+          empresa_id: string
+          forma_pagamento: Database["public"]["Enums"]["pagamento_forma"] | null
+          id: string
+          informacoes_cliente_id: string | null
+          numero: string | null
+          observacoes: string | null
+          status: string | null
+          validade: string | null
+          valor_total: number | null
+          vendedor_id: string | null
+        }
+        Insert: {
+          arquiteto_id?: string | null
+          cliente_id?: string | null
+          condicoes_pagamento?: string | null
+          created_at?: string | null
+          data_emissao?: string | null
+          desconto_global?: number | null
+          empresa_id: string
+          forma_pagamento?:
+            | Database["public"]["Enums"]["pagamento_forma"]
+            | null
+          id?: string
+          informacoes_cliente_id?: string | null
+          numero?: string | null
+          observacoes?: string | null
+          status?: string | null
+          validade?: string | null
+          valor_total?: number | null
+          vendedor_id?: string | null
+        }
+        Update: {
+          arquiteto_id?: string | null
+          cliente_id?: string | null
+          condicoes_pagamento?: string | null
+          created_at?: string | null
+          data_emissao?: string | null
+          desconto_global?: number | null
+          empresa_id?: string
+          forma_pagamento?:
+            | Database["public"]["Enums"]["pagamento_forma"]
+            | null
+          id?: string
+          informacoes_cliente_id?: string | null
+          numero?: string | null
+          observacoes?: string | null
+          status?: string | null
+          validade?: string | null
+          valor_total?: number | null
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_arquiteto_id_fkey"
+            columns: ["arquiteto_id"]
+            isOneToOne: false
+            referencedRelation: "contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_arquiteto_id_fkey"
+            columns: ["arquiteto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["contato_id"]
+          },
+          {
+            foreignKeyName: "orcamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["contato_id"]
+          },
+          {
+            foreignKeyName: "orcamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["empresa_id"]
+          },
+          {
+            foreignKeyName: "orcamentos_informacoes_cliente_id_fkey"
+            columns: ["informacoes_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "informacoes_cliente_ubiqua"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_historico_faltas"
+            referencedColumns: ["funcionario_id"]
+          },
+          {
+            foreignKeyName: "orcamentos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["funcionario_id"]
+          },
+        ]
+      }
+      orcamentos_revenda_ubiqua: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          cancelado_em: string | null
+          cliente_id: string
+          condicoes_pagamento: string | null
+          created_at: string | null
+          created_by: string | null
+          data_validade: string
+          desconto_percentual: number | null
+          enviado_em: string | null
+          id: string
+          motivo_cancelamento: string | null
+          motivo_rejeicao: string | null
+          numero_orcamento: string
+          observacoes: string | null
+          prazo_entrega: string | null
+          rejeitado_em: string | null
+          status: string
+          updated_at: string | null
+          updated_by: string | null
+          valor_desconto: number
+          valor_subtotal: number
+          valor_total: number
+          versao: number | null
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          cancelado_em?: string | null
+          cliente_id: string
+          condicoes_pagamento?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_validade?: string
+          desconto_percentual?: number | null
+          enviado_em?: string | null
+          id?: string
+          motivo_cancelamento?: string | null
+          motivo_rejeicao?: string | null
+          numero_orcamento: string
+          observacoes?: string | null
+          prazo_entrega?: string | null
+          rejeitado_em?: string | null
+          status?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          valor_desconto?: number
+          valor_subtotal?: number
+          valor_total?: number
+          versao?: number | null
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          cancelado_em?: string | null
+          cliente_id?: string
+          condicoes_pagamento?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_validade?: string
+          desconto_percentual?: number | null
+          enviado_em?: string | null
+          id?: string
+          motivo_cancelamento?: string | null
+          motivo_rejeicao?: string | null
+          numero_orcamento?: string
+          observacoes?: string | null
+          prazo_entrega?: string | null
+          rejeitado_em?: string | null
+          status?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          valor_desconto?: number
+          valor_subtotal?: number
+          valor_total?: number
+          versao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_revenda_ubiqua_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "informacoes_cliente_ubiqua"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1511,13 +2180,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "funcionarios"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "periodos_aquisitivos_funcionario_id_fkey"
-            columns: ["funcionario_id"]
-            isOneToOne: false
-            referencedRelation: "vw_calculo_vt_mensal"
-            referencedColumns: ["funcionario_id"]
           },
           {
             foreignKeyName: "periodos_aquisitivos_funcionario_id_fkey"
@@ -1801,6 +2463,13 @@ export type Database = {
             foreignKeyName: "projeto_itens_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
+            referencedRelation: "vw_projetos_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_itens_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
             referencedRelation: "vw_projetos_pipeline"
             referencedColumns: ["id"]
           },
@@ -1809,6 +2478,20 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "vw_projetos_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_itens_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_itens_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_responsavel"
             referencedColumns: ["id"]
           },
           {
@@ -1921,6 +2604,13 @@ export type Database = {
             foreignKeyName: "projeto_parcelas_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
+            referencedRelation: "vw_projetos_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_parcelas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
             referencedRelation: "vw_projetos_pipeline"
             referencedColumns: ["id"]
           },
@@ -1929,6 +2619,20 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "vw_projetos_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_parcelas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_parcelas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_responsavel"
             referencedColumns: ["id"]
           },
           {
@@ -2117,6 +2821,13 @@ export type Database = {
             foreignKeyName: "projeto_produtos_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
+            referencedRelation: "vw_projetos_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_produtos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
             referencedRelation: "vw_projetos_pipeline"
             referencedColumns: ["id"]
           },
@@ -2125,6 +2836,20 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "vw_projetos_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_produtos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_produtos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_responsavel"
             referencedColumns: ["id"]
           },
           {
@@ -2213,6 +2938,13 @@ export type Database = {
             foreignKeyName: "projeto_sinal_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: true
+            referencedRelation: "vw_projetos_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_sinal_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: true
             referencedRelation: "vw_projetos_pipeline"
             referencedColumns: ["id"]
           },
@@ -2221,6 +2953,20 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: true
             referencedRelation: "vw_projetos_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_sinal_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: true
+            referencedRelation: "vw_projetos_sem_empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_sinal_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: true
+            referencedRelation: "vw_projetos_sem_responsavel"
             referencedColumns: ["id"]
           },
           {
@@ -2273,6 +3019,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           data_entrada: string | null
+          empresa_id: string | null
           estado: string | null
           historico: Json
           id: string
@@ -2297,6 +3044,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           data_entrada?: string | null
+          empresa_id?: string | null
           estado?: string | null
           historico?: Json
           id?: string
@@ -2323,6 +3071,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           data_entrada?: string | null
+          empresa_id?: string | null
           estado?: string | null
           historico?: Json
           id?: string
@@ -2388,11 +3137,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "projetos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "projetos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["empresa_id"]
+          },
+          {
             foreignKeyName: "projetos_responsavel_id_fkey"
             columns: ["responsavel_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
           },
           {
             foreignKeyName: "projetos_responsavel_obra_id_fkey"
@@ -2504,11 +3281,13 @@ export type Database = {
           cod_fornecedor: number | null
           cod_marca: number | null
           cod_produto: number | null
+          cor: string | null
           created_at: string | null
           desc_marca: string | null
           desc_produto: string | null
           descricao: string | null
           disponivel: number | null
+          empresa_id: string | null
           estoque: number | null
           fonte_planilha1: boolean | null
           fonte_planilha2: boolean | null
@@ -2517,7 +3296,9 @@ export type Database = {
           imagem_catalogo_url: string | null
           itens_vendidos: number | null
           nm_fornecedor: string | null
+          ordem: number | null
           referencia: string
+          slug: string | null
           updated_at: string | null
           valor_revenda: number | null
           vl_custo_indireto: number | null
@@ -2529,11 +3310,13 @@ export type Database = {
           cod_fornecedor?: number | null
           cod_marca?: number | null
           cod_produto?: number | null
+          cor?: string | null
           created_at?: string | null
           desc_marca?: string | null
           desc_produto?: string | null
           descricao?: string | null
           disponivel?: number | null
+          empresa_id?: string | null
           estoque?: number | null
           fonte_planilha1?: boolean | null
           fonte_planilha2?: boolean | null
@@ -2542,7 +3325,9 @@ export type Database = {
           imagem_catalogo_url?: string | null
           itens_vendidos?: number | null
           nm_fornecedor?: string | null
+          ordem?: number | null
           referencia: string
+          slug?: string | null
           updated_at?: string | null
           valor_revenda?: number | null
           vl_custo_indireto?: number | null
@@ -2554,11 +3339,13 @@ export type Database = {
           cod_fornecedor?: number | null
           cod_marca?: number | null
           cod_produto?: number | null
+          cor?: string | null
           created_at?: string | null
           desc_marca?: string | null
           desc_produto?: string | null
           descricao?: string | null
           disponivel?: number | null
+          empresa_id?: string | null
           estoque?: number | null
           fonte_planilha1?: boolean | null
           fonte_planilha2?: boolean | null
@@ -2567,13 +3354,63 @@ export type Database = {
           imagem_catalogo_url?: string | null
           itens_vendidos?: number | null
           nm_fornecedor?: string | null
+          ordem?: number | null
           referencia?: string
+          slug?: string | null
           updated_at?: string | null
           valor_revenda?: number | null
           vl_custo_indireto?: number | null
           vl_custo_produto?: number | null
           vl_custo_total_tabela?: number | null
           vl_venda_produto?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_empresa"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_empresa"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["empresa_id"]
+          },
+        ]
+      }
+      separacao_arquivos: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome_arquivo: string | null
+          ordem: number | null
+          separacao_id: string | null
+          tamanho_bytes: number | null
+          tipo_arquivo: string | null
+          url_arquivo: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome_arquivo?: string | null
+          ordem?: number | null
+          separacao_id?: string | null
+          tamanho_bytes?: number | null
+          tipo_arquivo?: string | null
+          url_arquivo?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome_arquivo?: string | null
+          ordem?: number | null
+          separacao_id?: string | null
+          tamanho_bytes?: number | null
+          tipo_arquivo?: string | null
+          url_arquivo?: string | null
         }
         Relationships: []
       }
@@ -2675,54 +3512,120 @@ export type Database = {
           cliente: string | null
           cliente_id: string | null
           codigo_obra: string | null
+          codigo_rastreamento: string | null
           created_at: string
           data_entrega: string | null
           data_entrega_original: string | null
+          data_inicio_separacao: string | null
           delivery_type: string | null
+          endereco: string | null
           endereco_entrega: string | null
+          garantia_detalhes: string | null
+          garantia_motivo: string | null
+          garantia_peca: string | null
+          gestora_equipe: string | null
           id: string
+          inclui_garantia: boolean | null
+          material_conteudo: Json | null
+          material_tipo: string | null
+          nivel_complexidade: string | null
+          numero_entrega: string | null
+          numero_venda: string | null
           observacoes: string | null
+          observacoes_internas: string | null
+          order_in_route: boolean | null
           projeto_id: string | null
           reagendamentos: number
           responsavel_id: string | null
+          responsavel_recebimento: string | null
           scheduled_time: string | null
+          separacoes_parciais: Json | null
+          solicitante: string | null
           status: Database["public"]["Enums"]["separacao_status"]
+          telefone: string | null
+          tipo_entrega: string | null
+          tipo_pedido: string | null
+          transportadora_nome: string | null
           updated_at: string
         }
         Insert: {
           cliente?: string | null
           cliente_id?: string | null
           codigo_obra?: string | null
+          codigo_rastreamento?: string | null
           created_at?: string
           data_entrega?: string | null
           data_entrega_original?: string | null
+          data_inicio_separacao?: string | null
           delivery_type?: string | null
+          endereco?: string | null
           endereco_entrega?: string | null
+          garantia_detalhes?: string | null
+          garantia_motivo?: string | null
+          garantia_peca?: string | null
+          gestora_equipe?: string | null
           id?: string
+          inclui_garantia?: boolean | null
+          material_conteudo?: Json | null
+          material_tipo?: string | null
+          nivel_complexidade?: string | null
+          numero_entrega?: string | null
+          numero_venda?: string | null
           observacoes?: string | null
+          observacoes_internas?: string | null
+          order_in_route?: boolean | null
           projeto_id?: string | null
           reagendamentos?: number
           responsavel_id?: string | null
+          responsavel_recebimento?: string | null
           scheduled_time?: string | null
+          separacoes_parciais?: Json | null
+          solicitante?: string | null
           status?: Database["public"]["Enums"]["separacao_status"]
+          telefone?: string | null
+          tipo_entrega?: string | null
+          tipo_pedido?: string | null
+          transportadora_nome?: string | null
           updated_at?: string
         }
         Update: {
           cliente?: string | null
           cliente_id?: string | null
           codigo_obra?: string | null
+          codigo_rastreamento?: string | null
           created_at?: string
           data_entrega?: string | null
           data_entrega_original?: string | null
+          data_inicio_separacao?: string | null
           delivery_type?: string | null
+          endereco?: string | null
           endereco_entrega?: string | null
+          garantia_detalhes?: string | null
+          garantia_motivo?: string | null
+          garantia_peca?: string | null
+          gestora_equipe?: string | null
           id?: string
+          inclui_garantia?: boolean | null
+          material_conteudo?: Json | null
+          material_tipo?: string | null
+          nivel_complexidade?: string | null
+          numero_entrega?: string | null
+          numero_venda?: string | null
           observacoes?: string | null
+          observacoes_internas?: string | null
+          order_in_route?: boolean | null
           projeto_id?: string | null
           reagendamentos?: number
           responsavel_id?: string | null
+          responsavel_recebimento?: string | null
           scheduled_time?: string | null
+          separacoes_parciais?: Json | null
+          solicitante?: string | null
           status?: Database["public"]["Enums"]["separacao_status"]
+          telefone?: string | null
+          tipo_entrega?: string | null
+          tipo_pedido?: string | null
+          transportadora_nome?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2758,6 +3661,13 @@ export type Database = {
             foreignKeyName: "separacoes_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
+            referencedRelation: "vw_projetos_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "separacoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
             referencedRelation: "vw_projetos_pipeline"
             referencedColumns: ["id"]
           },
@@ -2766,6 +3676,20 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "vw_projetos_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "separacoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "separacoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_responsavel"
             referencedColumns: ["id"]
           },
           {
@@ -2796,7 +3720,116 @@ export type Database = {
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "separacoes_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
+          },
         ]
+      }
+      separacoes_arquivos: {
+        Row: {
+          cliente: string | null
+          codigo_obra: string | null
+          codigo_rastreamento: string | null
+          created_at: string | null
+          data_entrega: string | null
+          data_inicio_separacao: string | null
+          delivery_type: string | null
+          endereco: string | null
+          garantia_detalhes: string | null
+          garantia_motivo: string | null
+          garantia_peca: string | null
+          gestora_equipe: string | null
+          id: string
+          inclui_garantia: boolean | null
+          material_conteudo: string | null
+          material_tipo: string | null
+          nivel_complexidade: string | null
+          numero_entrega: string | null
+          numero_venda: string | null
+          observacoes_internas: string | null
+          order_in_route: string | null
+          responsavel_recebimento: string | null
+          scheduled_time: string | null
+          separacoes_parciais: string | null
+          solicitante: string | null
+          status: string | null
+          telefone: string | null
+          tipo_entrega: string | null
+          tipo_pedido: string | null
+          transportadora_nome: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cliente?: string | null
+          codigo_obra?: string | null
+          codigo_rastreamento?: string | null
+          created_at?: string | null
+          data_entrega?: string | null
+          data_inicio_separacao?: string | null
+          delivery_type?: string | null
+          endereco?: string | null
+          garantia_detalhes?: string | null
+          garantia_motivo?: string | null
+          garantia_peca?: string | null
+          gestora_equipe?: string | null
+          id?: string
+          inclui_garantia?: boolean | null
+          material_conteudo?: string | null
+          material_tipo?: string | null
+          nivel_complexidade?: string | null
+          numero_entrega?: string | null
+          numero_venda?: string | null
+          observacoes_internas?: string | null
+          order_in_route?: string | null
+          responsavel_recebimento?: string | null
+          scheduled_time?: string | null
+          separacoes_parciais?: string | null
+          solicitante?: string | null
+          status?: string | null
+          telefone?: string | null
+          tipo_entrega?: string | null
+          tipo_pedido?: string | null
+          transportadora_nome?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cliente?: string | null
+          codigo_obra?: string | null
+          codigo_rastreamento?: string | null
+          created_at?: string | null
+          data_entrega?: string | null
+          data_inicio_separacao?: string | null
+          delivery_type?: string | null
+          endereco?: string | null
+          garantia_detalhes?: string | null
+          garantia_motivo?: string | null
+          garantia_peca?: string | null
+          gestora_equipe?: string | null
+          id?: string
+          inclui_garantia?: boolean | null
+          material_conteudo?: string | null
+          material_tipo?: string | null
+          nivel_complexidade?: string | null
+          numero_entrega?: string | null
+          numero_venda?: string | null
+          observacoes_internas?: string | null
+          order_in_route?: string | null
+          responsavel_recebimento?: string | null
+          scheduled_time?: string | null
+          separacoes_parciais?: string | null
+          solicitante?: string | null
+          status?: string | null
+          telefone?: string | null
+          tipo_entrega?: string | null
+          tipo_pedido?: string | null
+          transportadora_nome?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       staging_conta_pagar: {
         Row: {
@@ -3299,6 +4332,13 @@ export type Database = {
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sync_history_executado_por_fkey"
+            columns: ["executado_por"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
+          },
         ]
       }
       transacoes: {
@@ -3315,6 +4355,8 @@ export type Database = {
           dt_emissao: string | null
           dt_pagamento: string | null
           dt_vencimento: string | null
+          empresa_id: string | null
+          funcionario_id: string | null
           id: string
           negociacao_id: string | null
           num_parc: number | null
@@ -3344,6 +4386,8 @@ export type Database = {
           dt_emissao?: string | null
           dt_pagamento?: string | null
           dt_vencimento?: string | null
+          empresa_id?: string | null
+          funcionario_id?: string | null
           id?: string
           negociacao_id?: string | null
           num_parc?: number | null
@@ -3373,6 +4417,8 @@ export type Database = {
           dt_emissao?: string | null
           dt_pagamento?: string | null
           dt_vencimento?: string | null
+          empresa_id?: string | null
+          funcionario_id?: string | null
           id?: string
           negociacao_id?: string | null
           num_parc?: number | null
@@ -3419,6 +4465,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transacoes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "transacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["empresa_id"]
+          },
+          {
+            foreignKeyName: "transacoes_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transacoes_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_historico_faltas"
+            referencedColumns: ["funcionario_id"]
+          },
+          {
+            foreignKeyName: "transacoes_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["funcionario_id"]
+          },
+          {
             foreignKeyName: "transacoes_negociacao_id_fkey"
             columns: ["negociacao_id"]
             isOneToOne: false
@@ -3457,6 +4545,13 @@ export type Database = {
             foreignKeyName: "transacoes_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
+            referencedRelation: "vw_projetos_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transacoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
             referencedRelation: "vw_projetos_pipeline"
             referencedColumns: ["id"]
           },
@@ -3465,6 +4560,20 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "vw_projetos_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transacoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transacoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_responsavel"
             referencedColumns: ["id"]
           },
           {
@@ -3490,15 +4599,54 @@ export type Database = {
           },
         ]
       }
+      user_roles_separacao: {
+        Row: {
+          created_at: string | null
+          email: string
+          funcao: Database["public"]["Enums"]["funcao_separacao_type"] | null
+          id: string
+          nome_completo: string
+          role: string | null
+          sistema: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          funcao?: Database["public"]["Enums"]["funcao_separacao_type"] | null
+          id?: string
+          nome_completo: string
+          role?: string | null
+          sistema?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          funcao?: Database["public"]["Enums"]["funcao_separacao_type"] | null
+          id?: string
+          nome_completo?: string
+          role?: string | null
+          sistema?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       usuarios: {
         Row: {
           ativo: boolean | null
           avatar_url: string | null
           created_at: string | null
           email: string
+          empresa_id: string | null
           id: string
           nome: string
+          onboarding_completado: boolean
           role: Database["public"]["Enums"]["usuario_role"] | null
+          telefone: string | null
           updated_at: string | null
         }
         Insert: {
@@ -3506,9 +4654,12 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           email: string
+          empresa_id?: string | null
           id: string
           nome: string
+          onboarding_completado?: boolean
           role?: Database["public"]["Enums"]["usuario_role"] | null
+          telefone?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -3516,12 +4667,71 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           email?: string
+          empresa_id?: string | null
           id?: string
           nome?: string
+          onboarding_completado?: boolean
           role?: Database["public"]["Enums"]["usuario_role"] | null
+          telefone?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "usuarios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usuarios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["empresa_id"]
+          },
+        ]
+      }
+      usuarios_ubiqua: {
+        Row: {
+          created_at: string
+          email: string
+          empresa_id: string | null
+          id: string
+          nivel_acesso: Database["public"]["Enums"]["nivel_acesso_tipo"]
+          nome: string
+          onboarding_completado: boolean
+          telefone: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          empresa_id?: string | null
+          id: string
+          nivel_acesso?: Database["public"]["Enums"]["nivel_acesso_tipo"]
+          nome: string
+          onboarding_completado?: boolean
+          telefone?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          empresa_id?: string | null
+          id?: string
+          nivel_acesso?: Database["public"]["Enums"]["nivel_acesso_tipo"]
+          nome?: string
+          onboarding_completado?: boolean
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuarios_ubiqua_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa_ubiqua"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vendas: {
         Row: {
@@ -3615,6 +4825,13 @@ export type Database = {
             foreignKeyName: "vendas_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
+            referencedRelation: "vw_projetos_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
             referencedRelation: "vw_projetos_pipeline"
             referencedColumns: ["id"]
           },
@@ -3623,6 +4840,20 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "vw_projetos_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_empresa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_sem_responsavel"
             referencedColumns: ["id"]
           },
           {
@@ -3718,30 +4949,37 @@ export type Database = {
         }
         Relationships: []
       }
-      vw_calculo_vt_mensal: {
+      vw_catalogo_ubiqua: {
         Row: {
-          empresa: string | null
-          funcionario_id: string | null
-          funcionario_nome: string | null
-          total_faltas_integrais: number | null
-          total_meio_periodo: number | null
-          valor_vt_dia: number | null
+          cores_disponiveis: string[] | null
+          detalhes_por_cor: Json[] | null
+          estoque_total: number | null
+          imagem_principal: string | null
+          nome_exibicao: string | null
+          valor_revenda: number | null
         }
-        Insert: {
-          empresa?: string | null
-          funcionario_id?: string | null
-          funcionario_nome?: string | null
-          total_faltas_integrais?: never
-          total_meio_periodo?: never
-          valor_vt_dia?: number | null
+        Relationships: []
+      }
+      vw_catalogo_unificado: {
+        Row: {
+          cores_disponiveis: string[] | null
+          estoque_total: number | null
+          imagem_principal: string | null
+          nome_exibicao: string | null
+          referencia_base: string | null
+          valor_minimo: number | null
         }
-        Update: {
-          empresa?: string | null
-          funcionario_id?: string | null
-          funcionario_nome?: string | null
-          total_faltas_integrais?: never
-          total_meio_periodo?: never
-          valor_vt_dia?: number | null
+        Relationships: []
+      }
+      vw_conferencia_financeira: {
+        Row: {
+          data_transacao: string | null
+          descricao: string | null
+          dt_vencimento: string | null
+          nome_empresa: string | null
+          nome_fornecedor: string | null
+          status_pago: number | null
+          valor: number | null
         }
         Relationships: []
       }
@@ -3760,13 +4998,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "funcionarios"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "periodos_aquisitivos_funcionario_id_fkey"
-            columns: ["funcionario_id"]
-            isOneToOne: false
-            referencedRelation: "vw_calculo_vt_mensal"
-            referencedColumns: ["funcionario_id"]
           },
           {
             foreignKeyName: "periodos_aquisitivos_funcionario_id_fkey"
@@ -3896,6 +5127,28 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_funcionarios_completo: {
+        Row: {
+          ativo: boolean | null
+          cargo: string | null
+          comissao_percentual: number | null
+          cpf: string | null
+          data_admissao: string | null
+          data_nascimento: string | null
+          email: string | null
+          empresa: string | null
+          endereco: string | null
+          id: string | null
+          nome: string | null
+          rg: string | null
+          salario_base: number | null
+          salario_liquido: number | null
+          salario_por_fora: number | null
+          telefone: string | null
+          valor_vt_dia: number | null
+        }
+        Relationships: []
+      }
       vw_historico_faltas: {
         Row: {
           data_falta: string | null
@@ -3908,6 +5161,92 @@ export type Database = {
           status: string | null
         }
         Relationships: []
+      }
+      vw_projetos_dashboard: {
+        Row: {
+          area_do_projeto: Json | null
+          arquiteto_id: string | null
+          arquiteto_nome: string | null
+          arquivado: boolean | null
+          cidade: string | null
+          cliente_id: string | null
+          cliente_nome: string | null
+          cliente_tipo: Database["public"]["Enums"]["contato_tipo"] | null
+          codigo: string | null
+          created_at: string | null
+          data_entrada: string | null
+          empresa_codigo: number | null
+          empresa_id: string | null
+          empresa_nome: string | null
+          estado: string | null
+          id: string | null
+          nivel_estrategico: Database["public"]["Enums"]["projeto_nivel"] | null
+          nome: string | null
+          responsavel_email: string | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          status: Database["public"]["Enums"]["projeto_status"] | null
+          tipo_projeto: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projetos_arquiteto_id_fkey"
+            columns: ["arquiteto_id"]
+            isOneToOne: false
+            referencedRelation: "contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_arquiteto_id_fkey"
+            columns: ["arquiteto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["contato_id"]
+          },
+          {
+            foreignKeyName: "projetos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["contato_id"]
+          },
+          {
+            foreignKeyName: "projetos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["empresa_id"]
+          },
+          {
+            foreignKeyName: "projetos_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       vw_projetos_pipeline: {
         Row: {
@@ -3938,6 +5277,16 @@ export type Database = {
           },
         ]
       }
+      vw_projetos_por_responsavel: {
+        Row: {
+          projetos_arquivados: number | null
+          projetos_ativos: number | null
+          responsavel: string | null
+          total_projetos: number | null
+          usuario_id: string | null
+        }
+        Relationships: []
+      }
       vw_projetos_por_status: {
         Row: {
           status: Database["public"]["Enums"]["projeto_status"] | null
@@ -3959,13 +5308,102 @@ export type Database = {
         }
         Relationships: []
       }
-      vw_rh_resumo: {
+      vw_projetos_sem_empresa: {
         Row: {
-          ativos: number | null
-          departamento: string | null
-          folha_total: number | null
-          salario_medio: number | null
-          total_funcionarios: number | null
+          codigo: string | null
+          created_at: string | null
+          data_entrada: string | null
+          id: string | null
+          nome: string | null
+          responsavel_nome: string | null
+          status: Database["public"]["Enums"]["projeto_status"] | null
+        }
+        Insert: {
+          codigo?: string | null
+          created_at?: string | null
+          data_entrada?: string | null
+          id?: string | null
+          nome?: string | null
+          responsavel_nome?: string | null
+          status?: Database["public"]["Enums"]["projeto_status"] | null
+        }
+        Update: {
+          codigo?: string | null
+          created_at?: string | null
+          data_entrada?: string | null
+          id?: string | null
+          nome?: string | null
+          responsavel_nome?: string | null
+          status?: Database["public"]["Enums"]["projeto_status"] | null
+        }
+        Relationships: []
+      }
+      vw_projetos_sem_responsavel: {
+        Row: {
+          arquiteto_id: string | null
+          cliente_id: string | null
+          codigo: string | null
+          created_at: string | null
+          data_entrada: string | null
+          id: string | null
+          nome: string | null
+          status: Database["public"]["Enums"]["projeto_status"] | null
+        }
+        Insert: {
+          arquiteto_id?: string | null
+          cliente_id?: string | null
+          codigo?: string | null
+          created_at?: string | null
+          data_entrada?: string | null
+          id?: string | null
+          nome?: string | null
+          status?: Database["public"]["Enums"]["projeto_status"] | null
+        }
+        Update: {
+          arquiteto_id?: string | null
+          cliente_id?: string | null
+          codigo?: string | null
+          created_at?: string | null
+          data_entrada?: string | null
+          id?: string | null
+          nome?: string | null
+          status?: Database["public"]["Enums"]["projeto_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projetos_arquiteto_id_fkey"
+            columns: ["arquiteto_id"]
+            isOneToOne: false
+            referencedRelation: "contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_arquiteto_id_fkey"
+            columns: ["arquiteto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["contato_id"]
+          },
+          {
+            foreignKeyName: "projetos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transacoes_completas"
+            referencedColumns: ["contato_id"]
+          },
+        ]
+      }
+      vw_projetos_status_enum: {
+        Row: {
+          status: Database["public"]["Enums"]["projeto_status"] | null
+          total: number | null
         }
         Relationships: []
       }
@@ -4007,6 +5445,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
           },
         ]
       }
@@ -4075,6 +5520,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transacoes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "vw_projetos_por_responsavel"
+            referencedColumns: ["usuario_id"]
           },
           {
             foreignKeyName: "transacoes_negociacao_id_fkey"
@@ -4168,6 +5620,11 @@ export type Database = {
         }
         Returns: string
       }
+      fn_gerar_numero_orcamento: { Args: never; Returns: string }
+      generate_product_slug: {
+        Args: { nome: string; preco: number }
+        Returns: string
+      }
       get_dashboard_crm_by_closing: {
         Args: { data_final: string; data_inicial: string }
         Returns: {
@@ -4182,6 +5639,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           data_entrada: string | null
+          empresa_id: string | null
           estado: string | null
           historico: Json
           id: string
@@ -4210,9 +5668,14 @@ export type Database = {
       get_latest_transaction_id: { Args: never; Returns: string }
       get_user_role: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      is_ubiqua_admin: { Args: never; Returns: boolean }
       limpar_staging_processados: { Args: never; Returns: number }
       stats_datacenter: { Args: never; Returns: Json }
       unaccent: { Args: { "": string }; Returns: string }
+      update_revenda_ubiqua_ordem: {
+        Args: { payload: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       conta_tipo: "Corrente" | "Poupança" | "CDB" | "Investimento" | "Caixa"
@@ -4226,8 +5689,16 @@ export type Database = {
       entrega_status: "Pendente" | "Em rota" | "Entregue" | "Cancelado"
       estoque_local: "Estoque" | "Showroom" | "Em trânsito" | "Reservado"
       frequencia_tipo: "mensal" | "trimestral" | "semestral" | "anual"
+      funcao_separacao_type: "admin" | "operador" | "entregador" | "user"
       lancamento_status: "pendente" | "pago" | "cancelado"
-      pagamento_forma: "pix" | "cartao" | "boleto" | "transferencia" | "cheque"
+      nivel_acesso_tipo: "revendedor" | "interno" | "admin"
+      pagamento_forma:
+        | "pix"
+        | "cartao"
+        | "boleto"
+        | "transferencia"
+        | "cheque"
+        | "dinheiro"
       parcela_status: "pendente" | "paga" | "atrasada" | "cancelada"
       projeto_nivel: "1" | "2" | "3" | "4"
       projeto_status:
@@ -4253,6 +5724,9 @@ export type Database = {
         | "Pronto"
         | "Enviado"
         | "Cancelado"
+        | "finalizado"
+        | "separado"
+        | "material_solicitado"
       sinal_status: "pendente" | "recebido" | "creditado" | "receita_servico"
       solicitacao_status:
         | "pendente"
@@ -4413,8 +5887,17 @@ export const Constants = {
       entrega_status: ["Pendente", "Em rota", "Entregue", "Cancelado"],
       estoque_local: ["Estoque", "Showroom", "Em trânsito", "Reservado"],
       frequencia_tipo: ["mensal", "trimestral", "semestral", "anual"],
+      funcao_separacao_type: ["admin", "operador", "entregador", "user"],
       lancamento_status: ["pendente", "pago", "cancelado"],
-      pagamento_forma: ["pix", "cartao", "boleto", "transferencia", "cheque"],
+      nivel_acesso_tipo: ["revendedor", "interno", "admin"],
+      pagamento_forma: [
+        "pix",
+        "cartao",
+        "boleto",
+        "transferencia",
+        "cheque",
+        "dinheiro",
+      ],
       parcela_status: ["pendente", "paga", "atrasada", "cancelada"],
       projeto_nivel: ["1", "2", "3", "4"],
       projeto_status: [
@@ -4441,6 +5924,9 @@ export const Constants = {
         "Pronto",
         "Enviado",
         "Cancelado",
+        "finalizado",
+        "separado",
+        "material_solicitado",
       ],
       sinal_status: ["pendente", "recebido", "creditado", "receita_servico"],
       solicitacao_status: [
@@ -4553,14 +6039,6 @@ export const Constants = {
 //   empresa_id: uuid (nullable)
 //   nao_residente: boolean (not null, default: false)
 //   razao_social: text (nullable)
-// Table: contatos_connect
-//   cod_pessoa: integer (not null)
-//   nome: text (not null)
-//   telefone: text (nullable)
-//   aparece_cr: boolean (not null, default: false)
-//   aparece_cp: boolean (not null, default: false)
-//   contato_id: uuid (nullable)
-//   created_at: timestamp with time zone (not null, default: now())
 // Table: contatos_revisao
 //   id: uuid (not null, default: gen_random_uuid())
 //   id_a: uuid (not null)
@@ -4613,6 +6091,14 @@ export const Constants = {
 //   descricao: text (nullable)
 //   ativo: boolean (not null, default: true)
 //   created_at: timestamp with time zone (not null, default: now())
+// Table: empresa_ubiqua
+//   id: uuid (not null, default: gen_random_uuid())
+//   nome_fantasia: text (not null)
+//   razao_social: text (nullable)
+//   cnpj: text (not null)
+//   cidade: text (not null)
+//   estado: text (not null)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: empresas
 //   id: uuid (not null, default: gen_random_uuid())
 //   codigo: integer (not null)
@@ -4624,6 +6110,14 @@ export const Constants = {
 //   ativo: boolean (not null, default: true)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
+//   inscricao_estadual: text (nullable)
+//   logradouro: text (nullable)
+//   numero: text (nullable)
+//   complemento: text (nullable)
+//   bairro: text (nullable)
+//   cep: text (nullable)
+//   cor_hex: text (nullable)
+//   regime_tributario: text (nullable)
 // Table: entregas
 //   id: uuid (not null, default: gen_random_uuid())
 //   separacao_id: uuid (nullable)
@@ -4641,6 +6135,26 @@ export const Constants = {
 //   observacoes: text (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
+// Table: entregas_finalizadas
+//   id: uuid (not null, default: gen_random_uuid())
+//   separacao_id: text (nullable)
+//   cliente: text (nullable)
+//   codigo_obra: text (nullable)
+//   data_entrega_real: timestamp with time zone (nullable)
+//   endereco: text (nullable)
+//   recebido_por: text (nullable)
+//   telefone: text (nullable)
+//   material_tipo: text (nullable)
+//   material_conteudo: text (nullable)
+//   fotos_urls: text (nullable)
+//   observacoes: text (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
+//   numero_pedido: text (nullable)
+//   vendedor: text (nullable)
+//   observacoes_internas: text (nullable)
+//   gestora_equipe: text (nullable)
+//   numero_entrega: text (nullable)
+//   data_solicitacao: timestamp with time zone (nullable)
 // Table: estoque_itens
 //   id: uuid (not null, default: gen_random_uuid())
 //   produto_id: uuid (not null)
@@ -4680,31 +6194,75 @@ export const Constants = {
 //   usuario_id: uuid (nullable)
 //   departamento_id: uuid (nullable)
 //   nome: text (not null)
-//   email: text (not null)
-//   telefone: character varying (nullable)
-//   cpf: character varying (nullable)
-//   rg: character varying (nullable)
 //   cargo: text (nullable)
-//   salario_base: numeric (nullable)
 //   data_admissao: date (nullable)
 //   data_demissao: date (nullable)
 //   status: text (not null, default: 'Ativo'::text)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
-//   comissao_padrao: numeric (nullable, default: 0)
 //   empresa: text (nullable)
-//   valor_vr: numeric (nullable, default: 0)
-//   valor_vt: numeric (nullable, default: 0)
-//   data_aniversario: date (nullable)
-//   salario_liquido: numeric (nullable, default: 0)
-//   endereco_completo: text (nullable)
-//   salario_por_fora: numeric (nullable, default: 0)
 //   tipo_contratacao: text (nullable)
 //   data_elegibilidade_ferias: date (nullable)
-//   valor_vt_dia: numeric (nullable, default: 0.00)
 //   empresa_id: uuid (nullable)
 //   codigo_legado: integer (nullable)
 //   nm_connect: text (nullable)
+// Table: funcionarios_beneficios_empresas
+//   id: uuid (not null, default: gen_random_uuid())
+//   funcionario_id: uuid (not null)
+//   empresa: character varying (not null)
+//   valor_vt_dia: numeric (nullable, default: 0)
+// Table: funcionarios_detalhes
+//   id: uuid (not null, default: gen_random_uuid())
+//   funcionario_id: uuid (not null)
+//   cpf: character varying (nullable)
+//   rg: character varying (nullable)
+//   data_nascimento: date (nullable)
+//   endereco: text (nullable)
+//   telefone: character varying (nullable)
+//   email: character varying (nullable)
+// Table: funcionarios_financeiro
+//   id: uuid (not null, default: gen_random_uuid())
+//   funcionario_id: uuid (not null)
+//   salario_base: numeric (not null, default: 0)
+//   salario_por_fora: numeric (not null, default: 0)
+//   comissao_percentual: numeric (nullable, default: 0)
+//   salario_liquido: numeric (nullable)
+// Table: funcionarios_novo
+//   id: uuid (not null, default: gen_random_uuid())
+//   nome: character varying (not null)
+//   cargo: character varying (nullable)
+//   data_admissao: date (nullable)
+//   ativo: boolean (nullable, default: true)
+//   created_at: timestamp with time zone (nullable, default: now())
+// Table: historico_status_orcamento
+//   id: uuid (not null, default: gen_random_uuid())
+//   orcamento_id: uuid (not null)
+//   status_anterior: text (nullable)
+//   status_novo: text (not null)
+//   usuario: text (nullable)
+//   observacao: text (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
+// Table: informacoes_cliente_ubiqua
+//   id: uuid (not null, default: gen_random_uuid())
+//   nome: text (not null)
+//   email: text (nullable)
+//   telefone: text (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
+//   cpf_cnpj: text (not null)
+// Table: itens_orcamento_ubiqua
+//   id: uuid (not null, default: gen_random_uuid())
+//   orcamento_id: uuid (not null)
+//   produto_id: integer (not null)
+//   quantidade: integer (not null)
+//   valor_unitario: numeric (not null)
+//   desconto_item: numeric (nullable, default: 0)
+//   observacao_item: text (nullable)
+//   referencia_snapshot: text (nullable)
+//   descricao_snapshot: text (nullable)
+//   marca_snapshot: text (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
+//   ordem: integer (nullable, default: 0)
+//   valor_total: numeric (nullable)
 // Table: marcas
 //   id: uuid (not null, default: gen_random_uuid())
 //   nome: text (not null)
@@ -4726,6 +6284,59 @@ export const Constants = {
 //   observacao: text (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
 //   cod_pessoa: integer (nullable)
+// Table: orcamento_itens
+//   id: uuid (not null, default: gen_random_uuid())
+//   orcamento_id: uuid (not null)
+//   produto_id: uuid (nullable)
+//   quantidade: numeric (nullable, default: 1)
+//   preco_unitario: numeric (nullable)
+//   desconto: numeric (nullable, default: 0)
+//   item_pai_id: uuid (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
+//   custom_id: text (nullable)
+//   descricao: text (nullable)
+// Table: orcamentos
+//   id: uuid (not null, default: gen_random_uuid())
+//   empresa_id: uuid (not null)
+//   cliente_id: uuid (nullable)
+//   arquiteto_id: uuid (nullable)
+//   vendedor_id: uuid (nullable)
+//   status: text (nullable, default: 'Rascunho'::text)
+//   data_emissao: timestamp with time zone (nullable, default: now())
+//   validade: date (nullable)
+//   valor_total: numeric (nullable, default: 0)
+//   created_at: timestamp with time zone (nullable, default: now())
+//   numero: text (nullable)
+//   observacoes: text (nullable)
+//   condicoes_pagamento: text (nullable)
+//   desconto_global: numeric (nullable, default: 0)
+//   forma_pagamento: pagamento_forma (nullable)
+//   informacoes_cliente_id: uuid (nullable)
+// Table: orcamentos_revenda_ubiqua
+//   id: uuid (not null, default: gen_random_uuid())
+//   cliente_id: uuid (not null)
+//   numero_orcamento: text (not null)
+//   status: text (not null, default: 'rascunho'::text)
+//   data_validade: date (not null, default: (CURRENT_DATE + '30 days'::interval))
+//   desconto_percentual: numeric (nullable, default: 0)
+//   valor_subtotal: numeric (not null, default: 0)
+//   valor_desconto: numeric (not null, default: 0)
+//   valor_total: numeric (not null, default: 0)
+//   observacoes: text (nullable)
+//   condicoes_pagamento: text (nullable)
+//   prazo_entrega: text (nullable)
+//   enviado_em: timestamp with time zone (nullable)
+//   aprovado_em: timestamp with time zone (nullable)
+//   aprovado_por: text (nullable)
+//   rejeitado_em: timestamp with time zone (nullable)
+//   motivo_rejeicao: text (nullable)
+//   cancelado_em: timestamp with time zone (nullable)
+//   motivo_cancelamento: text (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
+//   updated_at: timestamp with time zone (nullable, default: now())
+//   created_by: text (nullable)
+//   updated_by: text (nullable)
+//   versao: integer (nullable, default: 1)
 // Table: pedido_compra
 //   id: uuid (not null, default: gen_random_uuid())
 //   codigo_pedido: integer (not null)
@@ -4882,6 +6493,7 @@ export const Constants = {
 //   area_do_projeto: jsonb (nullable)
 //   Nome Arquiteto: text (nullable)
 //   codigo_legado: integer (nullable)
+//   empresa_id: uuid (nullable)
 // Table: projetos_fechados
 //   id: uuid (not null, default: gen_random_uuid())
 //   cod: text (nullable)
@@ -4927,6 +6539,19 @@ export const Constants = {
 //   fonte_planilha3: boolean (nullable, default: false)
 //   created_at: timestamp with time zone (nullable, default: now())
 //   updated_at: timestamp with time zone (nullable, default: now())
+//   cor: text (nullable)
+//   empresa_id: uuid (nullable)
+//   ordem: integer (nullable, default: 0)
+//   slug: text (nullable)
+// Table: separacao_arquivos
+//   id: uuid (not null, default: gen_random_uuid())
+//   separacao_id: uuid (nullable)
+//   nome_arquivo: text (nullable)
+//   tipo_arquivo: text (nullable)
+//   url_arquivo: text (nullable)
+//   tamanho_bytes: bigint (nullable)
+//   ordem: integer (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
 // Table: separacao_itens
 //   id: uuid (not null, default: gen_random_uuid())
 //   separacao_id: uuid (not null)
@@ -4954,6 +6579,60 @@ export const Constants = {
 //   data_entrega_original: date (nullable)
 //   reagendamentos: integer (not null, default: 0)
 //   cliente_id: uuid (nullable)
+//   responsavel_recebimento: text (nullable)
+//   telefone: text (nullable)
+//   endereco: text (nullable)
+//   material_tipo: text (nullable)
+//   material_conteudo: jsonb (nullable)
+//   solicitante: text (nullable)
+//   order_in_route: boolean (nullable, default: false)
+//   observacoes_internas: text (nullable)
+//   gestora_equipe: text (nullable)
+//   separacoes_parciais: jsonb (nullable)
+//   nivel_complexidade: text (nullable)
+//   tipo_entrega: text (nullable)
+//   transportadora_nome: text (nullable)
+//   codigo_rastreamento: text (nullable)
+//   numero_venda: text (nullable)
+//   numero_entrega: text (nullable)
+//   data_inicio_separacao: timestamp with time zone (nullable)
+//   tipo_pedido: text (nullable)
+//   garantia_detalhes: text (nullable)
+//   inclui_garantia: boolean (nullable, default: false)
+//   garantia_peca: text (nullable)
+//   garantia_motivo: text (nullable)
+// Table: separacoes_arquivos
+//   id: uuid (not null, default: gen_random_uuid())
+//   cliente: text (nullable)
+//   codigo_obra: text (nullable)
+//   data_entrega: timestamp with time zone (nullable)
+//   responsavel_recebimento: text (nullable)
+//   telefone: text (nullable)
+//   endereco: text (nullable)
+//   status: text (nullable)
+//   material_tipo: text (nullable)
+//   material_conteudo: text (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
+//   updated_at: timestamp with time zone (nullable, default: now())
+//   solicitante: text (nullable)
+//   delivery_type: text (nullable)
+//   scheduled_time: text (nullable)
+//   order_in_route: text (nullable)
+//   observacoes_internas: text (nullable)
+//   gestora_equipe: text (nullable)
+//   separacoes_parciais: text (nullable)
+//   nivel_complexidade: text (nullable)
+//   tipo_entrega: text (nullable)
+//   transportadora_nome: text (nullable)
+//   codigo_rastreamento: text (nullable)
+//   numero_venda: text (nullable)
+//   numero_entrega: text (nullable)
+//   data_inicio_separacao: timestamp with time zone (nullable)
+//   tipo_pedido: text (nullable)
+//   garantia_detalhes: text (nullable)
+//   inclui_garantia: boolean (nullable, default: false)
+//   garantia_peca: text (nullable)
+//   garantia_motivo: text (nullable)
 // Table: staging_conta_pagar
 //   tipo_operacao: text (nullable)
 //   cod_empresa: integer (nullable)
@@ -5135,6 +6814,18 @@ export const Constants = {
 //   status_pago: smallint (nullable, default: 0)
 //   tipo_pagamento: text (nullable)
 //   acordo: integer (nullable)
+//   empresa_id: uuid (nullable)
+//   funcionario_id: uuid (nullable)
+// Table: user_roles_separacao
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: uuid (nullable)
+//   nome_completo: text (not null)
+//   email: text (not null)
+//   funcao: funcao_separacao_type (nullable)
+//   sistema: text (nullable, default: 'Separação e Entregas'::text)
+//   created_at: timestamp with time zone (nullable, default: now())
+//   role: text (nullable)
+//   updated_at: timestamp with time zone (nullable, default: now())
 // Table: usuarios
 //   id: uuid (not null)
 //   email: text (not null)
@@ -5144,6 +6835,18 @@ export const Constants = {
 //   created_at: timestamp with time zone (nullable, default: now())
 //   avatar_url: text (nullable)
 //   updated_at: timestamp with time zone (nullable)
+//   onboarding_completado: boolean (not null, default: false)
+//   empresa_id: uuid (nullable)
+//   telefone: text (nullable)
+// Table: usuarios_ubiqua
+//   id: uuid (not null)
+//   empresa_id: uuid (nullable)
+//   nome: text (not null)
+//   email: text (not null)
+//   telefone: text (nullable)
+//   onboarding_completado: boolean (not null, default: false)
+//   created_at: timestamp with time zone (not null, default: now())
+//   nivel_acesso: nivel_acesso_tipo (not null, default: 'revendedor'::nivel_acesso_tipo)
 // Table: v_cash_flow_lucenera
 //   dt_pagamento: date (nullable)
 //   dt_vencimento: date (nullable)
@@ -5181,13 +6884,28 @@ export const Constants = {
 //   valor_custo: numeric (not null, default: 0)
 //   valor_venda: numeric (not null, default: 0)
 //   created_at: timestamp with time zone (not null, default: now())
-// Table: vw_calculo_vt_mensal
-//   funcionario_id: uuid (nullable)
-//   funcionario_nome: text (nullable)
-//   empresa: text (nullable)
-//   valor_vt_dia: numeric (nullable)
-//   total_faltas_integrais: bigint (nullable)
-//   total_meio_periodo: bigint (nullable)
+// Table: vw_catalogo_ubiqua
+//   nome_exibicao: text (nullable)
+//   cores_disponiveis: _text (nullable)
+//   estoque_total: bigint (nullable)
+//   valor_revenda: numeric (nullable)
+//   imagem_principal: text (nullable)
+//   detalhes_por_cor: _json (nullable)
+// Table: vw_catalogo_unificado
+//   referencia_base: text (nullable)
+//   nome_exibicao: text (nullable)
+//   estoque_total: bigint (nullable)
+//   cores_disponiveis: _text (nullable)
+//   imagem_principal: text (nullable)
+//   valor_minimo: numeric (nullable)
+// Table: vw_conferencia_financeira
+//   data_transacao: date (nullable)
+//   descricao: text (nullable)
+//   valor: numeric (nullable)
+//   nome_empresa: text (nullable)
+//   nome_fornecedor: text (nullable)
+//   status_pago: smallint (nullable)
+//   dt_vencimento: date (nullable)
 // Table: vw_controle_ferias_clt
 //   funcionario_id: uuid (nullable)
 //   funcionario_nome: text (nullable)
@@ -5263,6 +6981,24 @@ export const Constants = {
 //   atrasado: numeric (nullable)
 //   qtd_pendente: bigint (nullable)
 //   qtd_atrasado: bigint (nullable)
+// Table: vw_funcionarios_completo
+//   id: uuid (nullable)
+//   nome: character varying (nullable)
+//   cargo: character varying (nullable)
+//   data_admissao: date (nullable)
+//   ativo: boolean (nullable)
+//   cpf: character varying (nullable)
+//   rg: character varying (nullable)
+//   data_nascimento: date (nullable)
+//   email: character varying (nullable)
+//   telefone: character varying (nullable)
+//   endereco: text (nullable)
+//   salario_base: numeric (nullable)
+//   salario_por_fora: numeric (nullable)
+//   salario_liquido: numeric (nullable)
+//   comissao_percentual: numeric (nullable)
+//   empresa: character varying (nullable)
+//   valor_vt_dia: numeric (nullable)
 // Table: vw_historico_faltas
 //   funcionario_id: uuid (nullable)
 //   funcionario_nome: text (nullable)
@@ -5272,6 +7008,31 @@ export const Constants = {
 //   periodo_id: uuid (nullable)
 //   data_inicio: date (nullable)
 //   data_fim: date (nullable)
+// Table: vw_projetos_dashboard
+//   id: uuid (nullable)
+//   codigo: character varying (nullable)
+//   nome: text (nullable)
+//   status: projeto_status (nullable)
+//   nivel_estrategico: projeto_nivel (nullable)
+//   data_entrada: date (nullable)
+//   cidade: character varying (nullable)
+//   estado: character varying (nullable)
+//   arquivado: boolean (nullable)
+//   responsavel_id: uuid (nullable)
+//   responsavel_nome: text (nullable)
+//   responsavel_email: text (nullable)
+//   cliente_id: uuid (nullable)
+//   cliente_nome: text (nullable)
+//   cliente_tipo: contato_tipo (nullable)
+//   arquiteto_id: uuid (nullable)
+//   arquiteto_nome: text (nullable)
+//   empresa_id: uuid (nullable)
+//   empresa_nome: text (nullable)
+//   empresa_codigo: integer (nullable)
+//   area_do_projeto: jsonb (nullable)
+//   tipo_projeto: text (nullable)
+//   created_at: timestamp with time zone (nullable)
+//   updated_at: timestamp with time zone (nullable)
 // Table: vw_projetos_pipeline
 //   id: uuid (nullable)
 //   codigo: character varying (nullable)
@@ -5282,6 +7043,12 @@ export const Constants = {
 //   client_id: uuid (nullable)
 //   cliente_nome: text (nullable)
 //   valor_total: numeric (nullable)
+// Table: vw_projetos_por_responsavel
+//   usuario_id: uuid (nullable)
+//   responsavel: text (nullable)
+//   total_projetos: bigint (nullable)
+//   projetos_ativos: bigint (nullable)
+//   projetos_arquivados: bigint (nullable)
 // Table: vw_projetos_por_status
 //   status: projeto_status (nullable)
 //   total_projetos: bigint (nullable)
@@ -5295,12 +7062,26 @@ export const Constants = {
 //   valor_total_vendas: numeric (nullable)
 //   valor_pago: numeric (nullable)
 //   valor_pendente: numeric (nullable)
-// Table: vw_rh_resumo
-//   departamento: text (nullable)
-//   total_funcionarios: bigint (nullable)
-//   ativos: bigint (nullable)
-//   salario_medio: numeric (nullable)
-//   folha_total: numeric (nullable)
+// Table: vw_projetos_sem_empresa
+//   id: uuid (nullable)
+//   codigo: character varying (nullable)
+//   nome: text (nullable)
+//   status: projeto_status (nullable)
+//   responsavel_nome: text (nullable)
+//   data_entrada: date (nullable)
+//   created_at: timestamp with time zone (nullable)
+// Table: vw_projetos_sem_responsavel
+//   id: uuid (nullable)
+//   codigo: character varying (nullable)
+//   nome: text (nullable)
+//   status: projeto_status (nullable)
+//   data_entrada: date (nullable)
+//   created_at: timestamp with time zone (nullable)
+//   cliente_id: uuid (nullable)
+//   arquiteto_id: uuid (nullable)
+// Table: vw_projetos_status_enum
+//   status: projeto_status (nullable)
+//   total: bigint (nullable)
 // Table: vw_separacoes_agenda
 //   separacao_id: uuid (nullable)
 //   separacao_status: separacao_status (nullable)
@@ -5459,9 +7240,6 @@ export const Constants = {
 //   CHECK contatos_tipo_pessoa_check: CHECK (((tipo_pessoa)::text = ANY ((ARRAY['fisica'::character varying, 'juridica'::character varying])::text[])))
 //   UNIQUE uq_contatos_codigo_legado_tipo: UNIQUE (codigo_legado, tipo)
 //   UNIQUE uq_contatos_cpf_cnpj: UNIQUE (cpf_cnpj)
-// Table: contatos_connect
-//   FOREIGN KEY contatos_connect_contato_id_fkey: FOREIGN KEY (contato_id) REFERENCES contatos(id) ON DELETE CASCADE
-//   PRIMARY KEY contatos_connect_pkey: PRIMARY KEY (cod_pessoa)
 // Table: contatos_revisao
 //   CHECK contatos_revisao_check: CHECK ((id_a < id_b))
 //   CHECK contatos_revisao_decisao_check: CHECK ((decisao = ANY (ARRAY['pendente'::text, 'merge'::text, 'manter'::text])))
@@ -5493,10 +7271,14 @@ export const Constants = {
 // Table: departamentos
 //   UNIQUE departamentos_nome_key: UNIQUE (nome)
 //   PRIMARY KEY departamentos_pkey: PRIMARY KEY (id)
+// Table: empresa_ubiqua
+//   UNIQUE empresa_ubiqua_cnpj_key: UNIQUE (cnpj)
+//   PRIMARY KEY empresa_ubiqua_pkey: PRIMARY KEY (id)
 // Table: empresas
 //   UNIQUE empresas_cnpj_key: UNIQUE (cnpj)
 //   UNIQUE empresas_codigo_key: UNIQUE (codigo)
 //   PRIMARY KEY empresas_pkey: PRIMARY KEY (id)
+//   UNIQUE unique_cnpj: UNIQUE (cnpj)
 // Table: entregas
 //   CHECK entregas_avaliacao_check: CHECK (((avaliacao >= 1) AND (avaliacao <= 5)))
 //   CHECK entregas_delivery_type_check: CHECK ((delivery_type = ANY (ARRAY['scheduled'::text, 'flexible'::text])))
@@ -5504,6 +7286,8 @@ export const Constants = {
 //   PRIMARY KEY entregas_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY entregas_projeto_id_fkey: FOREIGN KEY (projeto_id) REFERENCES projetos(id) ON DELETE SET NULL
 //   FOREIGN KEY entregas_separacao_id_fkey: FOREIGN KEY (separacao_id) REFERENCES separacoes(id) ON DELETE SET NULL
+// Table: entregas_finalizadas
+//   PRIMARY KEY entregas_finalizadas_pkey: PRIMARY KEY (id)
 // Table: estoque_itens
 //   FOREIGN KEY estoque_itens_atualizado_por_fkey: FOREIGN KEY (atualizado_por) REFERENCES usuarios(id) ON DELETE SET NULL
 //   PRIMARY KEY estoque_itens_pkey: PRIMARY KEY (id)
@@ -5524,13 +7308,38 @@ export const Constants = {
 // Table: funcionarios
 //   UNIQUE funcionarios_codigo_legado_key: UNIQUE (codigo_legado)
 //   FOREIGN KEY funcionarios_departamento_id_fkey: FOREIGN KEY (departamento_id) REFERENCES departamentos(id) ON DELETE SET NULL
-//   UNIQUE funcionarios_email_key: UNIQUE (email)
 //   FOREIGN KEY funcionarios_empresa_id_fkey: FOREIGN KEY (empresa_id) REFERENCES empresas(id)
 //   UNIQUE funcionarios_nm_connect_key: UNIQUE (nm_connect)
 //   PRIMARY KEY funcionarios_pkey: PRIMARY KEY (id)
 //   CHECK funcionarios_status_check: CHECK ((status = ANY (ARRAY['Ativo'::text, 'Inativo'::text, 'Afastado'::text, 'Ferias'::text])))
 //   CHECK funcionarios_tipo_contratacao_check: CHECK ((tipo_contratacao = ANY (ARRAY['CLT'::text, 'PJ'::text])))
 //   FOREIGN KEY funcionarios_usuario_id_fkey: FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+// Table: funcionarios_beneficios_empresas
+//   UNIQUE funcionarios_beneficios_empresas_funcionario_id_empresa_key: UNIQUE (funcionario_id, empresa)
+//   FOREIGN KEY funcionarios_beneficios_empresas_funcionario_id_fkey: FOREIGN KEY (funcionario_id) REFERENCES funcionarios_novo(id) ON DELETE CASCADE
+//   PRIMARY KEY funcionarios_beneficios_empresas_pkey: PRIMARY KEY (id)
+// Table: funcionarios_detalhes
+//   FOREIGN KEY funcionarios_detalhes_funcionario_id_fkey: FOREIGN KEY (funcionario_id) REFERENCES funcionarios_novo(id) ON DELETE CASCADE
+//   UNIQUE funcionarios_detalhes_funcionario_id_key: UNIQUE (funcionario_id)
+//   PRIMARY KEY funcionarios_detalhes_pkey: PRIMARY KEY (id)
+// Table: funcionarios_financeiro
+//   FOREIGN KEY funcionarios_financeiro_funcionario_id_fkey: FOREIGN KEY (funcionario_id) REFERENCES funcionarios_novo(id) ON DELETE CASCADE
+//   UNIQUE funcionarios_financeiro_funcionario_id_key: UNIQUE (funcionario_id)
+//   PRIMARY KEY funcionarios_financeiro_pkey: PRIMARY KEY (id)
+// Table: funcionarios_novo
+//   PRIMARY KEY funcionarios_novo_pkey: PRIMARY KEY (id)
+// Table: historico_status_orcamento
+//   FOREIGN KEY historico_status_orcamento_orcamento_id_fkey: FOREIGN KEY (orcamento_id) REFERENCES orcamentos_revenda_ubiqua(id) ON DELETE CASCADE
+//   PRIMARY KEY historico_status_orcamento_pkey: PRIMARY KEY (id)
+// Table: informacoes_cliente_ubiqua
+//   PRIMARY KEY informacoes_cliente_ubiqua_pkey: PRIMARY KEY (id)
+// Table: itens_orcamento_ubiqua
+//   CHECK itens_orcamento_ubiqua_desconto_item_check: CHECK ((desconto_item >= (0)::numeric))
+//   FOREIGN KEY itens_orcamento_ubiqua_orcamento_id_fkey: FOREIGN KEY (orcamento_id) REFERENCES orcamentos_revenda_ubiqua(id) ON DELETE CASCADE
+//   PRIMARY KEY itens_orcamento_ubiqua_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY itens_orcamento_ubiqua_produto_id_fkey: FOREIGN KEY (produto_id) REFERENCES revenda_ubiqua(id) ON DELETE RESTRICT
+//   CHECK itens_orcamento_ubiqua_quantidade_check: CHECK ((quantidade > 0))
+//   CHECK itens_orcamento_ubiqua_valor_unitario_check: CHECK ((valor_unitario >= (0)::numeric))
 // Table: marcas
 //   UNIQUE marcas_codigo_legado_key: UNIQUE (codigo_legado)
 //   UNIQUE marcas_nome_key: UNIQUE (nome)
@@ -5543,6 +7352,23 @@ export const Constants = {
 //   FOREIGN KEY negociacoes_plano_contas_id_fkey: FOREIGN KEY (plano_contas_id) REFERENCES plano_de_contas(id)
 //   FOREIGN KEY negociacoes_projeto_id_fkey: FOREIGN KEY (projeto_id) REFERENCES projetos(id)
 //   UNIQUE uq_negociacoes_empresa_cod_dup_tipo: UNIQUE (empresa_id, cod_duplicata, tipo)
+// Table: orcamento_itens
+//   FOREIGN KEY orcamento_itens_item_pai_id_fkey: FOREIGN KEY (item_pai_id) REFERENCES orcamento_itens(id)
+//   FOREIGN KEY orcamento_itens_orcamento_id_fkey: FOREIGN KEY (orcamento_id) REFERENCES orcamentos(id) ON DELETE CASCADE
+//   PRIMARY KEY orcamento_itens_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY orcamento_itens_produto_id_fkey: FOREIGN KEY (produto_id) REFERENCES produtos(id)
+// Table: orcamentos
+//   FOREIGN KEY orcamentos_arquiteto_id_fkey: FOREIGN KEY (arquiteto_id) REFERENCES contatos(id)
+//   FOREIGN KEY orcamentos_cliente_id_fkey: FOREIGN KEY (cliente_id) REFERENCES contatos(id)
+//   FOREIGN KEY orcamentos_empresa_id_fkey: FOREIGN KEY (empresa_id) REFERENCES empresas(id)
+//   FOREIGN KEY orcamentos_informacoes_cliente_id_fkey: FOREIGN KEY (informacoes_cliente_id) REFERENCES informacoes_cliente_ubiqua(id) ON DELETE SET NULL
+//   PRIMARY KEY orcamentos_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY orcamentos_vendedor_id_fkey: FOREIGN KEY (vendedor_id) REFERENCES funcionarios(id) ON DELETE SET NULL
+// Table: orcamentos_revenda_ubiqua
+//   FOREIGN KEY orcamentos_revenda_ubiqua_cliente_id_fkey: FOREIGN KEY (cliente_id) REFERENCES informacoes_cliente_ubiqua(id) ON DELETE RESTRICT
+//   CHECK orcamentos_revenda_ubiqua_desconto_percentual_check: CHECK (((desconto_percentual >= (0)::numeric) AND (desconto_percentual <= (100)::numeric)))
+//   PRIMARY KEY orcamentos_revenda_ubiqua_pkey: PRIMARY KEY (id)
+//   CHECK orcamentos_revenda_ubiqua_status_check: CHECK ((status = ANY (ARRAY['rascunho'::text, 'enviado'::text, 'aprovado'::text, 'rejeitado'::text, 'cancelado'::text])))
 // Table: pedido_compra
 //   UNIQUE pedido_compra_codigo_pedido_key: UNIQUE (codigo_pedido)
 //   PRIMARY KEY pedido_compra_pkey: PRIMARY KEY (id)
@@ -5602,6 +7428,7 @@ export const Constants = {
 //   UNIQUE projetos_codigo_key: UNIQUE (codigo)
 //   UNIQUE projetos_codigo_legado_key: UNIQUE (codigo_legado)
 //   FOREIGN KEY projetos_created_by_fkey: FOREIGN KEY (created_by) REFERENCES usuarios(id) ON DELETE SET NULL
+//   FOREIGN KEY projetos_empresa_id_fkey: FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE SET NULL
 //   PRIMARY KEY projetos_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY projetos_responsavel_id_fkey: FOREIGN KEY (responsavel_id) REFERENCES usuarios(id)
 //   FOREIGN KEY projetos_responsavel_obra_id_fkey: FOREIGN KEY (responsavel_obra_id) REFERENCES contatos(id) ON DELETE SET NULL
@@ -5614,7 +7441,10 @@ export const Constants = {
 // Table: quotes
 //   PRIMARY KEY quotes_pkey: PRIMARY KEY (id)
 // Table: revenda_ubiqua
+//   FOREIGN KEY fk_empresa: FOREIGN KEY (empresa_id) REFERENCES empresas(id)
 //   PRIMARY KEY revenda_ubiqua_pkey: PRIMARY KEY (id)
+// Table: separacao_arquivos
+//   PRIMARY KEY separacao_arquivos_pkey: PRIMARY KEY (id)
 // Table: separacao_itens
 //   PRIMARY KEY separacao_itens_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY separacao_itens_produto_id_fkey: FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE SET NULL
@@ -5625,6 +7455,8 @@ export const Constants = {
 //   PRIMARY KEY separacoes_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY separacoes_projeto_id_fkey: FOREIGN KEY (projeto_id) REFERENCES projetos(id) ON DELETE SET NULL
 //   FOREIGN KEY separacoes_responsavel_id_fkey: FOREIGN KEY (responsavel_id) REFERENCES usuarios(id) ON DELETE SET NULL
+// Table: separacoes_arquivos
+//   PRIMARY KEY separacoes_arquivos_pkey: PRIMARY KEY (id)
 // Table: sync_history
 //   FOREIGN KEY sync_history_executado_por_fkey: FOREIGN KEY (executado_por) REFERENCES usuarios(id) ON DELETE SET NULL
 //   PRIMARY KEY sync_history_pkey: PRIMARY KEY (id)
@@ -5632,15 +7464,26 @@ export const Constants = {
 //   FOREIGN KEY transacoes_categoria_id_fkey: FOREIGN KEY (categoria_id) REFERENCES categorias_financeiras(id) ON DELETE SET NULL
 //   FOREIGN KEY transacoes_conta_id_fkey: FOREIGN KEY (conta_id) REFERENCES contas_bancarias(id) ON DELETE RESTRICT
 //   FOREIGN KEY transacoes_created_by_fkey: FOREIGN KEY (created_by) REFERENCES usuarios(id) ON DELETE SET NULL
+//   FOREIGN KEY transacoes_empresa_id_fkey: FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE RESTRICT
+//   FOREIGN KEY transacoes_funcionario_id_fkey: FOREIGN KEY (funcionario_id) REFERENCES funcionarios(id)
 //   FOREIGN KEY transacoes_negociacao_id_fkey: FOREIGN KEY (negociacao_id) REFERENCES negociacoes(id)
 //   FOREIGN KEY transacoes_parcela_id_fkey: FOREIGN KEY (parcela_id) REFERENCES projeto_parcelas(id) ON DELETE SET NULL
 //   PRIMARY KEY transacoes_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY transacoes_projeto_id_fkey: FOREIGN KEY (projeto_id) REFERENCES projetos(id) ON DELETE SET NULL
 //   UNIQUE uq_transacoes_connect: UNIQUE (negociacao_id, cod_itens_duplicata)
+// Table: user_roles_separacao
+//   UNIQUE user_roles_separacao_email_key: UNIQUE (email)
+//   PRIMARY KEY user_roles_separacao_pkey: PRIMARY KEY (id)
 // Table: usuarios
 //   UNIQUE usuarios_email_key: UNIQUE (email)
+//   FOREIGN KEY usuarios_empresa_id_fkey: FOREIGN KEY (empresa_id) REFERENCES empresas(id)
 //   FOREIGN KEY usuarios_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 //   PRIMARY KEY usuarios_pkey: PRIMARY KEY (id)
+// Table: usuarios_ubiqua
+//   UNIQUE usuarios_ubiqua_email_key: UNIQUE (email)
+//   FOREIGN KEY usuarios_ubiqua_empresa_id_fkey: FOREIGN KEY (empresa_id) REFERENCES empresa_ubiqua(id) ON DELETE CASCADE
+//   FOREIGN KEY usuarios_ubiqua_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+//   PRIMARY KEY usuarios_ubiqua_pkey: PRIMARY KEY (id)
 // Table: vendas
 //   UNIQUE vendas_cod_venda_key: UNIQUE (cod_venda)
 //   PRIMARY KEY vendas_pkey: PRIMARY KEY (id)
@@ -5699,11 +7542,6 @@ export const Constants = {
 //     USING: true
 //   Policy "contatos_update" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role, 'operador'::usuario_role])))))
-// Table: contatos_connect
-//   Policy "contatos_connect_select" (SELECT, PERMISSIVE) roles={authenticated}
-//     USING: true
-//   Policy "contatos_connect_write" (ALL, PERMISSIVE) roles={service_role}
-//     USING: true
 // Table: contatos_revisao
 //   Policy "contatos_revisao_select" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -5745,12 +7583,28 @@ export const Constants = {
 //     USING: true
 //   Policy "dept_update_admin" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role])))))
+// Table: empresa_ubiqua
+//   Policy "empresa_ubiqua_insert" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "empresa_ubiqua_select" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "empresa_ubiqua_update" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (id IN ( SELECT usuarios_ubiqua.empresa_id    FROM usuarios_ubiqua   WHERE (usuarios_ubiqua.id = auth.uid())))
+//     WITH CHECK: (id IN ( SELECT usuarios_ubiqua.empresa_id    FROM usuarios_ubiqua   WHERE (usuarios_ubiqua.id = auth.uid())))
 // Table: empresas
+//   Policy "anon_select_empresas" (SELECT, PERMISSIVE) roles={anon,authenticated}
+//     USING: true
+//   Policy "empresas_delete_auth" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
 //   Policy "empresas_insert" (INSERT, PERMISSIVE) roles={service_role}
+//     WITH CHECK: true
+//   Policy "empresas_insert_auth" (INSERT, PERMISSIVE) roles={authenticated}
 //     WITH CHECK: true
 //   Policy "empresas_select" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 //   Policy "empresas_update" (UPDATE, PERMISSIVE) roles={service_role}
+//     USING: true
+//   Policy "empresas_update_auth" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 // Table: entregas
 //   Policy "entregas_delete_admin" (DELETE, PERMISSIVE) roles={authenticated}
@@ -5761,6 +7615,10 @@ export const Constants = {
 //     USING: true
 //   Policy "entregas_update" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role, 'operador'::usuario_role])))))
+// Table: entregas_finalizadas
+//   Policy "entregas_finalizadas_authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: estoque_itens
 //   Policy "estoque_delete" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role, 'operador'::usuario_role])))))
@@ -5797,6 +7655,53 @@ export const Constants = {
 //     USING: ((EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role]))))) OR (usuario_id = ( SELECT auth.uid() AS uid)))
 //   Policy "func_update_admin" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role])))))
+// Table: funcionarios_beneficios_empresas
+//   Policy "funcionarios_beneficios_empresas_authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: funcionarios_detalhes
+//   Policy "funcionarios_detalhes_authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: funcionarios_financeiro
+//   Policy "funcionarios_financeiro_authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: funcionarios_novo
+//   Policy "funcionarios_novo_authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: historico_status_orcamento
+//   Policy "historico_status_orcamento_authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: informacoes_cliente_ubiqua
+//   Policy "Permitir leitura admin_gerente" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = auth.uid()) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role])))))
+//   Policy "Permitir leitura anon e auth" (SELECT, PERMISSIVE) roles={anon,authenticated}
+//     USING: true
+//   Policy "all_select_informacoes_cliente" (SELECT, PERMISSIVE) roles={anon,authenticated}
+//     USING: true
+//   Policy "anon_insert_informacoes_cliente" (INSERT, PERMISSIVE) roles={anon}
+//     WITH CHECK: true
+//   Policy "anon_update_informacoes_cliente" (UPDATE, PERMISSIVE) roles={anon}
+//     USING: true
+//     WITH CHECK: true
+//   Policy "auth_insert_informacoes_cliente" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "auth_update_informacoes_cliente" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: itens_orcamento_ubiqua
+//   Policy "all_select_itens_orcamento_ubiqua" (SELECT, PERMISSIVE) roles={public}
+//     USING: true
+//   Policy "anon_insert_itens_orcamento_ubiqua" (INSERT, PERMISSIVE) roles={anon}
+//     WITH CHECK: true
+//   Policy "auth_insert_itens_orcamento_ubiqua" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_all_itens_orcamento_ubiqua" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: marcas
 //   Policy "marcas_delete" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role])))))
@@ -5811,6 +7716,59 @@ export const Constants = {
 //     USING: true
 //   Policy "negociacoes_write" (ALL, PERMISSIVE) roles={service_role}
 //     USING: true
+// Table: orcamento_itens
+//   Policy "anon_insert_orcamento_itens" (INSERT, PERMISSIVE) roles={anon,authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_delete_orcamento_itens" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_insert_orcamento_itens" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_orcamento_itens" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_update_orcamento_itens" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+//   Policy "orcamento_itens_delete" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "orcamento_itens_insert" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "orcamento_itens_select" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "orcamento_itens_update" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+// Table: orcamentos
+//   Policy "anon_insert_orcamentos" (INSERT, PERMISSIVE) roles={anon,authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_delete_orcamentos" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_insert_orcamentos" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_select_orcamentos" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "authenticated_update_orcamentos" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+//   Policy "orcamentos_delete" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "orcamentos_insert" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "orcamentos_select" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "orcamentos_update" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+// Table: orcamentos_revenda_ubiqua
+//   Policy "all_select_orcamentos_revenda_ubiqua" (SELECT, PERMISSIVE) roles={public}
+//     USING: true
+//   Policy "anon_insert_orcamentos_revenda_ubiqua" (INSERT, PERMISSIVE) roles={anon}
+//     WITH CHECK: true
+//   Policy "auth_insert_orcamentos_revenda_ubiqua" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: true
+//   Policy "authenticated_all_orcamentos_revenda_ubiqua" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+//   Policy "update_orcamentos_revenda_ubiqua" (UPDATE, PERMISSIVE) roles={anon,authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: pedido_compra
 //   Policy "Permitir leitura para autenticados" (SELECT, PERMISSIVE) roles={public}
 //     USING: (auth.role() = 'authenticated'::text)
@@ -5909,12 +7867,23 @@ export const Constants = {
 // Table: quotes
 //   Policy "all_quotes_auth" (ALL, PERMISSIVE) roles={public}
 //     USING: true
-// Table: revenda_ubiqua
-//   Policy "revenda_ubiqua_insert_policy" (INSERT, PERMISSIVE) roles={public}
 //     WITH CHECK: true
-//   Policy "revenda_ubiqua_select_policy" (SELECT, PERMISSIVE) roles={public}
+// Table: revenda_ubiqua
+//   Policy "revenda_ubiqua_delete" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = auth.uid()) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role])))))
+//   Policy "revenda_ubiqua_delete_admin_ubiqua" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: ((EXISTS ( SELECT 1    FROM usuarios_ubiqua u   WHERE ((u.id = auth.uid()) AND (u.nivel_acesso = 'admin'::nivel_acesso_tipo)))) OR (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = auth.uid()) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role]))))))
+//   Policy "revenda_ubiqua_insert" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = auth.uid()) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role])))))
+//   Policy "revenda_ubiqua_select" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
-//   Policy "revenda_ubiqua_update_policy" (UPDATE, PERMISSIVE) roles={public}
+//   Policy "revenda_ubiqua_select_anon" (SELECT, PERMISSIVE) roles={anon}
+//     USING: true
+//   Policy "revenda_ubiqua_update" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = auth.uid()) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role])))))
+//     WITH CHECK: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = auth.uid()) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role])))))
+// Table: separacao_arquivos
+//   Policy "separacao_arquivos_authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 // Table: separacao_itens
@@ -5935,6 +7904,10 @@ export const Constants = {
 //     USING: true
 //   Policy "separacoes_update" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role, 'operador'::usuario_role])))))
+// Table: separacoes_arquivos
+//   Policy "separacoes_arquivos_authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: sync_history
 //   Policy "sync_insert" (INSERT, PERMISSIVE) roles={authenticated}
 //     WITH CHECK: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role, 'operador'::usuario_role])))))
@@ -5949,6 +7922,9 @@ export const Constants = {
 //     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = ANY (ARRAY['admin'::usuario_role, 'gerente'::usuario_role, 'operador'::usuario_role])))))
 //   Policy "trans_update_admin" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = 'admin'::usuario_role))))
+// Table: user_roles_separacao
+//   Policy "Permitir leitura para usuarios autenticados" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
 // Table: usuarios
 //   Policy "usuarios_delete_admin" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = 'admin'::usuario_role))))
@@ -5957,7 +7933,17 @@ export const Constants = {
 //   Policy "usuarios_select_own" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 //   Policy "usuarios_update_own" (UPDATE, PERMISSIVE) roles={authenticated}
-//     USING: ((id = ( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = ( SELECT auth.uid() AS uid)) AND (u.role = 'admin'::usuario_role)))))
+//     USING: ((id = auth.uid()) OR (EXISTS ( SELECT 1    FROM usuarios u   WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::usuario_role)))))
+// Table: usuarios_ubiqua
+//   Policy "usuarios_ubiqua_delete" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: ((id = auth.uid()) OR is_ubiqua_admin())
+//   Policy "usuarios_ubiqua_insert" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: ((id = auth.uid()) OR is_ubiqua_admin())
+//   Policy "usuarios_ubiqua_select" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: ((id = auth.uid()) OR is_ubiqua_admin())
+//   Policy "usuarios_ubiqua_update" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: ((id = auth.uid()) OR is_ubiqua_admin())
+//     WITH CHECK: ((id = auth.uid()) OR is_ubiqua_admin())
 // Table: vendas
 //   Policy "Permitir leitura para autenticados" (SELECT, PERMISSIVE) roles={public}
 //     USING: (auth.role() = 'authenticated'::text)
@@ -6083,6 +8069,80 @@ export const Constants = {
 //     ON CONFLICT (id) DO UPDATE SET nome = p_nome, role = p_role;
 //   
 //     RETURN v_new_id;
+//   END;
+//   $function$
+//   
+// FUNCTION fn_auto_numero_orcamento()
+//   CREATE OR REPLACE FUNCTION public.fn_auto_numero_orcamento()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//   AS $function$
+//   BEGIN
+//       IF NEW.numero_orcamento IS NULL OR NEW.numero_orcamento = '' THEN
+//           NEW.numero_orcamento := fn_gerar_numero_orcamento();
+//       END IF;
+//       RETURN NEW;
+//   END;
+//   $function$
+//   
+// FUNCTION fn_gerar_numero_orcamento()
+//   CREATE OR REPLACE FUNCTION public.fn_gerar_numero_orcamento()
+//    RETURNS text
+//    LANGUAGE plpgsql
+//   AS $function$
+//   DECLARE
+//       ano_atual TEXT;
+//       sequencial INTEGER;
+//       numero TEXT;
+//   BEGIN
+//       ano_atual := EXTRACT(YEAR FROM CURRENT_DATE)::TEXT;
+//       
+//       -- Busca o próximo número sequencial do ano
+//       SELECT COALESCE(MAX(CAST(SPLIT_PART(numero_orcamento, '-', 3) AS INTEGER)), 0) + 1
+//       INTO sequencial
+//       FROM orcamentos_revenda_ubiqua
+//       WHERE numero_orcamento LIKE 'ORC-' || ano_atual || '-%';
+//       
+//       numero := 'ORC-' || ano_atual || '-' || LPAD(sequencial::TEXT, 6, '0');
+//       
+//       RETURN numero;
+//   END;
+//   $function$
+//   
+// FUNCTION fn_update_orcamento_timestamp()
+//   CREATE OR REPLACE FUNCTION public.fn_update_orcamento_timestamp()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//   AS $function$
+//   BEGIN
+//       NEW.updated_at = NOW();
+//       RETURN NEW;
+//   END;
+//   $function$
+//   
+// FUNCTION generate_product_slug(text, numeric)
+//   CREATE OR REPLACE FUNCTION public.generate_product_slug(nome text, preco numeric)
+//    RETURNS text
+//    LANGUAGE plpgsql
+//    IMMUTABLE
+//   AS $function$
+//   DECLARE
+//     base_slug text;
+//     price_str text;
+//   BEGIN
+//     -- Use unaccent to remove accents and lower to lowercase
+//     base_slug := lower(public.unaccent(trim(COALESCE(nome, 'Sem nome'))));
+//     
+//     -- Replace non-alphanumeric with dash
+//     base_slug := regexp_replace(base_slug, '[^a-z0-9]+', '-', 'g');
+//     
+//     -- Remove leading and trailing dashes
+//     base_slug := trim(both '-' from base_slug);
+//     
+//     -- Format price (e.g. 199.90 -> 199-90)
+//     price_str := replace(to_char(COALESCE(preco, 0), 'FM999999990.00'), '.', '-');
+//     
+//     RETURN base_slug || '-' || price_str;
 //   END;
 //   $function$
 //   
@@ -6299,6 +8359,12 @@ export const Constants = {
 //   END;
 //   $function$
 //   
+// FUNCTION handle_updated_at()
+//   CREATE OR REPLACE FUNCTION public.handle_updated_at()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//   AS $function$ BEGIN NEW.updated_at = now(); RETURN NEW; END; $function$
+//   
 // FUNCTION is_admin()
 //   CREATE OR REPLACE FUNCTION public.is_admin()
 //    RETURNS boolean
@@ -6309,6 +8375,20 @@ export const Constants = {
 //     RETURN EXISTS (
 //       SELECT 1 FROM public.profiles
 //       WHERE id = auth.uid() AND role = 'admin'
+//     );
+//   END;
+//   $function$
+//   
+// FUNCTION is_ubiqua_admin()
+//   CREATE OR REPLACE FUNCTION public.is_ubiqua_admin()
+//    RETURNS boolean
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//     RETURN EXISTS (
+//       SELECT 1 FROM public.usuarios_ubiqua
+//       WHERE id = auth.uid() AND nivel_acesso = 'admin'
 //     );
 //   END;
 //   $function$
@@ -6404,6 +8484,27 @@ export const Constants = {
 //   END;
 //   $function$
 //   
+// FUNCTION set_orcamento_numero()
+//   CREATE OR REPLACE FUNCTION public.set_orcamento_numero()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//   AS $function$
+//   DECLARE
+//     v_max_num INTEGER;
+//   BEGIN
+//     IF NEW.numero IS NULL OR NEW.numero = '' THEN
+//       SELECT COALESCE(MAX(CAST(SUBSTRING(numero FROM 5) AS INTEGER)), 0)
+//       INTO v_max_num
+//       FROM public.orcamentos
+//       WHERE numero LIKE 'ORC-%' AND numero ~ '^ORC-\d+
+;
+//   
+//       NEW.numero := 'ORC-' || LPAD((v_max_num + 1)::text, 4, '0');
+//     END IF;
+//     RETURN NEW;
+//   END;
+//   $function$
+//   
 // FUNCTION set_updated_at()
 //   CREATE OR REPLACE FUNCTION public.set_updated_at()
 //    RETURNS trigger
@@ -6477,10 +8578,9 @@ export const Constants = {
 //   BEGIN
 //     IF NEW.cliente_id IS NOT NULL THEN
 //       SELECT nome INTO NEW.cliente
-//       FROM contatos
+//       FROM public.contatos
 //       WHERE id = NEW.cliente_id;
 //     END IF;
-//     -- Se cliente_id for NULL, mantém o texto livre existente (separação avulsa)
 //     RETURN NEW;
 //   END;
 //   $function$
@@ -6494,10 +8594,9 @@ export const Constants = {
 //   BEGIN
 //     IF NEW.projeto_id IS NOT NULL THEN
 //       SELECT codigo INTO NEW.codigo_obra
-//       FROM projetos
+//       FROM public.projetos
 //       WHERE id = NEW.projeto_id;
 //     END IF;
-//     -- Se projeto_id for NULL, mantém o codigo_obra manual (separação avulsa)
 //     RETURN NEW;
 //   END;
 //   $function$
@@ -6509,11 +8608,9 @@ export const Constants = {
 //    SET search_path TO 'public'
 //   AS $function$
 //   BEGIN
-//     -- Salvar data original na primeira vez
 //     IF OLD.data_entrega IS NULL AND NEW.data_entrega IS NOT NULL THEN
 //       NEW.data_entrega_original = NEW.data_entrega;
 //     END IF;
-//     -- Contar reagendamentos quando data muda após estar definida
 //     IF OLD.data_entrega IS NOT NULL
 //        AND NEW.data_entrega IS NOT NULL
 //        AND OLD.data_entrega <> NEW.data_entrega THEN
@@ -6722,20 +8819,16 @@ export const Constants = {
 //   AS $function$
 //   BEGIN
 //     IF NEW.status = 'Pronto'::public.separacao_status AND OLD.status <> 'Pronto'::public.separacao_status THEN
-//   
-//       -- Proteção: data_entrega obrigatória para gerar entrega
 //       IF NEW.data_entrega IS NULL THEN
-//         RAISE EXCEPTION
-//           'Defina a data de entrega antes de marcar a separação como Pronto.';
+//         RAISE EXCEPTION 'Defina a data de entrega antes de marcar a separação como Pronto.';
 //       END IF;
 //   
-//       -- Criar entrega se ainda não existir para essa separação
 //       IF NOT EXISTS (
-//         SELECT 1 FROM entregas
+//         SELECT 1 FROM public.entregas
 //         WHERE separacao_id = NEW.id
 //           AND status <> 'Cancelado'::public.entrega_status
 //       ) THEN
-//         INSERT INTO entregas (
+//         INSERT INTO public.entregas (
 //           separacao_id,
 //           projeto_id,
 //           entregador_id,
@@ -6753,23 +8846,19 @@ export const Constants = {
 //           'Pendente'::public.entrega_status
 //         );
 //       ELSE
-//         -- Se entrega já existe, só atualiza a data_prevista
-//         UPDATE entregas
+//         UPDATE public.entregas
 //         SET data_prevista = NEW.data_entrega,
 //             updated_at    = NOW()
 //         WHERE separacao_id = NEW.id
 //           AND status = 'Pendente'::public.entrega_status;
 //       END IF;
-//   
 //     END IF;
 //   
-//     -- Quando data_entrega muda em separação já Pronta,
-//     -- propagar para entrega pendente correspondente
 //     IF NEW.status = 'Pronto'::public.separacao_status
 //        AND OLD.data_entrega IS DISTINCT FROM NEW.data_entrega
 //        AND NEW.data_entrega IS NOT NULL THEN
 //   
-//       UPDATE entregas
+//       UPDATE public.entregas
 //       SET data_prevista = NEW.data_entrega,
 //           updated_at    = NOW()
 //       WHERE separacao_id = NEW.id
@@ -6778,6 +8867,42 @@ export const Constants = {
 //     END IF;
 //   
 //     RETURN NEW;
+//   END;
+//   $function$
+//   
+// FUNCTION trigger_update_revenda_ubiqua_slug()
+//   CREATE OR REPLACE FUNCTION public.trigger_update_revenda_ubiqua_slug()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//   AS $function$
+//   BEGIN
+//     NEW.slug := public.generate_product_slug(COALESCE(NEW.desc_produto, NEW.descricao), NEW.valor_revenda);
+//     RETURN NEW;
+//   END;
+//   $function$
+//   
+// FUNCTION update_revenda_ubiqua_ordem(jsonb)
+//   CREATE OR REPLACE FUNCTION public.update_revenda_ubiqua_ordem(payload jsonb)
+//    RETURNS void
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   DECLARE
+//     item jsonb;
+//     v_caller_role public.usuario_role;
+//   BEGIN
+//     SELECT role INTO v_caller_role FROM public.usuarios WHERE id = auth.uid();
+//     
+//     IF v_caller_role NOT IN ('admin', 'gerente') THEN
+//       RAISE EXCEPTION 'Apenas administradores e gerentes podem reordenar o catálogo.';
+//     END IF;
+//   
+//     FOR item IN SELECT * FROM jsonb_array_elements(payload)
+//     LOOP
+//       UPDATE public.revenda_ubiqua
+//       SET ordem = (item->>'ordem')::integer
+//       WHERE id = (item->>'id')::integer;
+//     END LOOP;
 //   END;
 //   $function$
 //   
@@ -6816,6 +8941,11 @@ export const Constants = {
 //   entregas_updated_at: CREATE TRIGGER entregas_updated_at BEFORE UPDATE ON public.entregas FOR EACH ROW EXECUTE FUNCTION set_updated_at()
 // Table: funcionarios
 //   funcionarios_updated_at: CREATE TRIGGER funcionarios_updated_at BEFORE UPDATE ON public.funcionarios FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+// Table: orcamentos
+//   trigger_set_orcamento_numero: CREATE TRIGGER trigger_set_orcamento_numero BEFORE INSERT ON public.orcamentos FOR EACH ROW EXECUTE FUNCTION set_orcamento_numero()
+// Table: orcamentos_revenda_ubiqua
+//   trigger_auto_numero_orcamento: CREATE TRIGGER trigger_auto_numero_orcamento BEFORE INSERT ON public.orcamentos_revenda_ubiqua FOR EACH ROW EXECUTE FUNCTION fn_auto_numero_orcamento()
+//   trigger_orcamento_updated_at: CREATE TRIGGER trigger_orcamento_updated_at BEFORE UPDATE ON public.orcamentos_revenda_ubiqua FOR EACH ROW EXECUTE FUNCTION fn_update_orcamento_timestamp()
 // Table: produtos
 //   produtos_updated_at: CREATE TRIGGER produtos_updated_at BEFORE UPDATE ON public.produtos FOR EACH ROW EXECUTE FUNCTION set_updated_at()
 //   update_produtos_updated_at: CREATE TRIGGER update_produtos_updated_at BEFORE UPDATE ON public.produtos FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
@@ -6836,6 +8966,7 @@ export const Constants = {
 //   trg_sync_responsavel_nome: CREATE TRIGGER trg_sync_responsavel_nome BEFORE INSERT OR UPDATE OF responsavel_id ON public.projetos FOR EACH ROW EXECUTE FUNCTION sync_responsavel_nome()
 //   update_projetos_updated_at: CREATE TRIGGER update_projetos_updated_at BEFORE UPDATE ON public.projetos FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
 // Table: revenda_ubiqua
+//   trg_revenda_ubiqua_slug: CREATE TRIGGER trg_revenda_ubiqua_slug BEFORE INSERT OR UPDATE OF desc_produto, descricao, valor_revenda ON public.revenda_ubiqua FOR EACH ROW EXECUTE FUNCTION trigger_update_revenda_ubiqua_slug()
 //   trigger_revenda_ubiqua_updated_at: CREATE TRIGGER trigger_revenda_ubiqua_updated_at BEFORE UPDATE ON public.revenda_ubiqua FOR EACH ROW EXECUTE FUNCTION update_revenda_ubiqua_updated_at()
 // Table: separacoes
 //   separacoes_updated_at: CREATE TRIGGER separacoes_updated_at BEFORE UPDATE ON public.separacoes FOR EACH ROW EXECUTE FUNCTION set_updated_at()
@@ -6879,9 +9010,6 @@ export const Constants = {
 //   CREATE INDEX idx_contatos_tipo ON public.contatos USING btree (tipo)
 //   CREATE UNIQUE INDEX uq_contatos_codigo_legado_tipo ON public.contatos USING btree (codigo_legado, tipo)
 //   CREATE UNIQUE INDEX uq_contatos_cpf_cnpj ON public.contatos USING btree (cpf_cnpj)
-// Table: contatos_connect
-//   CREATE INDEX idx_cc_contato_id ON public.contatos_connect USING btree (contato_id)
-//   CREATE INDEX idx_cc_nome ON public.contatos_connect USING btree (upper(TRIM(BOTH FROM nome)))
 // Table: contatos_revisao
 //   CREATE UNIQUE INDEX contatos_revisao_id_a_id_b_key ON public.contatos_revisao USING btree (id_a, id_b)
 //   CREATE INDEX idx_cr_decisao ON public.contatos_revisao USING btree (decisao) WHERE (decisao = 'pendente'::text)
@@ -6903,9 +9031,12 @@ export const Constants = {
 //   CREATE INDEX idx_lanc_vencimento ON public.custos_recorrentes_lancamentos USING btree (data_vencimento)
 // Table: departamentos
 //   CREATE UNIQUE INDEX departamentos_nome_key ON public.departamentos USING btree (nome)
+// Table: empresa_ubiqua
+//   CREATE UNIQUE INDEX empresa_ubiqua_cnpj_key ON public.empresa_ubiqua USING btree (cnpj)
 // Table: empresas
 //   CREATE UNIQUE INDEX empresas_cnpj_key ON public.empresas USING btree (cnpj)
 //   CREATE UNIQUE INDEX empresas_codigo_key ON public.empresas USING btree (codigo)
+//   CREATE UNIQUE INDEX unique_cnpj ON public.empresas USING btree (cnpj)
 // Table: entregas
 //   CREATE INDEX idx_entregas_data ON public.entregas USING btree (data_prevista)
 //   CREATE INDEX idx_entregas_entregador ON public.entregas USING btree (entregador_id)
@@ -6928,7 +9059,6 @@ export const Constants = {
 //   CREATE INDEX idx_folha_mes_ano ON public.folha_pagamento USING btree (ano DESC, mes DESC)
 // Table: funcionarios
 //   CREATE UNIQUE INDEX funcionarios_codigo_legado_key ON public.funcionarios USING btree (codigo_legado)
-//   CREATE UNIQUE INDEX funcionarios_email_key ON public.funcionarios USING btree (email)
 //   CREATE UNIQUE INDEX funcionarios_nm_connect_key ON public.funcionarios USING btree (nm_connect)
 //   CREATE INDEX idx_func_departamento ON public.funcionarios USING btree (departamento_id)
 //   CREATE INDEX idx_func_status ON public.funcionarios USING btree (status)
@@ -6936,6 +9066,25 @@ export const Constants = {
 //   CREATE INDEX idx_funcionarios_codigo_legado ON public.funcionarios USING btree (codigo_legado)
 //   CREATE INDEX idx_funcionarios_empresa_id ON public.funcionarios USING btree (empresa_id)
 //   CREATE INDEX idx_funcionarios_nm_connect ON public.funcionarios USING btree (nm_connect)
+// Table: funcionarios_beneficios_empresas
+//   CREATE UNIQUE INDEX funcionarios_beneficios_empresas_funcionario_id_empresa_key ON public.funcionarios_beneficios_empresas USING btree (funcionario_id, empresa)
+//   CREATE INDEX idx_funcionarios_beneficios_empresa ON public.funcionarios_beneficios_empresas USING btree (empresa)
+//   CREATE INDEX idx_funcionarios_beneficios_func_id ON public.funcionarios_beneficios_empresas USING btree (funcionario_id)
+// Table: funcionarios_detalhes
+//   CREATE UNIQUE INDEX funcionarios_detalhes_funcionario_id_key ON public.funcionarios_detalhes USING btree (funcionario_id)
+//   CREATE INDEX idx_funcionarios_detalhes_cpf ON public.funcionarios_detalhes USING btree (cpf)
+// Table: funcionarios_financeiro
+//   CREATE UNIQUE INDEX funcionarios_financeiro_funcionario_id_key ON public.funcionarios_financeiro USING btree (funcionario_id)
+//   CREATE INDEX idx_funcionarios_financeiro_func_id ON public.funcionarios_financeiro USING btree (funcionario_id)
+// Table: funcionarios_novo
+//   CREATE INDEX idx_funcionarios_ativo ON public.funcionarios_novo USING btree (ativo)
+// Table: historico_status_orcamento
+//   CREATE INDEX idx_historico_data ON public.historico_status_orcamento USING btree (created_at DESC)
+//   CREATE INDEX idx_historico_orcamento ON public.historico_status_orcamento USING btree (orcamento_id)
+// Table: itens_orcamento_ubiqua
+//   CREATE INDEX idx_itens_orcamento ON public.itens_orcamento_ubiqua USING btree (orcamento_id)
+//   CREATE INDEX idx_itens_ordem ON public.itens_orcamento_ubiqua USING btree (orcamento_id, ordem)
+//   CREATE INDEX idx_itens_produto ON public.itens_orcamento_ubiqua USING btree (produto_id)
 // Table: marcas
 //   CREATE UNIQUE INDEX marcas_codigo_legado_key ON public.marcas USING btree (codigo_legado)
 //   CREATE UNIQUE INDEX marcas_nome_key ON public.marcas USING btree (nome)
@@ -6950,6 +9099,12 @@ export const Constants = {
 //   CREATE INDEX idx_neg_projeto_id ON public.negociacoes USING btree (projeto_id)
 //   CREATE INDEX idx_neg_tipo ON public.negociacoes USING btree (tipo)
 //   CREATE UNIQUE INDEX uq_negociacoes_empresa_cod_dup_tipo ON public.negociacoes USING btree (empresa_id, cod_duplicata, tipo)
+// Table: orcamentos_revenda_ubiqua
+//   CREATE INDEX idx_orcamentos_cliente ON public.orcamentos_revenda_ubiqua USING btree (cliente_id)
+//   CREATE INDEX idx_orcamentos_data_criacao ON public.orcamentos_revenda_ubiqua USING btree (created_at DESC)
+//   CREATE INDEX idx_orcamentos_data_validade ON public.orcamentos_revenda_ubiqua USING btree (data_validade)
+//   CREATE INDEX idx_orcamentos_numero ON public.orcamentos_revenda_ubiqua USING btree (numero_orcamento)
+//   CREATE INDEX idx_orcamentos_status ON public.orcamentos_revenda_ubiqua USING btree (status)
 // Table: pedido_compra
 //   CREATE INDEX idx_pedido_compra_codigo ON public.pedido_compra USING btree (codigo_pedido)
 //   CREATE INDEX idx_pedido_compra_data ON public.pedido_compra USING btree (data_emissao)
@@ -7005,6 +9160,8 @@ export const Constants = {
 //   CREATE INDEX idx_projetos_codigo_legado ON public.projetos USING btree (codigo_legado)
 //   CREATE INDEX idx_projetos_created_by ON public.projetos USING btree (created_by)
 //   CREATE INDEX idx_projetos_data_entrada ON public.projetos USING btree (data_entrada)
+//   CREATE INDEX idx_projetos_empresa ON public.projetos USING btree (empresa_id)
+//   CREATE INDEX idx_projetos_empresa_status ON public.projetos USING btree (empresa_id, status)
 //   CREATE INDEX idx_projetos_nivel ON public.projetos USING btree (nivel_estrategico)
 //   CREATE INDEX idx_projetos_nome ON public.projetos USING gin (to_tsvector('portuguese'::regconfig, nome))
 //   CREATE INDEX idx_projetos_resp_obra ON public.projetos USING btree (responsavel_obra_id)
@@ -7018,6 +9175,7 @@ export const Constants = {
 //   CREATE INDEX idx_revenda_ubiqua_cod_produto ON public.revenda_ubiqua USING btree (cod_produto)
 //   CREATE INDEX idx_revenda_ubiqua_referencia ON public.revenda_ubiqua USING btree (referencia)
 //   CREATE UNIQUE INDEX idx_revenda_ubiqua_referencia_unique ON public.revenda_ubiqua USING btree (lower(TRIM(BOTH FROM referencia)))
+//   CREATE INDEX idx_revenda_ubiqua_slug ON public.revenda_ubiqua USING btree (slug)
 // Table: separacao_itens
 //   CREATE INDEX idx_sep_itens_produto ON public.separacao_itens USING btree (produto_id)
 //   CREATE INDEX idx_sep_itens_separacao ON public.separacao_itens USING btree (separacao_id)
@@ -7044,6 +9202,7 @@ export const Constants = {
 //   CREATE INDEX idx_sync_history_data ON public.sync_history USING btree (created_at DESC)
 // Table: transacoes
 //   CREATE INDEX idx_tr_dt_vencimento ON public.transacoes USING btree (dt_vencimento)
+//   CREATE INDEX idx_tr_funcionario_id ON public.transacoes USING btree (funcionario_id)
 //   CREATE INDEX idx_tr_negociacao_id ON public.transacoes USING btree (negociacao_id)
 //   CREATE INDEX idx_tr_status_pago ON public.transacoes USING btree (status_pago)
 //   CREATE INDEX idx_tr_tipo_pagamento ON public.transacoes USING btree (tipo_pagamento)
@@ -7054,11 +9213,16 @@ export const Constants = {
 //   CREATE INDEX idx_trans_parcela ON public.transacoes USING btree (parcela_id)
 //   CREATE INDEX idx_trans_projeto ON public.transacoes USING btree (projeto_id)
 //   CREATE INDEX idx_trans_tipo ON public.transacoes USING btree (tipo)
+//   CREATE INDEX idx_transacoes_empresa_id ON public.transacoes USING btree (empresa_id)
 //   CREATE UNIQUE INDEX uq_transacoes_connect ON public.transacoes USING btree (negociacao_id, cod_itens_duplicata)
+// Table: user_roles_separacao
+//   CREATE UNIQUE INDEX user_roles_separacao_email_key ON public.user_roles_separacao USING btree (email)
 // Table: usuarios
 //   CREATE INDEX idx_usuarios_email ON public.usuarios USING btree (email)
 //   CREATE INDEX idx_usuarios_role ON public.usuarios USING btree (role)
 //   CREATE UNIQUE INDEX usuarios_email_key ON public.usuarios USING btree (email)
+// Table: usuarios_ubiqua
+//   CREATE UNIQUE INDEX usuarios_ubiqua_email_key ON public.usuarios_ubiqua USING btree (email)
 // Table: vendas
 //   CREATE INDEX idx_vendas_cod_venda ON public.vendas USING btree (cod_venda)
 //   CREATE INDEX idx_vendas_data_emissao ON public.vendas USING btree (data_emissao)
