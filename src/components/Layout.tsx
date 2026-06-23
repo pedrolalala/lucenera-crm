@@ -2,7 +2,6 @@ import { Outlet, Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   FolderKanban,
-  Calculator,
   Settings,
   UserCircle,
   Building2,
@@ -34,7 +33,6 @@ export default function Layout() {
     { name: 'Arquitetos', href: '/contatos/arquitetos', icon: Building2 },
     { name: 'Engenheiros', href: '/contatos/engenheiros', icon: HardHat },
     { name: 'Eletricistas', href: '/contatos/eletricistas', icon: Zap },
-    { name: 'Orçamentos', href: '/orcamentos', icon: Calculator },
     { name: 'Configurações', href: '/configuracoes', icon: Settings },
   ]
 
