@@ -1,7 +1,6 @@
-import { ArrowRight, BarChart3, Users, Building2, HardHat, ListTodo, Plus } from 'lucide-react'
+import { ArrowRight, Users, Building2, HardHat, ListTodo, Plus } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { StrategicDashboard } from '@/components/dashboard/StrategicDashboard'
 import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
@@ -11,7 +10,6 @@ export default function Index() {
   const [stats, setStats] = useState({
     activeProjects: 0,
     completedThisMonth: 0,
-    totalValue: 0,
     clientsCount: 0,
     architectsCount: 0,
     engineersCount: 0,
@@ -25,23 +23,8 @@ export default function Index() {
         'get_dashboard_stats' as any,
       )
 
-      let totalValueView = 0
-      const { data: dashProjs } = await supabase.from('vw_projetos_dashboard').select('id')
-
-      const { data: finData } = await supabase
-        .from('vw_financeiro_projetos')
-        .select('id, valor_total')
-        .gt('valor_total', 0)
-
-      if (dashProjs && finData) {
-        const validIds = new Set(dashProjs.map((p) => p.id))
-        totalValueView = finData
-          .filter((f) => validIds.has(f.id))
-          .reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0)
-      }
-
       if (!statsError && statsData) {
-        setStats({ ...(statsData as any), totalValue: totalValueView })
+        setStats(statsData as any)
       } else if (statsError) {
         console.error('Erro ao buscar stats do dashboard:', statsError)
       }
@@ -49,6 +32,7 @@ export default function Index() {
       const { data: projetosData, error: projError } = await supabase
         .from('vw_projetos_dashboard')
         .select('id, nome, codigo, cidade, status, created_at, data_entrada')
+        .eq('arquivado', false)
         .order('created_at', { ascending: false })
         .limit(5)
 
@@ -75,10 +59,6 @@ export default function Index() {
     }
   }, [])
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
-  }
-
   return (
     <div className="space-y-8 animate-fade-in-up max-w-[1400px] mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -93,7 +73,7 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-3">
         <Card
           className="shadow-subtle hover:shadow-elevation transition-all duration-300 border-l-4 border-l-primary group cursor-pointer"
           onClick={() => navigate('/projetos')}
@@ -105,20 +85,6 @@ export default function Index() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.activeProjects}</div>
             <p className="text-xs text-muted-foreground mt-1">Em andamento</p>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="shadow-subtle hover:shadow-elevation transition-all duration-300 border-l-4 border-l-emerald-500 group cursor-pointer"
-          onClick={() => navigate('/projetos')}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valor Total Fechado</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Histórico geral</p>
           </CardContent>
         </Card>
 
@@ -150,8 +116,6 @@ export default function Index() {
           </CardContent>
         </Card>
       </div>
-
-      <StrategicDashboard />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4 shadow-subtle">
