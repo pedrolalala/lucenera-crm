@@ -112,15 +112,25 @@ export async function saveProjetoParcelas(
   parcelas: Partial<ProjetoParcela>[],
   originalIds: string[],
 ) {
+  // SPEC-004: parcelas geradas pela aprovação de orçamento (orcamento_id
+  // preenchido) não podem ser alteradas nem excluídas pelo editor manual de
+  // projeto. O filtro `.is('orcamento_id', null)` nas queries abaixo é a
+  // proteção de fato — vale mesmo que o chamador esqueça de filtrar antes.
   const currentIds = parcelas.map((p) => p.id).filter(Boolean) as string[]
   const toDelete = originalIds.filter((id) => !currentIds.includes(id))
 
   if (toDelete.length > 0) {
-    const { error } = await supabase.from('projeto_parcelas').delete().in('id', toDelete)
+    const { error } = await supabase
+      .from('projeto_parcelas')
+      .delete()
+      .in('id', toDelete)
+      .is('orcamento_id', null)
     if (error) throw error
   }
 
   for (const p of parcelas) {
+    if (p.orcamento_id) continue
+
     const payload = {
       numero_parcela: p.numero_parcela,
       valor: p.valor,
@@ -137,7 +147,11 @@ export async function saveProjetoParcelas(
     }
 
     if (p.id) {
-      const { error } = await supabase.from('projeto_parcelas').update(payload).eq('id', p.id)
+      const { error } = await supabase
+        .from('projeto_parcelas')
+        .update(payload)
+        .eq('id', p.id)
+        .is('orcamento_id', null)
       if (error) throw error
     } else {
       const { error } = await supabase
