@@ -67,7 +67,11 @@ export default function ProjectDetail() {
       .then((data) => {
         setProjeto(data)
         setEditForm(data)
-        setEditParcelas(data.projeto_parcelas || [])
+        // SPEC-004: parcelas geradas por orçamento aprovado não entram no
+        // editor manual — saveProjetoParcelas também bloqueia no banco.
+        setEditParcelas(
+          (data.projeto_parcelas || []).filter((p) => !p.orcamento_id),
+        )
       })
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -96,7 +100,9 @@ export default function ProjectDetail() {
   const handleEditToggle = () => {
     if (isEditing) {
       setEditForm(projeto)
-      setEditParcelas(projeto.projeto_parcelas || [])
+      setEditParcelas(
+        (projeto.projeto_parcelas || []).filter((p) => !p.orcamento_id),
+      )
     }
     setIsEditing(!isEditing)
   }
@@ -592,6 +598,13 @@ export default function ProjectDetail() {
           <CardContent>
             {isEditing ? (
               <div className="space-y-4">
+                {(projeto.projeto_parcelas || []).some((p) => p.orcamento_id) && (
+                  <p className="text-xs text-muted-foreground">
+                    Parcelas geradas por orçamento aprovado não aparecem aqui
+                    para edição — são protegidas e ficam visíveis no modo de
+                    visualização.
+                  </p>
+                )}
                 <div className="rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-muted/50">
@@ -806,6 +819,7 @@ export default function ProjectDetail() {
                       <TableHead>Valor Pago</TableHead>
                       <TableHead>Adicionais</TableHead>
                       <TableHead className="text-right">Pagamento</TableHead>
+                      <TableHead>Origem</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -859,6 +873,18 @@ export default function ProjectDetail() {
                             </TableCell>
                             <TableCell className="text-right">
                               {formatDate(p.data_pagamento)}
+                            </TableCell>
+                            <TableCell>
+                              {p.orcamento_id ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] uppercase tracking-wider bg-blue-50 text-blue-700 border-blue-200"
+                                >
+                                  Orçamento aprovado
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Manual</span>
+                              )}
                             </TableCell>
                           </TableRow>
                         )

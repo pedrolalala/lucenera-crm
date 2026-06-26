@@ -312,15 +312,19 @@ export default function Projetos() {
     setIsEditing(true)
     setEditedProjeto({ ...selectedProjeto })
 
-    const pags = (selectedProjeto.projeto_parcelas || []).map((p: any) => ({
-      id: p.id,
-      numero_parcela: p.numero_parcela,
-      valor: p.valor || '',
-      data_vencimento: p.data_vencimento || '',
-      data_pagamento: p.data_pagamento || '',
-      valor_pago: p.valor_pago || '',
-      status: p.status || 'pendente',
-    }))
+    // SPEC-004: parcelas com orcamento_id vêm da aprovação de orçamento e não
+    // podem ser editadas/excluídas pelo editor manual legado do projeto.
+    const pags = (selectedProjeto.projeto_parcelas || [])
+      .filter((p: any) => !p.orcamento_id)
+      .map((p: any) => ({
+        id: p.id,
+        numero_parcela: p.numero_parcela,
+        valor: p.valor || '',
+        data_vencimento: p.data_vencimento || '',
+        data_pagamento: p.data_pagamento || '',
+        valor_pago: p.valor_pago || '',
+        status: p.status || 'pendente',
+      }))
     pags.sort((a, b) => a.numero_parcela - b.numero_parcela)
     setEditedPagamentos(pags)
   }
@@ -345,7 +349,14 @@ export default function Projetos() {
       await updateProjetoById(selectedProjeto.id, dataToSave)
 
       // Save pagamentos
-      const existingIds = new Set((selectedProjeto.projeto_parcelas || []).map((p) => p.id))
+      // SPEC-004: a deleção por diferença só pode considerar parcelas legadas
+      // (orcamento_id null); parcelas geradas por orçamento aprovado nunca
+      // entram em editedPagamentos, então não podem ser "diferença" aqui.
+      const existingIds = new Set(
+        (selectedProjeto.projeto_parcelas || [])
+          .filter((p: any) => !p.orcamento_id)
+          .map((p) => p.id),
+      )
       const editedIds = new Set(
         editedPagamentos.map((p) => p.id).filter((id) => id && !String(id).startsWith('new-')),
       )
@@ -929,6 +940,15 @@ export default function Projetos() {
                       <h4 className="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">
                         Parcelas do Projeto
                       </h4>
+                      {(selectedProjeto.projeto_parcelas || []).some(
+                        (p: any) => p.orcamento_id,
+                      ) && (
+                        <p className="text-xs text-slate-500 mb-3">
+                          Parcelas geradas por orçamento aprovado não aparecem
+                          aqui para edição — são protegidas e ficam visíveis
+                          no modo de visualização.
+                        </p>
+                      )}
                       <div className="space-y-3">
                         {editedPagamentos.map((p, idx) => (
                           <div
@@ -1152,12 +1172,15 @@ export default function Projetos() {
                                   <TableHead className="py-2 text-xs font-semibold text-slate-600">
                                     Status
                                   </TableHead>
+                                  <TableHead className="py-2 text-xs font-semibold text-slate-600">
+                                    Origem
+                                  </TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
                                 {[...selectedProjeto.projeto_parcelas]
                                   .sort((a, b) => a.numero_parcela - b.numero_parcela)
-                                  .map((p) => (
+                                  .map((p: any) => (
                                     <TableRow key={p.id} className="hover:bg-slate-50/50">
                                       <TableCell className="py-2.5 text-sm font-medium">
                                         {p.numero_parcela}
@@ -1181,6 +1204,18 @@ export default function Projetos() {
                                         >
                                           {p.status || 'pendente'}
                                         </Badge>
+                                      </TableCell>
+                                      <TableCell className="py-2.5">
+                                        {p.orcamento_id ? (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-[10px] uppercase tracking-wider bg-blue-50 text-blue-700 border-blue-200"
+                                          >
+                                            Orçamento aprovado
+                                          </Badge>
+                                        ) : (
+                                          <span className="text-xs text-slate-400">Manual</span>
+                                        )}
                                       </TableCell>
                                     </TableRow>
                                   ))}
