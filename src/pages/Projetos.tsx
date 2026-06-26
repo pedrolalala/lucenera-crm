@@ -944,9 +944,8 @@ export default function Projetos() {
                         (p: any) => p.orcamento_id,
                       ) && (
                         <p className="text-xs text-slate-500 mb-3">
-                          Parcelas geradas por orçamento aprovado não aparecem
-                          aqui para edição — são protegidas e ficam visíveis
-                          no modo de visualização.
+                          Parcelas geradas por orçamento aprovado não aparecem aqui para edição —
+                          são protegidas e ficam visíveis no modo de visualização.
                         </p>
                       )}
                       <div className="space-y-3">

@@ -69,9 +69,7 @@ export default function ProjectDetail() {
         setEditForm(data)
         // SPEC-004: parcelas geradas por orçamento aprovado não entram no
         // editor manual — saveProjetoParcelas também bloqueia no banco.
-        setEditParcelas(
-          (data.projeto_parcelas || []).filter((p) => !p.orcamento_id),
-        )
+        setEditParcelas((data.projeto_parcelas || []).filter((p) => !p.orcamento_id))
       })
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -100,9 +98,7 @@ export default function ProjectDetail() {
   const handleEditToggle = () => {
     if (isEditing) {
       setEditForm(projeto)
-      setEditParcelas(
-        (projeto.projeto_parcelas || []).filter((p) => !p.orcamento_id),
-      )
+      setEditParcelas((projeto.projeto_parcelas || []).filter((p) => !p.orcamento_id))
     }
     setIsEditing(!isEditing)
   }
@@ -600,9 +596,8 @@ export default function ProjectDetail() {
               <div className="space-y-4">
                 {(projeto.projeto_parcelas || []).some((p) => p.orcamento_id) && (
                   <p className="text-xs text-muted-foreground">
-                    Parcelas geradas por orçamento aprovado não aparecem aqui
-                    para edição — são protegidas e ficam visíveis no modo de
-                    visualização.
+                    Parcelas geradas por orçamento aprovado não aparecem aqui para edição — são
+                    protegidas e ficam visíveis no modo de visualização.
                   </p>
                 )}
                 <div className="rounded-md border overflow-x-auto">
