@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,15 +21,39 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [mode, setMode] = useState<'signIn' | 'forgotPassword'>('signIn')
   const { signIn, resetPassword } = useAuth()
+  const navigate = useNavigate()
+
+  const validateEmail = (value: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validateEmail(email)) {
+      toast({
+        title: 'E-mail inválido',
+        description: 'Digite um endereço de e-mail válido.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!password) {
+      toast({
+        title: 'Senha obrigatória',
+        description: 'Digite sua senha para continuar.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setIsLoading(true)
     const { error } = await signIn(email, password)
     if (error) {
       toast({
         title: 'Erro ao fazer login',
-        description: 'Credenciais inválidas. Tente novamente.',
+        description: 'Credenciais inválidas. tente novamente.',
         variant: 'destructive',
       })
     } else {
@@ -36,6 +61,7 @@ export default function AuthPage() {
         title: 'Bem-vindo(a)!',
         description: 'Login realizado com sucesso.',
       })
+      navigate('/')
     }
     setIsLoading(false)
   }
