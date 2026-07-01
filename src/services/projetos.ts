@@ -46,6 +46,48 @@ export async function getProjetos() {
       .order('codigo', { ascending: false })
       .range(from, from + step - 1)
 
+    if (error) {
+      // Fallback: if engenheiro relationship fails, retry without it
+      if (error.code === 'PGRST200') {
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('projetos')
+          .select(`
+            *,
+            cliente:cliente_id(nome),
+            arquiteto:arquiteto_id(nome),
+            responsavel:responsavel_id(nome),
+            projeto_parcelas(*)
+          `)
+          .order('data_entrada', { ascending: false, nullsFirst: false })
+          .order('codigo', { ascending: false })
+          .range(from, from + step - 1)
+
+        if (fallbackError) throw fallbackError
+        if (fallbackData && fallbackData.length > 0) {
+          const mappedData = fallbackData.map((d: any) => {
+            const f = fechamentoMap.get(d.id)
+            return {
+              ...d,
+              engenheiro: null,
+              ano_fechamento: f?.ano_fechamento || null,
+              mes_fechamento: f?.mes_fechamento || null,
+              data_fechamento: f?.data_fechamento || null,
+            }
+          }) as Projeto[]
+          allData = [...allData, ...mappedData]
+          if (fallbackData.length < step) {
+            hasMore = false
+          } else {
+            from += step
+          }
+        } else {
+          hasMore = false
+        }
+        continue
+      }
+      throw error
+    }
+
     if (error) throw error
 
     if (data && data.length > 0) {
@@ -74,7 +116,10 @@ export async function getProjetos() {
 }
 
 export async function getProjeto(id: string) {
-  const { data, error } = await supabase
+  let data: any = null
+  let error: any = null
+
+  const result = await supabase
     .from('projetos')
     .select(`
       *,
@@ -86,6 +131,27 @@ export async function getProjeto(id: string) {
     `)
     .eq('id', id)
     .single()
+
+  data = result.data
+  error = result.error
+
+  // Fallback: if engenheiro relationship fails, retry without it
+  if (error && error.code === 'PGRST200') {
+    const fallback = await supabase
+      .from('projetos')
+      .select(`
+        *,
+        cliente:cliente_id(nome),
+        arquiteto:arquiteto_id(nome),
+        responsavel:responsavel_id(nome),
+        projeto_parcelas(*)
+      `)
+      .eq('id', id)
+      .single()
+
+    data = fallback.data
+    error = fallback.error
+  }
 
   if (error) throw error
   if (!data) throw new Error('Projeto não encontrado')
