@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
+import { sortProjetos } from '@/lib/sort-projects'
 
 export type ProjetoParcela = Database['public']['Tables']['projeto_parcelas']['Row']
 
@@ -112,7 +113,7 @@ export async function getProjetos() {
     }
   }
 
-  return allData
+  return sortProjetos(allData)
 }
 
 export async function getProjeto(id: string) {
