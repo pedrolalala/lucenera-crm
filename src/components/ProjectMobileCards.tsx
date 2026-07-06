@@ -15,7 +15,7 @@ export function ProjectMobileCards({
 }) {
   const navigate = useNavigate()
   if (projects.length === 0)
-    return <p className="text-center py-8 text-muted-foreground">Nenhum projeto encontrado.</p>
+    return <p className="text-center py-8 text-muted-foreground">Nenhum projeto encontrado</p>
 
   const formatDateStr = (dateStr: string | null) => {
     if (!dateStr || dateStr === '—') return '—'

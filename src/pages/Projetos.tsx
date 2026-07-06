@@ -23,6 +23,7 @@ import {
   ChevronsUpDown,
   LayoutGrid,
   List,
+  Search,
 } from 'lucide-react'
 import { useViewMode as useDisplayMode } from '@/hooks/use-view-mode'
 import { ProjectMobileCards } from '@/components/ProjectMobileCards'
@@ -170,6 +171,7 @@ export default function Projetos() {
   const [filterValorTotal, setFilterValorTotal] = useState('all')
   const [filterAnoFechamento, setFilterAnoFechamento] = useState('all')
   const [filterMesFechamento, setFilterMesFechamento] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
 
   const loadProjetos = () => {
     setLoading(true)
@@ -267,6 +269,13 @@ export default function Projetos() {
   ).sort((a, b) => Number(b) - Number(a)) as string[]
 
   const filteredProjetos = projetos.filter((p) => {
+    if (searchTerm.trim()) {
+      const term = searchTerm.trim().toLowerCase()
+      const codigo = (p.codigo || '').toLowerCase()
+      const nome = (p.nome || '').toLowerCase()
+      if (!codigo.includes(term) && !nome.includes(term)) return false
+    }
+
     if (filterValorTotal === '>0') {
       const total = getValorTotal(p)
       if (total <= 0) return false
@@ -289,6 +298,7 @@ export default function Projetos() {
     setFilterValorTotal('all')
     setFilterAnoFechamento('all')
     setFilterMesFechamento('all')
+    setSearchTerm('')
   }
 
   const formatDate = (dateStr: string | null) => {
@@ -549,6 +559,30 @@ export default function Projetos() {
       <Card className="shadow-sm border-slate-200 bg-white">
         <CardContent className="p-5 md:p-6">
           <div className="flex flex-wrap items-end gap-5">
+            <div className="space-y-2 flex-1 min-w-[200px] w-full sm:w-auto sm:max-w-[300px]">
+              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                Buscar Projeto
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                <Input
+                  type="text"
+                  placeholder="Buscar por codigo ou nome do projeto..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 bg-white border-slate-200 shadow-sm focus:ring-primary/20 transition-all font-normal h-10"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    type="button"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
             {filterConfigs.map((config) => (
               <div key={config.label} className="space-y-2 flex-1 min-w-[150px]">
                 <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
@@ -716,7 +750,7 @@ export default function Projetos() {
                         colSpan={viewMode === 'completa' ? 12 : viewMode === 'operacional' ? 7 : 5}
                         className="h-32 text-center text-slate-500 font-medium"
                       >
-                        Nenhum projeto encontrado com os filtros atuais.
+                        Nenhum projeto encontrado
                       </TableCell>
                     </TableRow>
                   ) : (
