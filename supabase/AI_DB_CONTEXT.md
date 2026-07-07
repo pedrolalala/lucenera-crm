@@ -48,3 +48,12 @@ Se a feature exigir esse modelo configurável e as tabelas não existirem, regis
 - Evite `switch/case` fixo por etapa/status.
 - Se precisar simular configuração, faça apenas na UI com dados existentes ou mocks claramente temporários.
 - Se a demanda exigir alteração estrutural de banco, preencha `DB_CHANGE_REQUEST_TEMPLATE.md`.
+
+## SPEC-007 — SSO entre sistemas
+
+- Este app é origem ao abrir Orçamentos pelo botão `Gerar Orçamento` e destino quando o Hub abre CRM.
+- Usar `src/lib/cross-system-auth.ts`.
+- A migration `20260708_030_spec007_sso_cross_system` e as Edge Functions `generate-cross-system-code`/`exchange-cross-system-code` estão publicadas no Supabase remoto desde 2026-07-07; falta homologação com usuário real.
+- Como origem, chamar `redirectWithCode('https://gestaofinanceiralucenera.goskip.app', '/budgets/new?projeto_id=...', 'orcamentos')`.
+- Como destino, `AuthProvider` chama `consumeCodeFromUrl('crm')`.
+- O login próprio do CRM ainda existe, mas não deve bloquear a hidratação de sessão recebida por `sso_code`.
