@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
+import { consumeCodeFromUrl } from '@/lib/cross-system-auth'
 
 interface AuthContextType {
   user: User | null
@@ -34,11 +35,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    consumeCodeFromUrl('crm').finally(() => supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
-    })
+    }))
     return () => subscription.unsubscribe()
   }, [])
 

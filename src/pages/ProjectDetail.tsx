@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import useProjectStore from '@/stores/useProjectStore'
+import { redirectWithCode } from '@/lib/cross-system-auth'
 import {
   Select,
   SelectContent,
@@ -61,6 +62,21 @@ export default function ProjectDetail() {
   const [editParcelas, setEditParcelas] = useState<
     Partial<Database['public']['Tables']['projeto_parcelas']['Row']>[]
   >([])
+
+  const openBudgetSystem = async (projetoId: string) => {
+    const redirectTo = `/budgets/new?projeto_id=${encodeURIComponent(projetoId)}`
+    try {
+      await redirectWithCode('https://gestaofinanceiralucenera.goskip.app', redirectTo, 'orcamentos', {
+        newTab: true,
+      })
+    } catch {
+      window.open(
+        `https://gestaofinanceiralucenera.goskip.app${redirectTo}`,
+        '_blank',
+        'noopener,noreferrer',
+      )
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -341,13 +357,7 @@ export default function ProjectDetail() {
             <>
               <Button
                 variant="outline"
-                onClick={() =>
-                  window.open(
-                    `https://gestaofinanceiralucenera.goskip.app/budgets/new?projeto_id=${projeto.id}`,
-                    '_blank',
-                    'noopener,noreferrer',
-                  )
-                }
+                onClick={() => void openBudgetSystem(projeto.id)}
               >
                 <Calculator className="mr-2 h-4 w-4" />
                 Gerar Orçamento
