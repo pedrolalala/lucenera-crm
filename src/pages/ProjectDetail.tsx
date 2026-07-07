@@ -43,6 +43,7 @@ import {
   DollarSign,
   HardHat,
   Package,
+  Calculator,
 } from 'lucide-react'
 
 export default function ProjectDetail() {
@@ -337,10 +338,25 @@ export default function ProjectDetail() {
               </Button>
             </>
           ) : (
-            <Button onClick={handleEditToggle}>
-              <Edit2 className="mr-2 h-4 w-4" />
-              Editar Projeto
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  window.open(
+                    `https://gestaofinanceiralucenera.goskip.app/budgets/new?projeto_id=${projeto.id}`,
+                    '_blank',
+                    'noopener,noreferrer',
+                  )
+                }
+              >
+                <Calculator className="mr-2 h-4 w-4" />
+                Gerar Orçamento
+              </Button>
+              <Button onClick={handleEditToggle}>
+                <Edit2 className="mr-2 h-4 w-4" />
+                Editar Projeto
+              </Button>
+            </>
           )}
         </div>
       </div>
