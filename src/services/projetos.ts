@@ -3,6 +3,7 @@ import type { Database } from '@/lib/supabase/types'
 import { sortProjetos } from '@/lib/sort-projects'
 
 export type ProjetoParcela = Database['public']['Tables']['projeto_parcelas']['Row']
+export type ProjetoItem = Database['public']['Tables']['projeto_itens']['Row']
 
 export type Projeto = Database['public']['Tables']['projetos']['Row'] & {
   cliente?: { nome: string } | null
@@ -10,6 +11,7 @@ export type Projeto = Database['public']['Tables']['projetos']['Row'] & {
   responsavel?: { nome: string } | null
   engenheiro?: { nome: string } | null
   projeto_parcelas?: ProjetoParcela[]
+  projeto_itens?: ProjetoItem[]
   ano_fechamento?: string | null
   mes_fechamento?: string | null
   data_fechamento?: string | null
@@ -128,7 +130,8 @@ export async function getProjeto(id: string) {
       arquiteto:arquiteto_id(nome),
       responsavel:responsavel_id(nome),
       engenheiro:responsavel_obra_id(nome),
-      projeto_parcelas(*)
+      projeto_parcelas(*),
+      projeto_itens(*)
     `)
     .eq('id', id)
     .single()
@@ -145,7 +148,8 @@ export async function getProjeto(id: string) {
         cliente:cliente_id(nome),
         arquiteto:arquiteto_id(nome),
         responsavel:responsavel_id(nome),
-        projeto_parcelas(*)
+        projeto_parcelas(*),
+        projeto_itens(*)
       `)
       .eq('id', id)
       .single()

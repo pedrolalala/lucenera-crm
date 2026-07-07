@@ -37,12 +37,13 @@ import {
   UserCircle,
   Briefcase,
   Loader2,
-  Zap,
   Edit2,
   Save,
   X,
   DollarSign,
   HardHat,
+  Package,
+  Calculator,
 } from 'lucide-react'
 
 export default function ProjectDetail() {
@@ -226,6 +227,39 @@ export default function ProjectDetail() {
     return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('pt-BR')
   }
 
+  const formatQuantity = (val: number | null) => {
+    return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 }).format(Number(val) || 0)
+  }
+
+  const formatDiscount = (val: number | null) => {
+    const discount = Number(val) || 0
+    return discount > 0 ? `${formatQuantity(discount)}%` : '-'
+  }
+
+  const formatApprovedItemOrigin = (orcamentoId: string | null) => {
+    if (!orcamentoId) return '-'
+    return `Orçamento ${orcamentoId.slice(0, 8)}`
+  }
+
+  const renderApprovedItemStatus = (validado: boolean | null) => {
+    if (validado === false) {
+      return (
+        <Badge
+          variant="outline"
+          className="bg-muted text-muted-foreground border-muted-foreground/30"
+        >
+          Cancelado
+        </Badge>
+      )
+    }
+
+    return (
+      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+        Ativo
+      </Badge>
+    )
+  }
+
   const clientes = contacts.filter((c) => c.tipo === 'cliente')
   const arquitetos = contacts.filter((c) => c.tipo === 'arquiteto')
   const engenheiros = contacts.filter((c) => c.tipo === 'engenheiro')
@@ -304,10 +338,25 @@ export default function ProjectDetail() {
               </Button>
             </>
           ) : (
-            <Button onClick={handleEditToggle}>
-              <Edit2 className="mr-2 h-4 w-4" />
-              Editar Projeto
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  window.open(
+                    `https://gestaofinanceiralucenera.goskip.app/budgets/new?projeto_id=${projeto.id}`,
+                    '_blank',
+                    'noopener,noreferrer',
+                  )
+                }
+              >
+                <Calculator className="mr-2 h-4 w-4" />
+                Gerar Orçamento
+              </Button>
+              <Button onClick={handleEditToggle}>
+                <Edit2 className="mr-2 h-4 w-4" />
+                Editar Projeto
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -581,6 +630,72 @@ export default function ProjectDetail() {
                 )}
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              Itens Aprovados do Projeto
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {projeto.projeto_itens && projeto.projeto_itens.length > 0 ? (
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow>
+                      <TableHead className="min-w-[220px]">Item</TableHead>
+                      <TableHead className="min-w-[100px]">Qtd.</TableHead>
+                      <TableHead className="min-w-[130px]">Preço Unit.</TableHead>
+                      <TableHead className="min-w-[100px]">Desconto</TableHead>
+                      <TableHead className="min-w-[130px]">Subtotal</TableHead>
+                      <TableHead className="min-w-[150px]">Origem</TableHead>
+                      <TableHead className="min-w-[120px]">Situação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[...projeto.projeto_itens]
+                      .sort((a, b) => (a.descricao || '').localeCompare(b.descricao || ''))
+                      .map((item) => {
+                        const subtotal =
+                          item.subtotal ??
+                          (Number(item.quantidade) || 0) * (Number(item.preco_unitario) || 0)
+
+                        return (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">
+                              {item.descricao || 'Item sem descrição'}
+                            </TableCell>
+                            <TableCell>{formatQuantity(item.quantidade)}</TableCell>
+                            <TableCell className="font-semibold text-emerald-600">
+                              {formatCurrency(Number(item.preco_unitario))}
+                            </TableCell>
+                            <TableCell>{formatDiscount(item.desconto)}</TableCell>
+                            <TableCell className="font-semibold text-emerald-600">
+                              {formatCurrency(Number(subtotal))}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] uppercase tracking-wider bg-blue-50 text-blue-700 border-blue-200"
+                              >
+                                {formatApprovedItemOrigin(item.orcamento_id)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{renderApprovedItemStatus(item.validado)}</TableCell>
+                          </TableRow>
+                        )
+                      })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground border rounded-md bg-muted/20">
+                Nenhum item aprovado ainda.
+              </div>
+            )}
           </CardContent>
         </Card>
 
