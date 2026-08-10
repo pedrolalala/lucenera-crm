@@ -7,6 +7,7 @@ import {
   Building2,
   HardHat,
   Zap,
+  Truck,
   Home,
 } from 'lucide-react'
 import {
@@ -34,6 +35,7 @@ export default function Layout() {
     { name: 'Arquitetos', href: '/contatos/arquitetos', icon: Building2 },
     { name: 'Engenheiros', href: '/contatos/engenheiros', icon: HardHat },
     { name: 'Eletricistas', href: '/contatos/eletricistas', icon: Zap },
+    { name: 'Fornecedores', href: '/contatos/fornecedores', icon: Truck },
     { name: 'Configurações', href: '/configuracoes', icon: Settings },
   ]
 
@@ -81,7 +83,7 @@ export default function Layout() {
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-white px-4 shadow-sm">
           <SidebarTrigger className="-ml-1" />
           <a
-            href="https://central-lucenera.goskip.app/"
+            href="https://central-lucenera-dashboard-1c9ba.goskip.app/dashboard"
             title="Voltar para a Central Lucenera"
             className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary transition-colors"
           >
