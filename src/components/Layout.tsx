@@ -7,6 +7,7 @@ import {
   Building2,
   HardHat,
   Zap,
+  Home,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -77,8 +78,16 @@ export default function Layout() {
       </Sidebar>
 
       <SidebarInset>
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 shadow-sm">
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-white px-4 shadow-sm">
           <SidebarTrigger className="-ml-1" />
+          <a
+            href="https://central-lucenera.goskip.app/"
+            title="Voltar para a Central Lucenera"
+            className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary transition-colors"
+          >
+            <Home className="w-4 h-4" />
+            <span className="hidden sm:inline">Central</span>
+          </a>
         </header>
         <main className="flex-1 p-4 md:p-8 lg:p-10 w-full mx-auto max-w-[1400px]">
           <Outlet />
