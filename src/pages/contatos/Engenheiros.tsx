@@ -78,6 +78,16 @@ const engineerSchema = z.object({
 
 type EngineerFormValues = z.infer<typeof engineerSchema>
 
+const ENGINEER_FORM_DEFAULTS: EngineerFormValues = {
+  nome: '',
+  especialidade: '',
+  email: '',
+  telefone: '',
+  celular: '',
+  nome_empresa: '',
+  endereco_comercial: '',
+}
+
 const ENGINEER_TYPES = [
   'Civil',
   'Elétrica',
@@ -93,35 +103,34 @@ export default function Engenheiros() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingEngineer, setEditingEngineer] = useState<ContatoRow | null>(null)
   const [engineerToDelete, setEngineerToDelete] = useState<string | null>(null)
+  // Pessoas da empresa adicionadas já na criação do engenheiro — buffer
+  // local, só viram registros em `contatos` (com empresa_id apontando pra
+  // empresa recém-criada) no submit. Mesmo padrão de Arquitetos.tsx.
+  const [novasPessoas, setNovasPessoas] = useState<
+    { nome: string; data_nascimento: string; email: string; cpf_cnpj: string; endereco: string }[]
+  >([])
 
-  const [viewingEngineer, setViewingEngineer] = useState<ContatoRow | null>(null)
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-  const [cameFromView, setCameFromView] = useState(false)
   const [viewMode, setViewMode] = useViewMode('engenheiros', 'cards')
 
   const form = useForm<EngineerFormValues>({
     resolver: zodResolver(engineerSchema),
-    defaultValues: {
-      nome: '',
-      especialidade: '',
-      email: '',
-      telefone: '',
-      celular: '',
-      nome_empresa: '',
-      endereco_comercial: '',
-    },
+    defaultValues: ENGINEER_FORM_DEFAULTS,
   })
 
   const fetchEngineers = async () => {
     setLoading(true)
+    // Registros com empresa_id preenchido são "pessoas" vinculadas a uma
+    // empresa de engenharia (ver ContatoDetail.tsx) — não aparecem soltos
+    // nesta listagem, só dentro da página cheia da empresa. Mesmo padrão
+    // já usado em Arquitetos.tsx.
     const { data, error } = await supabase
       .from('contatos')
       .select('*')
       .eq('tipo', 'engenheiro')
+      .is('empresa_id', null)
       .order('nome')
     if (error) {
       toast({
@@ -154,6 +163,7 @@ export default function Engenheiros() {
     }
   }, [])
 
+  // SPEC-044: o deep-link ?view=Nome navega direto para a página cheia.
   useEffect(() => {
     const viewName = searchParams.get('view')
     if (viewName && engineers.length > 0) {
@@ -164,41 +174,15 @@ export default function Engenheiros() {
       }
 
       if (match) {
-        setViewingEngineer(match)
-        setIsViewModalOpen(true)
-        setCameFromView(true)
-      } else {
-        setSearch(viewName)
+        navigate(`/contatos/engenheiros/${match.id}`, { replace: true })
+        return
       }
 
+      setSearch(viewName)
       searchParams.delete('view')
       setSearchParams(searchParams, { replace: true })
     }
-  }, [searchParams, engineers, setSearchParams])
-
-  useEffect(() => {
-    if (editingEngineer) {
-      form.reset({
-        nome: editingEngineer.nome,
-        especialidade: editingEngineer.especialidade || '',
-        email: editingEngineer.email || '',
-        telefone: editingEngineer.telefone || '',
-        celular: editingEngineer.celular || '',
-        nome_empresa: editingEngineer.nome_empresa || '',
-        endereco_comercial: editingEngineer.endereco_comercial || '',
-      })
-    } else {
-      form.reset({
-        nome: '',
-        especialidade: '',
-        email: '',
-        telefone: '',
-        celular: '',
-        nome_empresa: '',
-        endereco_comercial: '',
-      })
-    }
-  }, [editingEngineer, form, isModalOpen])
+  }, [searchParams, engineers, setSearchParams, navigate])
 
   const filteredEngineers = useMemo(() => {
     return engineers.filter((e) => {
@@ -213,24 +197,60 @@ export default function Engenheiros() {
   }, [engineers, search])
 
   const onSubmit = async (values: EngineerFormValues) => {
-    if (editingEngineer) {
-      const { error } = await supabase.from('contatos').update(values).eq('id', editingEngineer.id)
-      if (error) {
-        toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' })
-      } else {
-        toast({ title: 'Engenheiro atualizado com sucesso' })
-        setIsModalOpen(false)
-        fetchEngineers()
+    // Pessoas adicionadas no formulário de criação são validadas e
+    // inseridas junto, vinculadas via empresa_id ao engenheiro recém-criado
+    // — depois navega direto pra página cheia dele. Mesmo padrão de
+    // Arquitetos.tsx.
+    if (novasPessoas.some((p) => !p.nome.trim())) {
+      toast({
+        title: 'Nome obrigatório',
+        description:
+          'Preencha o nome de todas as pessoas adicionadas, ou remova a linha em branco.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('contatos')
+      .insert([{ ...values, tipo: 'engenheiro' }])
+      .select()
+      .single()
+
+    if (error) {
+      toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' })
+      return
+    }
+
+    const pessoasValidas = novasPessoas.filter((p) => p.nome.trim())
+    if (pessoasValidas.length > 0 && data?.id) {
+      const { error: pessoasError } = await supabase.from('contatos').insert(
+        pessoasValidas.map((p) => ({
+          tipo: 'engenheiro',
+          empresa_id: data.id,
+          nome: p.nome.trim(),
+          data_nascimento: p.data_nascimento || null,
+          email: p.email || null,
+          cpf_cnpj: p.cpf_cnpj || null,
+          endereco: p.endereco || null,
+          ativo: true,
+        })),
+      )
+      if (pessoasError) {
+        toast({
+          title: 'Engenheiro criado, mas houve erro ao salvar as pessoas',
+          description: pessoasError.message,
+          variant: 'destructive',
+        })
       }
+    }
+
+    toast({ title: 'Engenheiro adicionado com sucesso' })
+    setIsModalOpen(false)
+    if (data?.id) {
+      navigate(`/contatos/engenheiros/${data.id}`)
     } else {
-      const { error } = await supabase.from('contatos').insert([{ ...values, tipo: 'engenheiro' }])
-      if (error) {
-        toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' })
-      } else {
-        toast({ title: 'Engenheiro adicionado com sucesso' })
-        setIsModalOpen(false)
-        fetchEngineers()
-      }
+      fetchEngineers()
     }
   }
 
@@ -248,34 +268,17 @@ export default function Engenheiros() {
   }
 
   const openNewModal = () => {
-    setEditingEngineer(null)
+    form.reset(ENGINEER_FORM_DEFAULTS)
+    setNovasPessoas([])
     setIsModalOpen(true)
   }
 
-  const openViewModal = (engineer: ContatoRow) => {
-    setViewingEngineer(engineer)
-    setIsViewModalOpen(true)
-    setCameFromView(false)
-  }
-
-  const handleCloseViewModal = (open: boolean) => {
-    if (!open) {
-      setIsViewModalOpen(false)
-      if (cameFromView) {
-        navigate(-1)
-      }
-    } else {
-      setIsViewModalOpen(true)
-    }
-  }
-
-  const openEditModal = (engineer: ContatoRow) => {
-    setEditingEngineer(engineer)
-    setIsModalOpen(true)
+  const viewEngineer = (engineer: ContatoRow) => {
+    navigate(`/contatos/engenheiros/${engineer.id}`)
   }
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-foreground">Engenheiros</h2>
@@ -348,7 +351,7 @@ export default function Engenheiros() {
               <Card
                 key={engineer.id}
                 className="group cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-primary/50 flex flex-col animate-fade-in"
-                onClick={() => openViewModal(engineer)}
+                onClick={() => viewEngineer(engineer)}
               >
                 <CardHeader className="pb-3 relative">
                   <div className="absolute top-4 right-4 flex opacity-0 group-hover:opacity-100 transition-opacity gap-1">
@@ -358,7 +361,7 @@ export default function Engenheiros() {
                       className="h-8 w-8 bg-background/80 hover:bg-background shadow-sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        openEditModal(engineer)
+                        viewEngineer(engineer)
                       }}
                     >
                       <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -417,7 +420,7 @@ export default function Engenheiros() {
                     className="w-full shadow-sm"
                     onClick={(e) => {
                       e.stopPropagation()
-                      openViewModal(engineer)
+                      viewEngineer(engineer)
                     }}
                   >
                     Ver Detalhes
@@ -446,9 +449,8 @@ export default function Engenheiros() {
                 {filteredEngineers.map((engineer) => (
                   <TableRow
                     key={engineer.id}
-                    className="hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => openViewModal(engineer)}
-                    onDoubleClick={() => openEditModal(engineer)}
+                    className="hover:bg-muted/50 cursor-pointer transition-colors"
+                    onClick={() => viewEngineer(engineer)}
                   >
                     <TableCell className="font-medium text-foreground">{engineer.nome}</TableCell>
                     <TableCell>{engineer.especialidade || '-'}</TableCell>
@@ -476,7 +478,7 @@ export default function Engenheiros() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => openViewModal(engineer)}
+                        onClick={() => viewEngineer(engineer)}
                         title="Ver Detalhes"
                       >
                         <Eye className="h-4 w-4 text-muted-foreground" />
@@ -484,7 +486,7 @@ export default function Engenheiros() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => openEditModal(engineer)}
+                        onClick={() => viewEngineer(engineer)}
                         title="Editar"
                       >
                         <Edit2 className="h-4 w-4 text-muted-foreground" />
@@ -507,10 +509,11 @@ export default function Engenheiros() {
         )}
       </div>
 
+      {/* Novo Engenheiro — SPEC-044: edição agora acontece na página cheia (/contatos/engenheiros/:id) */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingEngineer ? 'Editar Engenheiro' : 'Novo Engenheiro'}</DialogTitle>
+            <DialogTitle>Novo Engenheiro</DialogTitle>
             <DialogDescription>
               Preencha os dados do engenheiro para adicioná-lo ao sistema.
             </DialogDescription>
@@ -636,62 +639,118 @@ export default function Engenheiros() {
                   )}
                 />
               </div>
+
+              <div className="pt-4 border-t mt-4">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div>
+                    <h4 className="text-sm font-semibold">Pessoas da Empresa (opcional)</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Se este cadastro representa um escritório com mais de um engenheiro,
+                      adicione cada pessoa aqui (nome, data de nascimento, e-mail e CPF/CNPJ
+                      individual). O vínculo do projeto continua sempre com a empresa, não com a
+                      pessoa.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() =>
+                      setNovasPessoas([
+                        ...novasPessoas,
+                        { nome: '', data_nascimento: '', email: '', cpf_cnpj: '', endereco: '' },
+                      ])
+                    }
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Pessoa
+                  </Button>
+                </div>
+
+                {novasPessoas.length > 0 && (
+                  <div className="space-y-2">
+                    {novasPessoas.map((p, idx) => (
+                      <div key={idx} className="border rounded-md p-3 bg-muted/30 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1">
+                            <Input
+                              placeholder="Nome *"
+                              value={p.nome}
+                              onChange={(e) => {
+                                const arr = [...novasPessoas]
+                                arr[idx] = { ...arr[idx], nome: e.target.value }
+                                setNovasPessoas(arr)
+                              }}
+                              className="h-9"
+                            />
+                            <Input
+                              type="date"
+                              value={p.data_nascimento}
+                              onChange={(e) => {
+                                const arr = [...novasPessoas]
+                                arr[idx] = { ...arr[idx], data_nascimento: e.target.value }
+                                setNovasPessoas(arr)
+                              }}
+                              className="h-9"
+                            />
+                            <Input
+                              type="email"
+                              placeholder="E-mail"
+                              value={p.email}
+                              onChange={(e) => {
+                                const arr = [...novasPessoas]
+                                arr[idx] = { ...arr[idx], email: e.target.value }
+                                setNovasPessoas(arr)
+                              }}
+                              className="h-9"
+                            />
+                            <Input
+                              placeholder="CPF / CNPJ"
+                              value={p.cpf_cnpj}
+                              onChange={(e) => {
+                                const arr = [...novasPessoas]
+                                arr[idx] = { ...arr[idx], cpf_cnpj: e.target.value }
+                                setNovasPessoas(arr)
+                              }}
+                              className="h-9"
+                            />
+                            <Input
+                              placeholder="Endereço"
+                              value={p.endereco}
+                              onChange={(e) => {
+                                const arr = [...novasPessoas]
+                                arr[idx] = { ...arr[idx], endereco: e.target.value }
+                                setNovasPessoas(arr)
+                              }}
+                              className="h-9 sm:col-span-2"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setNovasPessoas(novasPessoas.filter((_, i) => i !== idx))
+                            }
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 border-t mt-4">
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit">
-                  {editingEngineer ? 'Salvar Alterações' : 'Criar Engenheiro'}
-                </Button>
+                <Button type="submit">Criar Engenheiro</Button>
               </div>
             </form>
           </Form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isViewModalOpen} onOpenChange={handleCloseViewModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Detalhes do Engenheiro</DialogTitle>
-            <DialogDescription>Informações completas do registro</DialogDescription>
-          </DialogHeader>
-          {viewingEngineer && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 py-4">
-              <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">Nome</h4>
-                <p className="text-foreground">{viewingEngineer.nome || '-'}</p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">Especialidade</h4>
-                <p className="text-foreground">{viewingEngineer.especialidade || '-'}</p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">E-mail</h4>
-                <p className="text-foreground">{viewingEngineer.email || '-'}</p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">Telefone</h4>
-                <p className="text-foreground">{viewingEngineer.telefone || '-'}</p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">Celular</h4>
-                <p className="text-foreground">{viewingEngineer.celular || '-'}</p>
-              </div>
-              <div className="sm:col-span-2">
-                <h4 className="font-semibold text-sm text-muted-foreground">Empresa</h4>
-                <p className="text-foreground">{viewingEngineer.nome_empresa || '-'}</p>
-              </div>
-              <div className="sm:col-span-2">
-                <h4 className="font-semibold text-sm text-muted-foreground">Endereço Comercial</h4>
-                <p className="text-foreground">{viewingEngineer.endereco_comercial || '-'}</p>
-              </div>
-            </div>
-          )}
-          <div className="flex justify-end pt-4 border-t mt-4">
-            <Button variant="outline" onClick={() => handleCloseViewModal(false)}>
-              Fechar
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
 

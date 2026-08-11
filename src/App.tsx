@@ -16,6 +16,8 @@ import Clientes from './pages/contatos/Clientes'
 import Arquitetos from './pages/contatos/Arquitetos'
 import Engenheiros from './pages/contatos/Engenheiros'
 import Eletricistas from './pages/contatos/Eletricistas'
+import Fornecedores from './pages/contatos/Fornecedores'
+import ContatoDetail from './pages/contatos/ContatoDetail'
 import Usuarios from './pages/Configuracoes/Usuarios'
 import Orcamentos from './pages/Orcamentos'
 import Configuracoes from './pages/Configuracoes/Index'
@@ -23,7 +25,7 @@ import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth()
+  const { user, hasAccess, loading } = useAuth()
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -32,6 +34,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     )
   }
   if (!user) return <AuthPage />
+  if (hasAccess === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="max-w-sm w-full text-center space-y-3">
+          <h1 className="text-lg font-semibold">Acesso negado</h1>
+          <p className="text-sm text-muted-foreground">
+            Sua conta não tem permissão para acessar o CRM. Fale com um administrador se acredita
+            que isso é um engano.
+          </p>
+        </div>
+      </div>
+    )
+  }
   return <>{children}</>
 }
 
@@ -90,6 +105,8 @@ const App = () => {
                 <Route path="/contatos/arquitetos" element={<Arquitetos />} />
                 <Route path="/contatos/engenheiros" element={<Engenheiros />} />
                 <Route path="/contatos/eletricistas" element={<Eletricistas />} />
+                <Route path="/contatos/fornecedores" element={<Fornecedores />} />
+                <Route path="/contatos/:tipoPlural/:id" element={<ContatoDetail />} />
                 <Route path="/orcamentos" element={<Orcamentos />} />
                 <Route path="/configuracoes" element={<Configuracoes />} />
                 <Route path="/configuracoes/usuarios" element={<Usuarios />} />
