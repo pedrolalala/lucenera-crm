@@ -339,6 +339,30 @@ export default function Projetos() {
     setEditedPagamentos(pags)
   }
 
+  // Duplo-clique na linha da tabela: abre o projeto já em modo edição.
+  // Não reaproveita startEditing() porque ele lê `selectedProjeto` do estado
+  // — chamado logo depois de setSelectedProjeto(projeto) na mesma função,
+  // ainda pegaria o valor antigo (React não atualiza o estado de forma
+  // síncrona), então recebe o projeto direto por parâmetro.
+  const openProjetoParaEdicao = (projeto: any) => {
+    setSelectedProjeto(projeto)
+    setIsEditing(true)
+    setEditedProjeto({ ...projeto })
+    const pags = (projeto.projeto_parcelas || [])
+      .filter((p: any) => !p.orcamento_id)
+      .map((p: any) => ({
+        id: p.id,
+        numero_parcela: p.numero_parcela,
+        valor: p.valor || '',
+        data_vencimento: p.data_vencimento || '',
+        data_pagamento: p.data_pagamento || '',
+        valor_pago: p.valor_pago || '',
+        status: p.status || 'pendente',
+      }))
+    pags.sort((a, b) => a.numero_parcela - b.numero_parcela)
+    setEditedPagamentos(pags)
+  }
+
   const handleSave = async () => {
     if (!editedProjeto || !selectedProjeto) return
     setSaving(true)
@@ -762,6 +786,7 @@ export default function Projetos() {
                           key={projeto.id}
                           className="cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
                           onClick={() => setSelectedProjeto(projeto)}
+                          onDoubleClick={() => openProjetoParaEdicao(projeto)}
                         >
                           <TableCell className="py-4 font-medium text-slate-900">
                             {projeto.codigo}

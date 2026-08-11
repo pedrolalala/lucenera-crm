@@ -555,6 +555,7 @@ export default function Arquitetos() {
                     key={arquiteto.id || idx}
                     className="hover:bg-muted/50 cursor-pointer transition-colors"
                     onClick={() => openViewModal(arquiteto)}
+                    onDoubleClick={() => openEditModal(arquiteto)}
                   >
                     <TableCell className="font-medium text-foreground">
                       {arquiteto.nome || '-'}

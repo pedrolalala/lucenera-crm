@@ -446,8 +446,9 @@ export default function Engenheiros() {
                 {filteredEngineers.map((engineer) => (
                   <TableRow
                     key={engineer.id}
-                    className="hover:bg-muted/50 transition-colors"
+                    className="hover:bg-muted/50 transition-colors cursor-pointer"
                     onClick={() => openViewModal(engineer)}
+                    onDoubleClick={() => openEditModal(engineer)}
                   >
                     <TableCell className="font-medium text-foreground">{engineer.nome}</TableCell>
                     <TableCell>{engineer.especialidade || '-'}</TableCell>
