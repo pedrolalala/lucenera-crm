@@ -77,7 +77,11 @@ const formSchema = z.object({
   nivel_estrategico: z.enum(['1', '2', '3', '4']),
   responsavel_nome: z.string().optional(),
   status: z.string().min(1, 'Obrigatório'),
-  cliente_id: z.string().min(1, 'Obrigatório'),
+  // SPEC-061 (2026-08-05, decisão do usuário): Cliente passa a ser
+  // obrigatório de verdade. Achado: `min(1)` sozinho não bloqueava nada —
+  // o valor "não selecionado" é a string literal 'null' (sentinela do
+  // combobox), que tem length 4 e já passava em min(1).
+  cliente_id: z.string().refine((v) => v !== 'null' && v.trim().length > 0, 'Selecione um cliente'),
   arquiteto_id: z.string().optional(),
   responsavel_obra_id: z.string().optional(),
   cidade: z.string().min(2, 'Obrigatório'),
@@ -124,7 +128,15 @@ export default function ProjectNew() {
 
   useEffect(() => {
     const fetchArquitetos = async () => {
-      let q = supabase.from('contatos').select('id, nome').eq('tipo', 'arquiteto').order('nome')
+      // SPEC-044: registros com empresa_id preenchido são "pessoas" de uma
+      // empresa de arquitetura — o projeto sempre vincula à empresa, nunca a
+      // uma pessoa isolada (ver ContatoDetail.tsx / Pessoas da Empresa).
+      let q = supabase
+        .from('contatos')
+        .select('id, nome')
+        .eq('tipo', 'arquiteto')
+        .is('empresa_id', null)
+        .order('nome')
       if (searchArquiteto) q = q.ilike('nome', `%${searchArquiteto}%`)
       const { data } = await q.limit(100)
       if (data) setDbArquitetos(data)
@@ -236,7 +248,18 @@ export default function ProjectNew() {
         body: payload,
       })
 
-      if (error) throw error
+      if (error) {
+        let message = error.message
+        if (error.context && typeof error.context.json === 'function') {
+          try {
+            const body = await error.context.json()
+            if (body?.error) message = body.error
+          } catch {
+            // corpo da resposta não é JSON ou já foi consumido; mantém a mensagem genérica
+          }
+        }
+        throw new Error(message)
+      }
       if (result?.error) throw new Error(result.error)
 
       await refreshProjects()
