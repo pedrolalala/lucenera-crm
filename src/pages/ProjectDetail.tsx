@@ -4,9 +4,11 @@ import {
   getProjeto,
   updateProjetoById,
   saveProjetoParcelas,
+  replaceProjetoArquitetos,
   type Projeto,
 } from '@/services/projetos'
 import { Constants, type Database } from '@/lib/supabase/types'
+import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,6 +23,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command'
 import {
   Table,
   TableBody,
@@ -45,7 +57,15 @@ import {
   HardHat,
   Package,
   Calculator,
+  Link2,
+  ExternalLink,
+  Check,
+  ChevronsUpDown,
+  Plus,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { ArchitectSplitPicker, type ArquitetoSplit } from '@/components/ArchitectSplitPicker'
+import { NewEmployeeModal } from '@/components/NewEmployeeModal'
 
 export default function ProjectDetail() {
   const { id } = useParams()
@@ -63,12 +83,57 @@ export default function ProjectDetail() {
     Partial<Database['public']['Tables']['projeto_parcelas']['Row']>[]
   >([])
 
+  // SPEC-077: arquitetos com percentual (many-to-many) e responsável ligado
+  // a funcionarios — ficam fora de editForm (que é Partial<Projeto>, com
+  // arquiteto_id/responsavel_id singulares antigos) pelo mesmo motivo que
+  // editParcelas já é estado separado.
+  const [editArquitetos, setEditArquitetos] = useState<ArquitetoSplit[]>([])
+  const [selectedResponsavelName, setSelectedResponsavelName] = useState('')
+  const [openResponsavel, setOpenResponsavel] = useState(false)
+  const [searchResponsavel, setSearchResponsavel] = useState('')
+  const [dbFuncionarios, setDbFuncionarios] = useState<{ id: string; nome: string }[]>([])
+  const [employeeModalOpen, setEmployeeModalOpen] = useState(false)
+
+  const projetoArquitetosParaPicker = (data: Projeto): ArquitetoSplit[] => {
+    if (data.projeto_arquitetos && data.projeto_arquitetos.length > 0) {
+      return data.projeto_arquitetos
+        .filter((pa) => pa.arquiteto)
+        .map((pa) => ({
+          arquiteto_id: pa.arquiteto!.id,
+          nome: pa.arquiteto!.nome,
+          percentual: Number(pa.percentual),
+        }))
+    }
+    // Rede de segurança: projeto muito antigo que escapou do backfill —
+    // cai de volta pro arquiteto_id singular como 100%.
+    if (data.arquiteto_id && data.arquiteto?.nome) {
+      return [{ arquiteto_id: data.arquiteto_id, nome: data.arquiteto.nome, percentual: 100 }]
+    }
+    return []
+  }
+
+  useEffect(() => {
+    const fetchFuncionarios = async () => {
+      let q = supabase.from('funcionarios').select('id, nome').eq('status', 'Ativo').order('nome')
+      if (searchResponsavel) q = q.ilike('nome', `%${searchResponsavel}%`)
+      const { data } = await q.limit(100)
+      if (data) setDbFuncionarios(data)
+    }
+    const timeout = setTimeout(fetchFuncionarios, 300)
+    return () => clearTimeout(timeout)
+  }, [searchResponsavel])
+
   const openBudgetSystem = async (projetoId: string) => {
     const redirectTo = `/budgets/new?projeto_id=${encodeURIComponent(projetoId)}`
     try {
-      await redirectWithCode('https://gestaofinanceiralucenera.goskip.app', redirectTo, 'orcamentos', {
-        newTab: true,
-      })
+      await redirectWithCode(
+        'https://gestaofinanceiralucenera.goskip.app',
+        redirectTo,
+        'orcamentos',
+        {
+          newTab: true,
+        },
+      )
     } catch {
       window.open(
         `https://gestaofinanceiralucenera.goskip.app${redirectTo}`,
@@ -87,6 +152,8 @@ export default function ProjectDetail() {
         // SPEC-004: parcelas geradas por orçamento aprovado não entram no
         // editor manual — saveProjetoParcelas também bloqueia no banco.
         setEditParcelas((data.projeto_parcelas || []).filter((p) => !p.orcamento_id))
+        setEditArquitetos(projetoArquitetosParaPicker(data))
+        setSelectedResponsavelName(data.responsavel_funcionario?.nome || '')
       })
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -116,6 +183,8 @@ export default function ProjectDetail() {
     if (isEditing) {
       setEditForm(projeto)
       setEditParcelas((projeto.projeto_parcelas || []).filter((p) => !p.orcamento_id))
+      setEditArquitetos(projetoArquitetosParaPicker(projeto))
+      setSelectedResponsavelName(projeto.responsavel_funcionario?.nome || '')
     }
     setIsEditing(!isEditing)
   }
@@ -194,9 +263,43 @@ export default function ProjectDetail() {
       }
     }
 
+    // SPEC-077: Responsável e ao menos 1 arquiteto passam a ser obrigatórios.
+    if (!editForm.responsavel_funcionario_id) {
+      toast({
+        title: 'Responsável obrigatório',
+        description: 'Selecione um responsável para o projeto.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (editArquitetos.length === 0) {
+      toast({
+        title: 'Arquiteto obrigatório',
+        description: 'Selecione pelo menos um arquiteto para o projeto.',
+        variant: 'destructive',
+      })
+      return
+    }
+    const somaArquitetos = editArquitetos.reduce((acc, a) => acc + (Number(a.percentual) || 0), 0)
+    if (Math.abs(somaArquitetos - 100) > 0.01) {
+      toast({
+        title: 'Percentuais inválidos',
+        description: `A soma dos percentuais dos arquitetos deve ser 100% (atual: ${somaArquitetos.toFixed(2)}%).`,
+        variant: 'destructive',
+      })
+      return
+    }
+
     setSaving(true)
     try {
-      const payload: Database['public']['Tables']['projetos']['Update'] = {
+      // SPEC-045: `link_sharepoint` existe na coluna real (migration
+      // 20260724_061) mas ainda não está no types.ts gerado — usa `as any`
+      // no payload em vez de tentar reescrever o arquivo de tipos inteiro
+      // (mesmo padrão já usado em Index.tsx para `get_dashboard_stats`).
+      const payload: Database['public']['Tables']['projetos']['Update'] & {
+        link_sharepoint?: string | null
+        responsavel_funcionario_id?: string | null
+      } = {
         codigo: editForm.codigo,
         nome: editForm.nome,
         status: editForm.status,
@@ -204,13 +307,25 @@ export default function ProjectDetail() {
         data_entrada: editForm.data_entrada || null,
         cidade: editForm.cidade,
         estado: editForm.estado,
-        responsavel_id: editForm.responsavel_id,
         cliente_id: editForm.cliente_id,
-        arquiteto_id: editForm.arquiteto_id,
         responsavel_obra_id: editForm.responsavel_obra_id,
+        // SPEC-077: Responsável agora vem de funcionarios — responsavel_nome
+        // continua sendo gravado junto (nome do funcionário escolhido) pra
+        // não quebrar o trigger que deriva a equipe/comissão a partir dele.
+        responsavel_funcionario_id: editForm.responsavel_funcionario_id,
+        responsavel_nome: selectedResponsavelName || null,
+        link_sharepoint: (editForm as any).link_sharepoint || null,
+        // SPEC-064: rótulo Ribeirão/São Paulo, só visualização — independente
+        // do perfil do cliente vinculado, sem herança automática.
+        perfil: (editForm as any).perfil || null,
       }
 
-      await updateProjetoById(projeto.id, payload)
+      await updateProjetoById(projeto.id, payload as any)
+
+      await replaceProjetoArquitetos(
+        projeto.id,
+        editArquitetos.map((a) => ({ arquiteto_id: a.arquiteto_id, percentual: a.percentual })),
+      )
 
       const originalIds = projeto.projeto_parcelas?.map((p) => p.id) || []
       await saveProjetoParcelas(projeto.id, editParcelas, originalIds)
@@ -219,6 +334,8 @@ export default function ProjectDetail() {
       setProjeto(updated)
       setEditForm(updated)
       setEditParcelas(updated.projeto_parcelas || [])
+      setEditArquitetos(projetoArquitetosParaPicker(updated))
+      setSelectedResponsavelName(updated.responsavel_funcionario?.nome || '')
       setIsEditing(false)
       toast({ title: 'Projeto atualizado com sucesso' })
     } catch (error: any) {
@@ -231,6 +348,12 @@ export default function ProjectDetail() {
 
   const handleChange = (field: keyof Projeto, value: string | null) => {
     setEditForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleSaveNewFuncionario = (funcionario: { id: string; nome: string }) => {
+    handleChange('responsavel_funcionario_id' as keyof Projeto, funcionario.id)
+    setSelectedResponsavelName(funcionario.nome)
+    setEmployeeModalOpen(false)
   }
 
   const formatCurrency = (val: number) => {
@@ -277,9 +400,7 @@ export default function ProjectDetail() {
   }
 
   const clientes = contacts.filter((c) => c.tipo === 'cliente')
-  const arquitetos = contacts.filter((c) => c.tipo === 'arquiteto')
   const engenheiros = contacts.filter((c) => c.tipo === 'engenheiro')
-  const outros = contacts.filter((c) => c.tipo === 'outro')
 
   const valorTotal =
     projeto.projeto_parcelas?.reduce((acc, p) => {
@@ -355,10 +476,7 @@ export default function ProjectDetail() {
             </>
           ) : (
             <>
-              <Button
-                variant="outline"
-                onClick={() => void openBudgetSystem(projeto.id)}
-              >
+              <Button variant="outline" onClick={() => void openBudgetSystem(projeto.id)}>
                 <Calculator className="mr-2 h-4 w-4" />
                 Gerar Orçamento
               </Button>
@@ -462,7 +580,7 @@ export default function ProjectDetail() {
                 </span>
               </div>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-b-transparent">
+            <div className="flex justify-between items-center py-2 border-b">
               <span className="text-muted-foreground w-1/3">Localização</span>
               <div className="w-2/3 flex justify-end">
                 {isEditing ? (
@@ -488,6 +606,36 @@ export default function ProjectDetail() {
                 )}
               </div>
             </div>
+            <div className="flex justify-between items-center py-2 border-b border-b-transparent">
+              <span className="text-muted-foreground w-1/3">Perfil</span>
+              <div className="w-2/3 flex justify-end">
+                {isEditing ? (
+                  <Select
+                    value={(editForm as any).perfil || 'null'}
+                    onValueChange={(v) =>
+                      handleChange('perfil' as keyof Projeto, v === 'null' ? null : v)
+                    }
+                  >
+                    <SelectTrigger className="h-8 max-w-[200px]">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="null">Não informado</SelectItem>
+                      <SelectItem value="ribeirao">Ribeirão</SelectItem>
+                      <SelectItem value="sao_paulo">São Paulo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <span className="font-medium">
+                    {(projeto as any).perfil === 'sao_paulo'
+                      ? 'São Paulo'
+                      : (projeto as any).perfil === 'ribeirao'
+                        ? 'Ribeirão'
+                        : 'Não informado'}
+                  </span>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -500,29 +648,98 @@ export default function ProjectDetail() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-muted-foreground w-1/3">Responsável Principal</span>
+              <span className="text-muted-foreground w-1/3">
+                Responsável <span className="text-destructive">*</span>
+              </span>
               <div className="w-2/3 flex justify-end">
                 {isEditing ? (
-                  <Select
-                    value={editForm.responsavel_id || 'null'}
-                    onValueChange={(v) => handleChange('responsavel_id', v === 'null' ? null : v)}
-                  >
-                    <SelectTrigger className="h-8 max-w-[200px]">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="null">Nenhum</SelectItem>
-                      {outros.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2 max-w-[280px]">
+                    <Popover open={openResponsavel} onOpenChange={setOpenResponsavel}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openResponsavel}
+                          className={cn(
+                            'flex-1 justify-between h-8 font-normal truncate',
+                            !editForm.responsavel_funcionario_id && 'text-muted-foreground',
+                          )}
+                        >
+                          <span className="truncate">
+                            {editForm.responsavel_funcionario_id
+                              ? selectedResponsavelName || 'Selecionado'
+                              : 'Selecione'}
+                          </span>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[280px] p-0" align="end">
+                        <Command shouldFilter={false}>
+                          <CommandInput
+                            placeholder="Buscar funcionário..."
+                            value={searchResponsavel}
+                            onValueChange={setSearchResponsavel}
+                          />
+                          <CommandList>
+                            <CommandEmpty>Nenhum funcionário encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {dbFuncionarios.map((o) => (
+                                <CommandItem
+                                  value={o.id}
+                                  key={o.id}
+                                  onSelect={() => {
+                                    handleChange('responsavel_funcionario_id' as keyof Projeto, o.id)
+                                    setSelectedResponsavelName(o.nome)
+                                    setOpenResponsavel(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      o.id === editForm.responsavel_funcionario_id
+                                        ? 'opacity-100'
+                                        : 'opacity-0',
+                                    )}
+                                  />
+                                  {o.nome}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                            <CommandSeparator />
+                            <CommandGroup>
+                              <CommandItem
+                                onSelect={() => {
+                                  setOpenResponsavel(false)
+                                  setEmployeeModalOpen(true)
+                                }}
+                                className="text-primary font-medium cursor-pointer"
+                              >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Novo Funcionário
+                              </CommandItem>
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0 h-8 w-8"
+                      onClick={() => setEmployeeModalOpen(true)}
+                      title="Adicionar Novo Funcionário"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 ) : (
                   <span className="font-medium flex items-center gap-2 text-right">
                     <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    {projeto.responsavel?.nome || projeto.responsavel_nome || 'Não definido'}
+                    {projeto.responsavel_funcionario?.nome ||
+                      projeto.responsavel_nome ||
+                      'Não definido'}
                   </span>
                 )}
               </div>
@@ -564,40 +781,50 @@ export default function ProjectDetail() {
                 )}
               </div>
             </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-muted-foreground w-1/3">Arquiteto Designado</span>
+            <div className="flex justify-between items-start py-2 border-b">
+              <span className="text-muted-foreground w-1/3 pt-2">
+                Arquiteto(s) <span className="text-destructive">*</span>
+              </span>
               <div className="w-2/3 flex justify-end">
                 {isEditing ? (
-                  <Select
-                    value={editForm.arquiteto_id || 'null'}
-                    onValueChange={(v) => handleChange('arquiteto_id', v === 'null' ? null : v)}
-                  >
-                    <SelectTrigger className="h-8 max-w-[200px]">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="null">Nenhum</SelectItem>
-                      {arquitetos.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
+                  <div className="w-full max-w-[280px]">
+                    <ArchitectSplitPicker value={editArquitetos} onChange={setEditArquitetos} />
+                  </div>
+                ) : projeto.projeto_arquitetos && projeto.projeto_arquitetos.length > 0 ? (
+                  <div className="flex flex-col items-end gap-1">
+                    {projeto.projeto_arquitetos.map(
+                      (pa) =>
+                        pa.arquiteto && (
+                          <span
+                            key={pa.arquiteto.id}
+                            className="font-medium flex items-center gap-2 text-right"
+                          >
+                            <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <Link
+                              to={`/contatos/arquitetos?view=${encodeURIComponent(pa.arquiteto.nome)}`}
+                              className="text-primary hover:underline"
+                            >
+                              {pa.arquiteto.nome}
+                            </Link>
+                            <span className="text-xs text-muted-foreground">
+                              ({Number(pa.percentual).toFixed(2)}%)
+                            </span>
+                          </span>
+                        ),
+                    )}
+                  </div>
+                ) : projeto.arquiteto?.nome ? (
                   <span className="font-medium flex items-center gap-2 text-right">
                     <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    {projeto.arquiteto?.nome ? (
-                      <Link
-                        to={`/contatos/arquitetos?view=${encodeURIComponent(projeto.arquiteto.nome)}`}
-                        className="text-primary hover:underline"
-                      >
-                        {projeto.arquiteto.nome}
-                      </Link>
-                    ) : (
-                      'Não definido'
-                    )}
+                    <Link
+                      to={`/contatos/arquitetos?view=${encodeURIComponent(projeto.arquiteto.nome)}`}
+                      className="text-primary hover:underline"
+                    >
+                      {projeto.arquiteto.nome}
+                    </Link>
                   </span>
+                ) : (
+                  <span className="font-medium text-muted-foreground">Não definido</span>
                 )}
               </div>
             </div>
@@ -640,6 +867,39 @@ export default function ProjectDetail() {
                 )}
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-primary" />
+              Link do SharePoint
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isEditing ? (
+              <Input
+                type="url"
+                placeholder="https://lucenera.sharepoint.com/sites/..."
+                value={(editForm as any).link_sharepoint || ''}
+                onChange={(e) => handleChange('link_sharepoint' as keyof Projeto, e.target.value)}
+              />
+            ) : (projeto as any).link_sharepoint ? (
+              <a
+                href={(projeto as any).link_sharepoint}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Abrir pasta do projeto no SharePoint
+              </a>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Nenhum link do SharePoint cadastrado ainda.
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -1020,6 +1280,12 @@ export default function ProjectDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <NewEmployeeModal
+        open={employeeModalOpen}
+        onOpenChange={setEmployeeModalOpen}
+        onSuccess={handleSaveNewFuncionario}
+      />
     </div>
   )
 }

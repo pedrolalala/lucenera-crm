@@ -5,11 +5,22 @@ import { sortProjetos } from '@/lib/sort-projects'
 export type ProjetoParcela = Database['public']['Tables']['projeto_parcelas']['Row']
 export type ProjetoItem = Database['public']['Tables']['projeto_itens']['Row']
 
+export interface ProjetoArquiteto {
+  percentual: number
+  arquiteto: { id: string; nome: string } | null
+}
+
 export type Projeto = Database['public']['Tables']['projetos']['Row'] & {
   cliente?: { nome: string } | null
   arquiteto?: { nome: string } | null
   responsavel?: { nome: string } | null
   engenheiro?: { nome: string } | null
+  // SPEC-077: divisão de lucro entre múltiplos arquitetos (substitui o
+  // arquiteto_id singular como fonte de verdade — esse campo continua
+  // sincronizado pela RPC replace_projeto_arquitetos só por compatibilidade
+  // com telas/relatórios que ainda leem o singular).
+  projeto_arquitetos?: ProjetoArquiteto[]
+  responsavel_funcionario?: { id: string; nome: string } | null
   projeto_parcelas?: ProjetoParcela[]
   projeto_itens?: ProjetoItem[]
   ano_fechamento?: string | null
@@ -43,6 +54,8 @@ export async function getProjetos() {
         arquiteto:arquiteto_id(nome),
         responsavel:responsavel_id(nome),
         engenheiro:responsavel_obra_id(nome),
+        projeto_arquitetos(percentual, arquiteto:arquiteto_id(id, nome)),
+        responsavel_funcionario:responsavel_funcionario_id(id, nome),
         projeto_parcelas(*)
       `)
       .order('data_entrada', { ascending: false, nullsFirst: false })
@@ -59,6 +72,8 @@ export async function getProjetos() {
             cliente:cliente_id(nome),
             arquiteto:arquiteto_id(nome),
             responsavel:responsavel_id(nome),
+            projeto_arquitetos(percentual, arquiteto:arquiteto_id(id, nome)),
+            responsavel_funcionario:responsavel_funcionario_id(id, nome),
             projeto_parcelas(*)
           `)
           .order('data_entrada', { ascending: false, nullsFirst: false })
@@ -130,6 +145,8 @@ export async function getProjeto(id: string) {
       arquiteto:arquiteto_id(nome),
       responsavel:responsavel_id(nome),
       engenheiro:responsavel_obra_id(nome),
+      projeto_arquitetos(percentual, arquiteto:arquiteto_id(id, nome)),
+      responsavel_funcionario:responsavel_funcionario_id(id, nome),
       projeto_parcelas(*),
       projeto_itens(*)
     `)
@@ -148,6 +165,8 @@ export async function getProjeto(id: string) {
         cliente:cliente_id(nome),
         arquiteto:arquiteto_id(nome),
         responsavel:responsavel_id(nome),
+        projeto_arquitetos(percentual, arquiteto:arquiteto_id(id, nome)),
+        responsavel_funcionario:responsavel_funcionario_id(id, nome),
         projeto_parcelas(*),
         projeto_itens(*)
       `)
@@ -231,6 +250,19 @@ export async function saveProjetoParcelas(
       if (error) throw error
     }
   }
+}
+
+export async function replaceProjetoArquitetos(
+  projetoId: string,
+  arquitetos: { arquiteto_id: string; percentual: number }[],
+) {
+  const { data, error } = await (supabase as any).rpc('replace_projeto_arquitetos', {
+    p_projeto_id: projetoId,
+    p_arquitetos: arquitetos,
+  })
+
+  if (error) throw error
+  return data
 }
 
 export async function updateProjetoEdge(id: string, data: any) {

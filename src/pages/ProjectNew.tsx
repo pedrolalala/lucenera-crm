@@ -58,6 +58,9 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { toast } from '@/hooks/use-toast'
 import { NewContactModal, ContactType } from '@/components/NewContactModal'
+import { NewEmployeeModal } from '@/components/NewEmployeeModal'
+import { ArchitectSplitPicker, redistribuirPercentuais, type ArquitetoSplit } from '@/components/ArchitectSplitPicker'
+import { replaceProjetoArquitetos } from '@/services/projetos'
 
 const NEW_STATUS_OPTIONS = [
   'Estudo Inicial',
@@ -75,14 +78,32 @@ const formSchema = z.object({
   codigo: z.string().regex(/^\d{2}\.\d{3}$/, 'Formato inválido. Use o padrão XX.XXX (ex: 26.083)'),
   nome: z.string().min(2, 'Obrigatório'),
   nivel_estrategico: z.enum(['1', '2', '3', '4']),
-  responsavel_nome: z.string().optional(),
   status: z.string().min(1, 'Obrigatório'),
   // SPEC-061 (2026-08-05, decisão do usuário): Cliente passa a ser
   // obrigatório de verdade. Achado: `min(1)` sozinho não bloqueava nada —
   // o valor "não selecionado" é a string literal 'null' (sentinela do
   // combobox), que tem length 4 e já passava em min(1).
   cliente_id: z.string().refine((v) => v !== 'null' && v.trim().length > 0, 'Selecione um cliente'),
-  arquiteto_id: z.string().optional(),
+  // SPEC-077: Responsável deixa de ser texto livre e passa a ser um
+  // funcionário real, obrigatório (mesma regra do cliente_id acima).
+  responsavel_funcionario_id: z
+    .string()
+    .refine((v) => v !== 'null' && v.trim().length > 0, 'Selecione um responsável'),
+  // SPEC-077: múltiplos arquitetos com percentual de divisão de lucro —
+  // pelo menos 1, soma precisa fechar exatamente 100%.
+  arquitetos: z
+    .array(
+      z.object({
+        arquiteto_id: z.string(),
+        nome: z.string(),
+        percentual: z.number(),
+      }),
+    )
+    .min(1, 'Selecione pelo menos um arquiteto')
+    .refine(
+      (arr) => Math.abs(arr.reduce((acc, a) => acc + (Number(a.percentual) || 0), 0) - 100) < 0.01,
+      'A soma dos percentuais dos arquitetos deve ser 100%',
+    ),
   responsavel_obra_id: z.string().optional(),
   cidade: z.string().min(2, 'Obrigatório'),
   estado: z.string().length(2, 'Inválido'),
@@ -96,23 +117,22 @@ export default function ProjectNew() {
   const { contacts, refreshContacts, refreshProjects } = useProjectStore()
 
   const [modalType, setModalType] = useState<ContactType | null>(null)
+  const [employeeModalOpen, setEmployeeModalOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [openCliente, setOpenCliente] = useState(false)
-  const [openArquiteto, setOpenArquiteto] = useState(false)
+  const [openResponsavel, setOpenResponsavel] = useState(false)
   const [openEngenheiro, setOpenEngenheiro] = useState(false)
 
-  const [responsaveis, setResponsaveis] = useState<string[]>([])
-
   const [searchCliente, setSearchCliente] = useState('')
-  const [searchArquiteto, setSearchArquiteto] = useState('')
+  const [searchResponsavel, setSearchResponsavel] = useState('')
   const [searchEngenheiro, setSearchEngenheiro] = useState('')
 
   const [dbClientes, setDbClientes] = useState<{ id: string; nome: string }[]>([])
-  const [dbArquitetos, setDbArquitetos] = useState<{ id: string; nome: string }[]>([])
+  const [dbFuncionarios, setDbFuncionarios] = useState<{ id: string; nome: string }[]>([])
   const [dbEngenheiros, setDbEngenheiros] = useState<{ id: string; nome: string }[]>([])
 
   const [selectedClienteName, setSelectedClienteName] = useState('')
-  const [selectedArquitetoName, setSelectedArquitetoName] = useState('')
+  const [selectedResponsavelName, setSelectedResponsavelName] = useState('')
   const [selectedEngenheiroName, setSelectedEngenheiroName] = useState('')
 
   useEffect(() => {
@@ -127,23 +147,17 @@ export default function ProjectNew() {
   }, [searchCliente])
 
   useEffect(() => {
-    const fetchArquitetos = async () => {
-      // SPEC-044: registros com empresa_id preenchido são "pessoas" de uma
-      // empresa de arquitetura — o projeto sempre vincula à empresa, nunca a
-      // uma pessoa isolada (ver ContatoDetail.tsx / Pessoas da Empresa).
-      let q = supabase
-        .from('contatos')
-        .select('id, nome')
-        .eq('tipo', 'arquiteto')
-        .is('empresa_id', null)
-        .order('nome')
-      if (searchArquiteto) q = q.ilike('nome', `%${searchArquiteto}%`)
+    // SPEC-077: Responsável agora vem do cadastro de Funcionários (ativos),
+    // não mais do histórico de texto livre de projetos anteriores.
+    const fetchFuncionarios = async () => {
+      let q = supabase.from('funcionarios').select('id, nome').eq('status', 'Ativo').order('nome')
+      if (searchResponsavel) q = q.ilike('nome', `%${searchResponsavel}%`)
       const { data } = await q.limit(100)
-      if (data) setDbArquitetos(data)
+      if (data) setDbFuncionarios(data)
     }
-    const timeout = setTimeout(fetchArquitetos, 300)
+    const timeout = setTimeout(fetchFuncionarios, 300)
     return () => clearTimeout(timeout)
-  }, [searchArquiteto])
+  }, [searchResponsavel])
 
   useEffect(() => {
     const fetchEngenheiros = async () => {
@@ -163,9 +177,9 @@ export default function ProjectNew() {
       nome: '',
       nivel_estrategico: '3',
       cliente_id: 'null',
-      arquiteto_id: 'null',
+      arquitetos: [],
+      responsavel_funcionario_id: 'null',
       responsavel_obra_id: 'null',
-      responsavel_nome: '',
       cidade: '',
       estado: 'SP',
       status: 'Estudo Inicial',
@@ -174,19 +188,6 @@ export default function ProjectNew() {
   })
 
   useEffect(() => {
-    supabase
-      .from('projetos')
-      .select('responsavel_nome')
-      .not('responsavel_nome', 'is', null)
-      .then(({ data }) => {
-        if (data) {
-          const uniqueNames = Array.from(
-            new Set(data.map((d) => d.responsavel_nome).filter(Boolean) as string[]),
-          )
-          setResponsaveis(uniqueNames.sort())
-        }
-      })
-
     const fetchLatestCode = async () => {
       try {
         const { data, error } = await supabase
@@ -233,12 +234,16 @@ export default function ProjectNew() {
         codigo: v.codigo,
         nome: v.nome,
         nivel_estrategico: v.nivel_estrategico,
-        responsavel_nome: v.responsavel_nome || null,
+        // SPEC-077: responsavel_nome continua sendo enviado (agora a partir
+        // do funcionário escolhido, não texto digitado) — é usado por um
+        // trigger no banco pra derivar a equipe/comissão do projeto.
+        responsavel_nome: selectedResponsavelName || null,
         responsavel_id: null,
+        responsavel_funcionario_id: v.responsavel_funcionario_id,
         status: v.status,
         cliente_id: v.cliente_id !== 'null' ? v.cliente_id : null,
-        arquiteto_id: v.arquiteto_id !== 'null' ? v.arquiteto_id : null,
-        responsavel_obra_id: v.responsavel_obra_id !== 'null' ? v.responsavel_obra_id : null,
+        responsavel_obra_id:
+          v.responsavel_obra_id && v.responsavel_obra_id !== 'null' ? v.responsavel_obra_id : null,
         cidade: v.cidade,
         estado: v.estado,
         data_entrada: v.data_entrada.toISOString(),
@@ -262,6 +267,25 @@ export default function ProjectNew() {
       }
       if (result?.error) throw new Error(result.error)
 
+      const novoProjetoId = result?.data?.id
+      if (novoProjetoId) {
+        try {
+          await replaceProjetoArquitetos(
+            novoProjetoId,
+            v.arquitetos.map((a) => ({ arquiteto_id: a.arquiteto_id, percentual: a.percentual })),
+          )
+        } catch (arqError: any) {
+          await refreshProjects()
+          toast({
+            title: 'Projeto criado, mas houve erro ao salvar os arquitetos',
+            description: `${arqError.message} — edite o projeto para corrigir.`,
+            variant: 'destructive',
+          })
+          navigate('/projetos')
+          return
+        }
+      }
+
       await refreshProjects()
       toast({ title: 'Projeto criado com sucesso!' })
       navigate('/projetos')
@@ -279,14 +303,28 @@ export default function ProjectNew() {
       form.setValue('cliente_id', contactData.id)
       setSelectedClienteName(contactData.nome)
     } else if (modalType === 'arquiteto') {
-      form.setValue('arquiteto_id', contactData.id)
-      setSelectedArquitetoName(contactData.nome)
+      const atuais = form.getValues('arquitetos')
+      if (!atuais.some((a) => a.arquiteto_id === contactData.id)) {
+        form.setValue(
+          'arquitetos',
+          redistribuirPercentuais([
+            ...atuais,
+            { arquiteto_id: contactData.id, nome: contactData.nome, percentual: 0 },
+          ]),
+        )
+      }
     } else if (modalType === 'engenheiro') {
       form.setValue('responsavel_obra_id', contactData.id)
       setSelectedEngenheiroName(contactData.nome)
     }
 
     setModalType(null)
+  }
+
+  const handleSaveNewFuncionario = (funcionario: { id: string; nome: string }) => {
+    form.setValue('responsavel_funcionario_id', funcionario.id)
+    setSelectedResponsavelName(funcionario.nome)
+    setEmployeeModalOpen(false)
   }
 
   return (
@@ -417,18 +455,92 @@ export default function ProjectNew() {
 
               <FormField
                 control={form.control}
-                name="responsavel_nome"
+                name="responsavel_funcionario_id"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Responsável</FormLabel>
-                    <FormControl>
-                      <Input
-                        list="responsaveis"
-                        placeholder="Digite ou selecione..."
-                        className="h-11 text-base"
-                        {...field}
-                      />
-                    </FormControl>
+                  <FormItem className="flex flex-col pt-2.5">
+                    <FormLabel>
+                      Responsável <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Popover open={openResponsavel} onOpenChange={setOpenResponsavel}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={openResponsavel}
+                              className={cn(
+                                'flex-1 justify-between h-11 font-normal truncate',
+                                (!field.value || field.value === 'null') && 'text-muted-foreground',
+                              )}
+                            >
+                              <span className="truncate">
+                                {field.value && field.value !== 'null'
+                                  ? selectedResponsavelName || 'Selecionado'
+                                  : 'Selecione'}
+                              </span>
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start">
+                          <Command shouldFilter={false}>
+                            <CommandInput
+                              placeholder="Buscar funcionário..."
+                              value={searchResponsavel}
+                              onValueChange={setSearchResponsavel}
+                            />
+                            <CommandList>
+                              <CommandEmpty>Nenhum funcionário encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                {dbFuncionarios.map((o) => (
+                                  <CommandItem
+                                    value={o.id}
+                                    key={o.id}
+                                    onSelect={() => {
+                                      form.setValue('responsavel_funcionario_id', o.id)
+                                      setSelectedResponsavelName(o.nome)
+                                      setOpenResponsavel(false)
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        'mr-2 h-4 w-4',
+                                        o.id === field.value ? 'opacity-100' : 'opacity-0',
+                                      )}
+                                    />
+                                    {o.nome}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                              <CommandSeparator />
+                              <CommandGroup>
+                                <CommandItem
+                                  onSelect={() => {
+                                    setOpenResponsavel(false)
+                                    setEmployeeModalOpen(true)
+                                  }}
+                                  className="text-primary font-medium cursor-pointer"
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Novo Funcionário
+                                </CommandItem>
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0 h-11 w-11"
+                        onClick={() => setEmployeeModalOpen(true)}
+                        title="Adicionar Novo Funcionário"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -591,111 +703,20 @@ export default function ProjectNew() {
 
                 <FormField
                   control={form.control}
-                  name="arquiteto_id"
+                  name="arquitetos"
                   render={({ field }) => (
                     <FormItem className="flex flex-col pt-2.5">
                       <FormLabel className="flex items-center gap-1.5">
-                        <Building2 className="h-4 w-4" /> Arquiteto
+                        <Building2 className="h-4 w-4" /> Arquiteto{' '}
+                        <span className="text-destructive">*</span>
                       </FormLabel>
-                      <div className="flex items-center gap-2">
-                        <Popover open={openArquiteto} onOpenChange={setOpenArquiteto}>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={openArquiteto}
-                                className={cn(
-                                  'flex-1 justify-between h-11 font-normal truncate',
-                                  (!field.value || field.value === 'null') &&
-                                    'text-muted-foreground',
-                                )}
-                              >
-                                <span className="truncate">
-                                  {field.value && field.value !== 'null'
-                                    ? selectedArquitetoName || 'Selecionado'
-                                    : 'Não Informado'}
-                                </span>
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[300px] p-0" align="start">
-                            <Command shouldFilter={false}>
-                              <CommandInput
-                                placeholder="Buscar arquiteto..."
-                                value={searchArquiteto}
-                                onValueChange={setSearchArquiteto}
-                              />
-                              <CommandList>
-                                <CommandEmpty>Nenhum arquiteto encontrado.</CommandEmpty>
-                                <CommandGroup>
-                                  <CommandItem
-                                    value="nao-informado"
-                                    onSelect={() => {
-                                      form.setValue('arquiteto_id', 'null')
-                                      setSelectedArquitetoName('')
-                                      setOpenArquiteto(false)
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        'mr-2 h-4 w-4',
-                                        field.value === 'null' || !field.value
-                                          ? 'opacity-100'
-                                          : 'opacity-0',
-                                      )}
-                                    />
-                                    Não Informado
-                                  </CommandItem>
-                                  {dbArquitetos.map((o) => (
-                                    <CommandItem
-                                      value={o.id}
-                                      key={o.id}
-                                      onSelect={() => {
-                                        form.setValue('arquiteto_id', o.id)
-                                        setSelectedArquitetoName(o.nome)
-                                        setOpenArquiteto(false)
-                                      }}
-                                    >
-                                      <Check
-                                        className={cn(
-                                          'mr-2 h-4 w-4',
-                                          o.id === field.value ? 'opacity-100' : 'opacity-0',
-                                        )}
-                                      />
-                                      {o.nome}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                                <CommandSeparator />
-                                <CommandGroup>
-                                  <CommandItem
-                                    onSelect={() => {
-                                      setOpenArquiteto(false)
-                                      setModalType('arquiteto')
-                                    }}
-                                    className="text-primary font-medium cursor-pointer"
-                                  >
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Novo Arquiteto
-                                  </CommandItem>
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="shrink-0 h-11 w-11"
-                          onClick={() => setModalType('arquiteto')}
-                          title="Adicionar Novo Arquiteto"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <FormControl>
+                        <ArchitectSplitPicker
+                          value={field.value as ArquitetoSplit[]}
+                          onChange={field.onChange}
+                          onCreateNew={() => setModalType('arquiteto')}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -870,12 +891,6 @@ export default function ProjectNew() {
               ))}
             </datalist>
 
-            <datalist id="responsaveis">
-              {responsaveis.map((r) => (
-                <option key={r} value={r} />
-              ))}
-            </datalist>
-
             <CardFooter className="flex justify-end gap-4 bg-muted/30 py-6 px-8 border-t mt-4">
               <Button
                 type="button"
@@ -899,6 +914,12 @@ export default function ProjectNew() {
         open={!!modalType}
         onOpenChange={(open) => !open && setModalType(null)}
         onSuccess={handleSaveNewContact}
+      />
+
+      <NewEmployeeModal
+        open={employeeModalOpen}
+        onOpenChange={setEmployeeModalOpen}
+        onSuccess={handleSaveNewFuncionario}
       />
     </div>
   )

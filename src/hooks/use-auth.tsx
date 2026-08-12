@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null
   session: Session | null
   hasAccess: boolean | null
+  role: string | null
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<{ error: any }>
@@ -27,6 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [hasAccess, setHasAccess] = useState<boolean | null>(null)
+  const [role, setRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   // SPEC-069: este app só checava estar logado, sem nenhuma permissão
@@ -45,6 +47,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         p_acao: null,
       })
       .then(({ data }) => setHasAccess(Boolean(data)))
+  }, [user?.id])
+
+  // Role base (admin/gerente/operador/...) — usado pra gates simples de UI
+  // (ex.: mostrar/esconder o botão de cadastrar funcionário, que exige
+  // admin/gerente via RLS). RLS de usuarios já libera SELECT da própria
+  // linha pra authenticated.
+  useEffect(() => {
+    if (!user?.id) {
+      setRole(null)
+      return
+    }
+    supabase
+      .from('usuarios')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => setRole(data?.role ?? null))
   }, [user?.id])
 
   useEffect(() => {
@@ -119,6 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         session,
         hasAccess,
+        role,
         signUp,
         signIn,
         signOut,
