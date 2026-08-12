@@ -89,8 +89,9 @@ const formSchema = z.object({
   responsavel_funcionario_id: z
     .string()
     .refine((v) => v !== 'null' && v.trim().length > 0, 'Selecione um responsável'),
-  // SPEC-077: múltiplos arquitetos com percentual de divisão de lucro —
-  // pelo menos 1, soma precisa fechar exatamente 100%.
+  // Múltiplos arquitetos com percentual de divisão de lucro — opcional
+  // (nem todo projeto tem arquiteto vinculado), mas quando preenchido a
+  // soma dos percentuais precisa fechar exatamente 100%.
   arquitetos: z
     .array(
       z.object({
@@ -99,9 +100,11 @@ const formSchema = z.object({
         percentual: z.number(),
       }),
     )
-    .min(1, 'Selecione pelo menos um arquiteto')
+    .default([])
     .refine(
-      (arr) => Math.abs(arr.reduce((acc, a) => acc + (Number(a.percentual) || 0), 0) - 100) < 0.01,
+      (arr) =>
+        arr.length === 0 ||
+        Math.abs(arr.reduce((acc, a) => acc + (Number(a.percentual) || 0), 0) - 100) < 0.01,
       'A soma dos percentuais dos arquitetos deve ser 100%',
     ),
   responsavel_obra_id: z.string().optional(),
@@ -707,8 +710,7 @@ export default function ProjectNew() {
                   render={({ field }) => (
                     <FormItem className="flex flex-col pt-2.5">
                       <FormLabel className="flex items-center gap-1.5">
-                        <Building2 className="h-4 w-4" /> Arquiteto{' '}
-                        <span className="text-destructive">*</span>
+                        <Building2 className="h-4 w-4" /> Arquiteto
                       </FormLabel>
                       <FormControl>
                         <ArchitectSplitPicker

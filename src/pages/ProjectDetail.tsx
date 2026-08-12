@@ -263,7 +263,9 @@ export default function ProjectDetail() {
       }
     }
 
-    // SPEC-077: Responsável e ao menos 1 arquiteto passam a ser obrigatórios.
+    // SPEC-077: Responsável é obrigatório. Arquiteto(s) fica opcional — nem
+    // todo projeto tem arquiteto vinculado — mas quando preenchido a soma
+    // dos percentuais precisa fechar 100%.
     if (!editForm.responsavel_funcionario_id) {
       toast({
         title: 'Responsável obrigatório',
@@ -272,22 +274,16 @@ export default function ProjectDetail() {
       })
       return
     }
-    if (editArquitetos.length === 0) {
-      toast({
-        title: 'Arquiteto obrigatório',
-        description: 'Selecione pelo menos um arquiteto para o projeto.',
-        variant: 'destructive',
-      })
-      return
-    }
-    const somaArquitetos = editArquitetos.reduce((acc, a) => acc + (Number(a.percentual) || 0), 0)
-    if (Math.abs(somaArquitetos - 100) > 0.01) {
-      toast({
-        title: 'Percentuais inválidos',
-        description: `A soma dos percentuais dos arquitetos deve ser 100% (atual: ${somaArquitetos.toFixed(2)}%).`,
-        variant: 'destructive',
-      })
-      return
+    if (editArquitetos.length > 0) {
+      const somaArquitetos = editArquitetos.reduce((acc, a) => acc + (Number(a.percentual) || 0), 0)
+      if (Math.abs(somaArquitetos - 100) > 0.01) {
+        toast({
+          title: 'Percentuais inválidos',
+          description: `A soma dos percentuais dos arquitetos deve ser 100% (atual: ${somaArquitetos.toFixed(2)}%).`,
+          variant: 'destructive',
+        })
+        return
+      }
     }
 
     setSaving(true)
@@ -783,7 +779,7 @@ export default function ProjectDetail() {
             </div>
             <div className="flex justify-between items-start py-2 border-b">
               <span className="text-muted-foreground w-1/3 pt-2">
-                Arquiteto(s) <span className="text-destructive">*</span>
+                Arquiteto(s)
               </span>
               <div className="w-2/3 flex justify-end">
                 {isEditing ? (
