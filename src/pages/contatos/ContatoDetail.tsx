@@ -104,9 +104,11 @@ const FIELD_CONFIGS: Record<TipoContato, FieldConfig[]> = {
     { key: 'celular', label: 'Celular' },
     { key: 'telefone', label: 'Telefone Fixo' },
     { key: 'cpf_cnpj', label: 'CPF / CNPJ' },
+    // SPEC-096: Tipo Cliente sobe pra logo após CPF/CNPJ; RG e Inscrição
+    // Estadual ficam adjacentes no grid de 2 colunas (antes o Tipo Cliente
+    // entrava entre os dois, quebrando o pareamento visual).
+    { key: 'tipo_cliente', label: 'Tipo Cliente', type: 'select', options: TIPO_CLIENTE_OPTIONS },
     { key: 'rg', label: 'RG' },
-    // SPEC-052: Inscrição Estadual e Regime de Apuração separados do RG —
-    // regime como texto livre até o print de referência do Vinicius chegar.
     { key: 'inscricao_estadual', label: 'Inscrição Estadual' },
     {
       key: 'regime_apuracao',
@@ -114,7 +116,6 @@ const FIELD_CONFIGS: Record<TipoContato, FieldConfig[]> = {
       type: 'select',
       options: REGIME_APURACAO_OPTIONS,
     },
-    { key: 'tipo_cliente', label: 'Tipo Cliente', type: 'select', options: TIPO_CLIENTE_OPTIONS },
     // SPEC-064: perfil Ribeirão/São Paulo, só visualização.
     { key: 'perfil', label: 'Perfil', type: 'select', options: PERFIL_OPTIONS },
     { key: 'data_nascimento', label: 'Data de Nascimento', type: 'date' },
