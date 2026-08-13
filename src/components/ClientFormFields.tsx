@@ -387,19 +387,10 @@ export function ClientFormFields({ form }: Props) {
           </FormItem>
         )}
       />
-      <FormField
-        control={form.control}
-        name="rg"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>RG</FormLabel>
-            <FormControl>
-              <Input placeholder="RG" {...field} value={field.value || ''} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {/* SPEC-096: Tipo Cliente sobe pra logo após CPF/CNPJ (antes de
+          RG/IE), e RG+IE ficam adjacentes (antes o Tipo Cliente entrava
+          entre os dois, quebrando o pareamento visual no grid de 2
+          colunas). */}
       <FormField
         control={form.control}
         name="tipo_cliente"
@@ -419,6 +410,19 @@ export function ClientFormFields({ form }: Props) {
                 <SelectItem value="revendedor">Revendedor</SelectItem>
               </SelectContent>
             </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="rg"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>RG</FormLabel>
+            <FormControl>
+              <Input placeholder="RG" {...field} value={field.value || ''} />
+            </FormControl>
             <FormMessage />
           </FormItem>
         )}
