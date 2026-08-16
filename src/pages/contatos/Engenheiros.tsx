@@ -56,12 +56,22 @@ import {
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { useRef } from 'react'
 import { toast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/supabase/types'
+import { useCepLookup, useCnpjLookup } from '@/hooks/use-document-lookup'
 
 type ContatoRow = Database['public']['Tables']['contatos']['Row']
 
+// Pedido do usuário (2026-08-16): este modal (o de verdade usado ao clicar
+// "NOVO ENGENHEIRO" na listagem — diferente do cadastro rápido dentro de
+// Novo Projeto, em NewContactModal.tsx) tinha só nome/especialidade/
+// contato/empresa/endereço-livre. Precisa de CPF/CNPJ com busca automática
+// (mesmo padrão de Cliente) e endereço estruturado. `endereco_comercial`
+// sai deste formulário (substituído pelos campos novos), mas continua
+// existindo na tabela e em ContatoDetail.tsx pra não perder o dado dos
+// engenheiros já cadastrados — ver fallback em `enderecoExibicao` abaixo.
 const engineerSchema = z.object({
   nome: z.string().min(2, 'Nome é obrigatório'),
   especialidade: z.string().optional().nullable(),
@@ -73,7 +83,15 @@ const engineerSchema = z.object({
   telefone: z.string().optional().nullable(),
   celular: z.string().optional().nullable(),
   nome_empresa: z.string().optional().nullable(),
-  endereco_comercial: z.string().optional().nullable(),
+  cpf_cnpj: z.string().optional().nullable(),
+  rg: z.string().optional().nullable(),
+  cep: z.string().optional().nullable(),
+  endereco: z.string().optional().nullable(),
+  numero: z.string().optional().nullable(),
+  complemento: z.string().optional().nullable(),
+  bairro: z.string().optional().nullable(),
+  cidade: z.string().optional().nullable(),
+  estado: z.string().optional().nullable(),
 })
 
 type EngineerFormValues = z.infer<typeof engineerSchema>
@@ -85,8 +103,18 @@ const ENGINEER_FORM_DEFAULTS: EngineerFormValues = {
   telefone: '',
   celular: '',
   nome_empresa: '',
-  endereco_comercial: '',
+  cpf_cnpj: '',
+  rg: '',
+  cep: '',
+  endereco: '',
+  numero: '',
+  complemento: '',
+  bairro: '',
+  cidade: '',
+  estado: '',
 }
+
+const enderecoExibicao = (engineer: ContatoRow) => engineer.endereco || engineer.endereco_comercial
 
 const ENGINEER_TYPES = [
   'Civil',
@@ -119,6 +147,46 @@ export default function Engenheiros() {
     resolver: zodResolver(engineerSchema),
     defaultValues: ENGINEER_FORM_DEFAULTS,
   })
+
+  const { buscar: buscarCep, loading: loadingCep } = useCepLookup()
+  const { buscar: buscarCnpj, loading: loadingCnpj } = useCnpjLookup()
+  const numeroRef = useRef<HTMLInputElement>(null)
+
+  const buscarEnderecoPorCep = (cepValue: string) => {
+    buscarCep(
+      cepValue,
+      (endereco) => {
+        form.setValue('endereco', endereco.logradouro, { shouldDirty: true })
+        form.setValue('bairro', endereco.bairro, { shouldDirty: true })
+        form.setValue('cidade', endereco.cidade, { shouldDirty: true })
+        form.setValue('estado', endereco.uf, { shouldDirty: true })
+        numeroRef.current?.focus()
+      },
+      (message) => toast({ title: 'CEP', description: message }),
+    )
+  }
+
+  const buscarDadosPorCnpj = (cpfCnpjValue: string) => {
+    buscarCnpj(
+      cpfCnpjValue,
+      (dados) => {
+        if (!form.getValues('nome')) form.setValue('nome', dados.razaoSocial, { shouldDirty: true })
+        if (!form.getValues('nome_empresa'))
+          form.setValue('nome_empresa', dados.nomeFantasia, { shouldDirty: true })
+        if (dados.logradouro && !form.getValues('endereco'))
+          form.setValue('endereco', dados.logradouro, { shouldDirty: true })
+        if (dados.bairro && !form.getValues('bairro'))
+          form.setValue('bairro', dados.bairro, { shouldDirty: true })
+        if (dados.cidade && !form.getValues('cidade'))
+          form.setValue('cidade', dados.cidade, { shouldDirty: true })
+        if (dados.uf && !form.getValues('estado'))
+          form.setValue('estado', dados.uf, { shouldDirty: true })
+        if (dados.cep && !form.getValues('cep'))
+          form.setValue('cep', dados.cep, { shouldDirty: true })
+      },
+      (message) => toast({ title: 'CNPJ', description: message }),
+    )
+  }
 
   const fetchEngineers = async () => {
     setLoading(true)
@@ -407,10 +475,10 @@ export default function Engenheiros() {
                       <span>{engineer.celular || engineer.telefone}</span>
                     </div>
                   )}
-                  {engineer.endereco_comercial && (
+                  {enderecoExibicao(engineer) && (
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{engineer.endereco_comercial}</span>
+                      <span className="truncate">{enderecoExibicao(engineer)}</span>
                     </div>
                   )}
                 </CardContent>
@@ -467,9 +535,9 @@ export default function Engenheiros() {
                     </TableCell>
                     <TableCell
                       className="hidden lg:table-cell max-w-[200px] truncate"
-                      title={engineer.endereco_comercial || ''}
+                      title={enderecoExibicao(engineer) || ''}
                     >
-                      {engineer.endereco_comercial || '-'}
+                      {enderecoExibicao(engineer) || '-'}
                     </TableCell>
                     <TableCell
                       className="text-right whitespace-nowrap"
@@ -623,16 +691,157 @@ export default function Engenheiros() {
                 />
                 <FormField
                   control={form.control}
-                  name="endereco_comercial"
+                  name="cpf_cnpj"
                   render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
-                      <FormLabel>Endereço Comercial</FormLabel>
+                    <FormItem>
+                      <FormLabel>
+                        CPF / CNPJ
+                        {loadingCnpj && (
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            Buscando...
+                          </span>
+                        )}
+                      </FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Rua, Número, Complemento, Bairro, Cidade"
+                          placeholder="Documento"
                           {...field}
                           value={field.value || ''}
+                          disabled={loadingCnpj}
+                          onChange={(e) => {
+                            field.onChange(e)
+                            buscarDadosPorCnpj(e.target.value)
+                          }}
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="rg"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>RG</FormLabel>
+                      <FormControl>
+                        <Input placeholder="RG" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="cep"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        CEP
+                        {loadingCep && (
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            Buscando...
+                          </span>
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="00000-000"
+                          {...field}
+                          value={field.value || ''}
+                          disabled={loadingCep}
+                          onChange={(e) => {
+                            field.onChange(e)
+                            buscarEnderecoPorCep(e.target.value)
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="numero"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Número"
+                          {...field}
+                          value={field.value || ''}
+                          ref={(el) => {
+                            field.ref(el)
+                            ;(numeroRef as React.MutableRefObject<HTMLInputElement | null>).current =
+                              el
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="bairro"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bairro</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Bairro" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="cidade"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cidade</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Cidade" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="estado"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado (UF)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="SP" maxLength={2} {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="endereco"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Endereço</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Rua" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="complemento"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Complemento</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Sala, Andar..." {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
