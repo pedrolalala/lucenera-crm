@@ -122,6 +122,7 @@ const FIELD_CONFIGS: Record<TipoContato, FieldConfig[]> = {
     { key: 'cidade', label: 'Cidade' },
     { key: 'estado', label: 'Estado (UF)' },
     { key: 'cep', label: 'CEP' },
+    { key: 'numero', label: 'Número' },
     { key: 'bairro', label: 'Bairro' },
     { key: 'endereco', label: 'Endereço', span: 2 },
     // SPEC-052: endereços de entrega e cobrança, distintos do principal.
@@ -149,12 +150,23 @@ const FIELD_CONFIGS: Record<TipoContato, FieldConfig[]> = {
     { key: 'cpf_cnpj', label: 'CPF / CNPJ' },
     { key: 'rg', label: 'RG' },
     { key: 'data_nascimento', label: 'Data de Nascimento', type: 'date' },
+    { key: 'cep', label: 'CEP' },
+    { key: 'numero', label: 'Número' },
+    { key: 'bairro', label: 'Bairro' },
     { key: 'cidade', label: 'Cidade' },
     { key: 'estado', label: 'Estado (UF)' },
     { key: 'endereco', label: 'Endereço', span: 2 },
+    { key: 'complemento', label: 'Complemento', span: 2 },
     { key: 'observacoes', label: 'Observações', type: 'textarea', span: 2 },
     { key: 'ativo', label: 'Status', type: 'boolean' },
   ],
+  // Pedido do usuário (2026-08-16): faltava CPF/CNPJ (nunca existiu pra
+  // Engenheiro, diferente de Arquiteto/Cliente) e endereço estruturado.
+  // `endereco_comercial`/`bairro_comercial`/`cidade_comercial` são mantidos
+  // (5 dos 6 engenheiros já cadastrados têm dado lá) — os campos novos
+  // (`endereco`/`numero`/`bairro`/`cidade`/`estado`/`cep`) são os mesmos
+  // usados por Cliente/Arquiteto, preenchidos a partir de agora pelo
+  // cadastro rápido (NewContactModal) com busca automática de CEP/CNPJ.
   engenheiro: [
     { key: 'nome', label: 'Nome', required: true },
     { key: 'especialidade', label: 'Especialidade' },
@@ -162,7 +174,16 @@ const FIELD_CONFIGS: Record<TipoContato, FieldConfig[]> = {
     { key: 'celular', label: 'Celular' },
     { key: 'telefone', label: 'Telefone Fixo' },
     { key: 'nome_empresa', label: 'Empresa / Escritório' },
+    { key: 'cpf_cnpj', label: 'CPF / CNPJ' },
+    { key: 'rg', label: 'RG' },
     { key: 'data_nascimento', label: 'Data de Nascimento', type: 'date' },
+    { key: 'cep', label: 'CEP' },
+    { key: 'numero', label: 'Número' },
+    { key: 'bairro', label: 'Bairro' },
+    { key: 'cidade', label: 'Cidade' },
+    { key: 'estado', label: 'Estado (UF)' },
+    { key: 'endereco', label: 'Endereço', span: 2 },
+    { key: 'complemento', label: 'Complemento', span: 2 },
     { key: 'endereco_comercial', label: 'Endereço Comercial', span: 2 },
     { key: 'observacoes', label: 'Observações', type: 'textarea', span: 2 },
     { key: 'ativo', label: 'Status', type: 'boolean' },

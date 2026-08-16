@@ -80,6 +80,11 @@ export const clientSchema = z.object({
     .transform((v) => (v === '' ? null : v))
     .nullable()
     .optional(),
+  // Pedido do usuário (2026-08-16): o bloco de endereço principal nunca
+  // teve "Número" separado (só entrega/cobrança tinham) — "Rua, Número,
+  // Complemento" ficava tudo junto no campo Endereço. Agora tem campo
+  // próprio, igual aos outros dois blocos.
+  numero: optionalText,
   // SPEC-061: campo "Complemento" nos 3 blocos de endereço — hoje só
   // existia numero_entrega/numero_cobranca, sem complemento em nenhum.
   complemento: optionalText,
@@ -159,6 +164,7 @@ export const clientFormDefaultValues: ClientFormValues = {
   cpf_cnpj: '',
   rg: '',
   endereco: '',
+  numero: '',
   complemento: '',
   bairro: '',
   cep: '',
@@ -199,15 +205,14 @@ export function ClientFormFields({ form }: Props) {
   const { buscar: buscarCep, loading: loadingCep } = useCepLookup()
   const { buscar: buscarCnpj, loading: loadingCnpj } = useCnpjLookup()
   const enderecoRef = useRef<HTMLInputElement>(null)
+  const numeroRef = useRef<HTMLInputElement>(null)
   const numeroEntregaRef = useRef<HTMLInputElement>(null)
   const numeroCobrancaRef = useRef<HTMLInputElement>(null)
 
   // Busca automática de CEP (ViaCEP + fallback BrasilAPI, ver cepService).
   // Preenche apenas o bloco de endereço (principal/entrega/cobrança)
-  // correspondente ao CEP digitado, sem cruzar dados entre blocos. O
-  // bloco principal não tem campo "Número" separado (vai junto do
-  // "Endereço", por isso o foco depois do CEP vai pra lá; os blocos de
-  // entrega/cobrança têm "Número" próprio.
+  // correspondente ao CEP digitado, sem cruzar dados entre blocos. Os três
+  // blocos têm campo "Número" próprio — o foco depois do CEP vai pra lá.
   const buscarEnderecoBloco = (
     cepValue: string,
     keys: {
@@ -552,8 +557,29 @@ export function ClientFormFields({ form }: Props) {
                       cidade: 'cidade',
                       estado: 'estado',
                     },
-                    enderecoRef,
+                    numeroRef,
                   )
+                }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="numero"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Número</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="Número"
+                {...field}
+                value={field.value || ''}
+                ref={(el) => {
+                  field.ref(el)
+                  ;(numeroRef as React.MutableRefObject<HTMLInputElement | null>).current = el
                 }}
               />
             </FormControl>
@@ -582,7 +608,7 @@ export function ClientFormFields({ form }: Props) {
             <FormLabel>Endereço</FormLabel>
             <FormControl>
               <Input
-                placeholder="Rua, Número, Complemento"
+                placeholder="Rua"
                 {...field}
                 value={field.value || ''}
                 ref={(el) => {
