@@ -164,14 +164,42 @@ export default function Clientes() {
         .normalize('NFD')
         .replace(/\p{Diacritic}/gu, '')
         .toLowerCase()
-    const sName = normalize(searchName.trim())
+    // SPEC-116 (piloto 2): busca universal multi-termo — cada palavra
+    // digitada precisa aparecer em algum campo do cliente (nome, empresa,
+    // CPF/CNPJ, e-mail, telefone, endereço, observações etc.), em qualquer
+    // ordem, sem distinção de acento/maiúscula. Antes só casava nome/empresa
+    // com a frase inteira.
+    const searchTerms = normalize(searchName.trim())
+      .split(/\s+/)
+      .filter(Boolean)
     const sCity = normalize(searchCity.trim())
 
     return clients.filter((c) => {
-      const matchName =
-        !sName ||
-        normalize(c.nome || '').includes(sName) ||
-        normalize(c.nome_empresa || '').includes(sName)
+      const haystack = searchTerms.length
+        ? normalize(
+            [
+              c.nome,
+              c.nome_empresa,
+              c.razao_social,
+              c.cpf_cnpj,
+              c.cpf,
+              c.cnpj,
+              c.email,
+              c.email_alternativo,
+              c.telefone,
+              c.celular,
+              c.endereco,
+              c.bairro,
+              c.cep,
+              c.cidade,
+              c.estado,
+              c.observacoes,
+            ]
+              .filter(Boolean)
+              .join(' '),
+          )
+        : ''
+      const matchName = searchTerms.length === 0 || searchTerms.every((t) => haystack.includes(t))
       const matchCity = !sCity || normalize(c.cidade || '').includes(sCity)
       const matchStatus =
         searchStatus === 'all' ||
@@ -291,7 +319,7 @@ export default function Clientes() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome ou empresa..."
+              placeholder="Buscar por nome, empresa, CPF/CNPJ, e-mail, telefone..."
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
               className="pl-9 bg-background transition-all"
