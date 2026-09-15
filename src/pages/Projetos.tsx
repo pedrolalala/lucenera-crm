@@ -704,58 +704,68 @@ export default function Projetos() {
       ) : (
         <Card className="shadow-sm border-slate-200 bg-white overflow-hidden">
           <CardContent className="p-0 overflow-x-auto">
-            <div className="rounded-md border-0 min-w-[700px]">
+            <div className="rounded-md border-0 w-full">
               <Table>
                 <TableHeader className="bg-slate-50/80 border-b border-slate-200">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-[100px] py-4 text-slate-600 font-semibold">
+                    <TableHead className="w-[90px] py-4 px-3 text-slate-600 font-semibold whitespace-nowrap">
                       Código
                     </TableHead>
                     {viewMode === 'completa' && (
-                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                      <TableHead className="py-4 px-3 text-slate-600 font-semibold whitespace-nowrap">
                         Nível Estratégico
                       </TableHead>
                     )}
-                    <TableHead className="py-4 text-slate-600 font-semibold">Projeto</TableHead>
+                    <TableHead className="py-4 px-3 text-slate-600 font-semibold min-w-[200px]">
+                      Projeto
+                    </TableHead>
 
                     {viewMode === 'completa' && (
                       <>
-                        <TableHead className="py-4 text-slate-600 font-semibold">
+                        <TableHead className="py-4 px-3 text-slate-600 font-semibold min-w-[160px]">
                           Responsável
                         </TableHead>
-                        <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                        <TableHead className="py-4 px-2 text-slate-600 font-semibold whitespace-nowrap">
                           Data Entrada
                         </TableHead>
                       </>
                     )}
 
-                    <TableHead className="py-4 text-slate-600 font-semibold">Status</TableHead>
+                    <TableHead className="py-4 px-3 text-slate-600 font-semibold whitespace-nowrap">
+                      Status
+                    </TableHead>
 
                     {viewMode === 'completa' && (
-                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                      <TableHead className="py-4 px-2 text-slate-600 font-semibold whitespace-nowrap">
                         Data Fechamento
                       </TableHead>
                     )}
 
                     {(viewMode === 'operacional' || viewMode === 'completa') && (
-                      <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                      <TableHead className="py-4 px-2 text-slate-600 font-semibold whitespace-nowrap">
                         Valor Total
                       </TableHead>
                     )}
 
-                    <TableHead className="py-4 text-slate-600 font-semibold whitespace-nowrap">
+                    <TableHead className="py-4 px-3 text-slate-600 font-semibold whitespace-nowrap min-w-[160px]">
                       Engenheiro/Arquiteto
                     </TableHead>
 
                     {(viewMode === 'operacional' || viewMode === 'completa') && (
-                      <TableHead className="py-4 text-slate-600 font-semibold">Cidade</TableHead>
+                      <TableHead className="py-4 px-3 text-slate-600 font-semibold min-w-[130px]">
+                        Cidade
+                      </TableHead>
                     )}
 
                     {viewMode === 'completa' && (
-                      <TableHead className="py-4 text-slate-600 font-semibold">Estado</TableHead>
+                      <TableHead className="py-4 px-2 text-slate-600 font-semibold whitespace-nowrap">
+                        Estado
+                      </TableHead>
                     )}
 
-                    <TableHead className="w-[100px] py-4 text-right">Ações</TableHead>
+                    <TableHead className="w-[90px] py-4 px-3 text-right whitespace-nowrap">
+                      Ações
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -788,35 +798,32 @@ export default function Projetos() {
                           onClick={() => setSelectedProjeto(projeto)}
                           onDoubleClick={() => openProjetoParaEdicao(projeto)}
                         >
-                          <TableCell className="py-4 font-medium text-slate-900">
+                          <TableCell className="py-4 px-3 whitespace-nowrap font-medium text-slate-900">
                             {projeto.codigo}
                           </TableCell>
 
                           {viewMode === 'completa' && (
-                            <TableCell className="py-4 text-slate-600">
+                            <TableCell className="py-4 px-3 whitespace-nowrap text-slate-600">
                               {projeto.nivel_estrategico || '-'}
                             </TableCell>
                           )}
 
-                          <TableCell
-                            className="py-4 font-semibold text-slate-900 max-w-[200px] truncate"
-                            title={projeto.nome || ''}
-                          >
+                          <TableCell className="py-4 px-3 font-semibold text-slate-900 break-words min-w-[200px]">
                             {projeto.nome || 'Sem nome'}
                           </TableCell>
 
                           {viewMode === 'completa' && (
                             <>
-                              <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
+                              <TableCell className="py-4 px-3 text-slate-600 break-words min-w-[160px]">
                                 {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
                               </TableCell>
-                              <TableCell className="py-4 whitespace-nowrap text-slate-500">
+                              <TableCell className="py-4 px-2 whitespace-nowrap text-slate-500">
                                 {formatDate(projeto.data_entrada)}
                               </TableCell>
                             </>
                           )}
 
-                          <TableCell className="py-4">
+                          <TableCell className="py-4 px-3 whitespace-nowrap">
                             {projeto.status ? (
                               <Badge
                                 variant={
@@ -836,40 +843,37 @@ export default function Projetos() {
                           </TableCell>
 
                           {viewMode === 'completa' && (
-                            <TableCell className="py-4 whitespace-nowrap text-emerald-700 font-medium">
+                            <TableCell className="py-4 px-2 whitespace-nowrap text-emerald-700 font-medium">
                               {formatDate(getDataFechamento(projeto))}
                             </TableCell>
                           )}
 
                           {(viewMode === 'operacional' || viewMode === 'completa') && (
-                            <TableCell className="py-4">
+                            <TableCell className="py-4 px-2 whitespace-nowrap">
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm whitespace-nowrap">
                                 {formatCurrency(valorTotal)}
                               </span>
                             </TableCell>
                           )}
 
-                          <TableCell className="py-4 text-slate-600 max-w-[150px] truncate">
+                          <TableCell className="py-4 px-3 text-slate-600 break-words min-w-[160px]">
                             {projeto.engenheiro?.nome || projeto.arquiteto?.nome || '-'}
                           </TableCell>
 
                           {(viewMode === 'operacional' || viewMode === 'completa') && (
-                            <TableCell
-                              className="py-4 text-slate-700 max-w-[150px] truncate"
-                              title={projeto.cidade || ''}
-                            >
+                            <TableCell className="py-4 px-3 text-slate-700 break-words min-w-[130px]">
                               {projeto.cidade || '-'}
                             </TableCell>
                           )}
 
                           {viewMode === 'completa' && (
-                            <TableCell className="py-4 text-slate-600">
+                            <TableCell className="py-4 px-2 whitespace-nowrap text-slate-600">
                               {projeto.estado || '-'}
                             </TableCell>
                           )}
 
                           <TableCell
-                            className="py-4 text-right"
+                            className="py-4 px-3 text-right whitespace-nowrap"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="flex justify-end gap-2">

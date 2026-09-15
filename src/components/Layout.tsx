@@ -24,6 +24,7 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar'
+import { SystemSwitcher } from '@/components/SystemSwitcher'
 
 export default function Layout() {
   const location = useLocation()
@@ -91,10 +92,11 @@ export default function Layout() {
             <span className="hidden sm:inline">Central</span>
           </a>
         </header>
-        <main className="flex-1 p-4 md:p-8 lg:p-10 w-full mx-auto max-w-[1400px]">
+        <main className="flex-1 p-4 md:p-8 lg:p-10 w-full">
           <Outlet />
         </main>
       </SidebarInset>
+      <SystemSwitcher currentSlug="crm" />
     </SidebarProvider>
   )
 }
