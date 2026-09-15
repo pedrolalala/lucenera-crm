@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getProjetos, updateProjetoById, deleteProjeto, type Projeto } from '@/services/projetos'
-import { supabase } from '@/lib/supabase/client'
+import { deleteProjeto, type Projeto } from '@/services/projetos'
 import {
   Table,
   TableBody,
@@ -38,8 +37,6 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,9 +49,9 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
+import useProjectStore from '@/stores/useProjectStore'
 
 type ViewMode = 'resumida' | 'operacional' | 'completa'
 
@@ -149,19 +146,14 @@ function FilterCombobox({
 export default function Projetos() {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const [projetos, setProjetos] = useState<Projeto[]>([])
-  const [loading, setLoading] = useState(true)
+  // SPEC-043: consome a lista compartilhada de `useProjectStore` em vez de
+  // buscar `getProjetos()` de novo aqui.
+  const { projects: projetos, loading, refreshProjects } = useProjectStore()
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem('projetos-view-mode') as ViewMode) || 'resumida'
   })
   const [displayMode, setDisplayMode] = useDisplayMode('projetos', 'cards')
-
-  const [selectedProjeto, setSelectedProjeto] = useState<Projeto | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editedProjeto, setEditedProjeto] = useState<Projeto | null>(null)
-  const [editedPagamentos, setEditedPagamentos] = useState<any[]>([])
-  const [saving, setSaving] = useState(false)
 
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterResponsavel, setFilterResponsavel] = useState('all')
@@ -172,18 +164,6 @@ export default function Projetos() {
   const [filterAnoFechamento, setFilterAnoFechamento] = useState('all')
   const [filterMesFechamento, setFilterMesFechamento] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
-
-  const loadProjetos = () => {
-    setLoading(true)
-    getProjetos()
-      .then(setProjetos)
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => {
-    loadProjetos()
-  }, [])
 
   useEffect(() => {
     localStorage.setItem('projetos-view-mode', viewMode)
@@ -232,48 +212,45 @@ export default function Projetos() {
     return Number(projeto.valor_total) || 0
   }
 
-  const getSortableString = (dateStr: string) => {
-    let match = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
-    if (match) return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`
-    match = dateStr.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/)
-    if (match) return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`
-    return dateStr
-  }
-
   const getDataFechamento = (projeto: Projeto) => {
     return projeto.data_fechamento || null
-  }
-
-  const parseDateRobust = (data: string | null) => {
-    if (!data) return { ano: null, mes: null }
-    let match = data.match(/^(\d{4})-(\d{1,2})/)
-    if (match) return { ano: match[1], mes: match[2].padStart(2, '0') }
-    match = data.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/)
-    if (match) return { ano: match[3], mes: match[2].padStart(2, '0') }
-    try {
-      const d = new Date(data)
-      if (!isNaN(d.getTime())) {
-        return {
-          ano: d.getFullYear().toString(),
-          mes: (d.getMonth() + 1).toString().padStart(2, '0'),
-        }
-      }
-    } catch {
-      // ignore
-    }
-    return { ano: null, mes: null }
   }
 
   const anosFechamento = Array.from(
     new Set(projetos.map((p) => p.ano_fechamento).filter(Boolean)),
   ).sort((a, b) => Number(b) - Number(a)) as string[]
 
+  // SPEC-116 (piloto 2): busca universal multi-termo, sem distinção de
+  // acento — cada palavra digitada precisa aparecer em algum campo do
+  // projeto (código, nome, status, nível estratégico, cidade/UF, cliente,
+  // arquiteto, engenheiro, responsável), em qualquer ordem. Antes só
+  // casava código/nome com a frase inteira e era sensível a acento.
+  const normalizeSearch = (str: string) =>
+    str
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+
   const filteredProjetos = projetos.filter((p) => {
-    if (searchTerm.trim()) {
-      const term = searchTerm.trim().toLowerCase()
-      const codigo = (p.codigo || '').toLowerCase()
-      const nome = (p.nome || '').toLowerCase()
-      if (!codigo.includes(term) && !nome.includes(term)) return false
+    const searchTerms = normalizeSearch(searchTerm.trim()).split(/\s+/).filter(Boolean)
+    if (searchTerms.length) {
+      const haystack = normalizeSearch(
+        [
+          p.codigo,
+          p.nome,
+          p.status,
+          p.nivel_estrategico,
+          p.cidade,
+          p.estado,
+          p.responsavel?.nome || p.responsavel_nome,
+          p.cliente?.nome,
+          p.arquiteto?.nome,
+          p.engenheiro?.nome,
+        ]
+          .filter(Boolean)
+          .join(' '),
+      )
+      if (!searchTerms.every((t) => haystack.includes(t))) return false
     }
 
     if (filterValorTotal === '>0') {
@@ -317,192 +294,15 @@ export default function Projetos() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
   }
 
-  const startEditing = () => {
-    if (!selectedProjeto) return
-    setIsEditing(true)
-    setEditedProjeto({ ...selectedProjeto })
-
-    // SPEC-004: parcelas com orcamento_id vêm da aprovação de orçamento e não
-    // podem ser editadas/excluídas pelo editor manual legado do projeto.
-    const pags = (selectedProjeto.projeto_parcelas || [])
-      .filter((p: any) => !p.orcamento_id)
-      .map((p: any) => ({
-        id: p.id,
-        numero_parcela: p.numero_parcela,
-        valor: p.valor || '',
-        data_vencimento: p.data_vencimento || '',
-        data_pagamento: p.data_pagamento || '',
-        valor_pago: p.valor_pago || '',
-        status: p.status || 'pendente',
-      }))
-    pags.sort((a, b) => a.numero_parcela - b.numero_parcela)
-    setEditedPagamentos(pags)
-  }
-
-  // Duplo-clique na linha da tabela: abre o projeto já em modo edição.
-  // Não reaproveita startEditing() porque ele lê `selectedProjeto` do estado
-  // — chamado logo depois de setSelectedProjeto(projeto) na mesma função,
-  // ainda pegaria o valor antigo (React não atualiza o estado de forma
-  // síncrona), então recebe o projeto direto por parâmetro.
-  const openProjetoParaEdicao = (projeto: any) => {
-    setSelectedProjeto(projeto)
-    setIsEditing(true)
-    setEditedProjeto({ ...projeto })
-    const pags = (projeto.projeto_parcelas || [])
-      .filter((p: any) => !p.orcamento_id)
-      .map((p: any) => ({
-        id: p.id,
-        numero_parcela: p.numero_parcela,
-        valor: p.valor || '',
-        data_vencimento: p.data_vencimento || '',
-        data_pagamento: p.data_pagamento || '',
-        valor_pago: p.valor_pago || '',
-        status: p.status || 'pendente',
-      }))
-    pags.sort((a, b) => a.numero_parcela - b.numero_parcela)
-    setEditedPagamentos(pags)
-  }
-
-  const handleSave = async () => {
-    if (!editedProjeto || !selectedProjeto) return
-    setSaving(true)
-    try {
-      const dataToSave = {
-        codigo: editedProjeto.codigo,
-        nome: editedProjeto.nome,
-        nivel_estrategico: editedProjeto.nivel_estrategico,
-        status: editedProjeto.status,
-        cidade: editedProjeto.cidade,
-        estado: editedProjeto.estado,
-        data_entrada: editedProjeto.data_entrada,
-        arquivado: editedProjeto.arquivado,
-        tipo_item: editedProjeto.tipo_item,
-        caminho: editedProjeto.caminho,
-      } as any
-
-      await updateProjetoById(selectedProjeto.id, dataToSave)
-
-      // Save pagamentos
-      // SPEC-004: a deleção por diferença só pode considerar parcelas legadas
-      // (orcamento_id null); parcelas geradas por orçamento aprovado nunca
-      // entram em editedPagamentos, então não podem ser "diferença" aqui.
-      const existingIds = new Set(
-        (selectedProjeto.projeto_parcelas || [])
-          .filter((p: any) => !p.orcamento_id)
-          .map((p) => p.id),
-      )
-      const editedIds = new Set(
-        editedPagamentos.map((p) => p.id).filter((id) => id && !String(id).startsWith('new-')),
-      )
-
-      for (const p of editedPagamentos) {
-        const payload = {
-          projeto_id: selectedProjeto.id,
-          numero_parcela: p.numero_parcela || 1,
-          valor: Number(p.valor) || 0,
-          data_vencimento: p.data_vencimento || null,
-          data_pagamento: p.data_pagamento || null,
-          valor_pago: p.valor_pago ? Number(p.valor_pago) : null,
-          status: p.status || 'pendente',
-        }
-        if (p.id && !String(p.id).startsWith('new-')) {
-          await supabase.from('projeto_parcelas').update(payload).eq('id', p.id)
-        } else {
-          await supabase.from('projeto_parcelas').insert(payload)
-        }
-      }
-
-      for (const oldId of Array.from(existingIds)) {
-        if (!editedIds.has(oldId)) {
-          await supabase.from('projeto_parcelas').delete().eq('id', oldId)
-        }
-      }
-
-      toast({ title: 'Sucesso', description: 'Projeto atualizado com sucesso.' })
-      setSelectedProjeto(null)
-      setIsEditing(false)
-      loadProjetos()
-    } catch (err: any) {
-      console.error(err)
-      toast({
-        title: 'Erro',
-        description: err.message || 'Erro ao salvar projeto.',
-        variant: 'destructive',
-      })
-    } finally {
-      setSaving(false)
-    }
-  }
-
   const handleDelete = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation()
     try {
       await deleteProjeto(id)
       toast({ title: 'Sucesso', description: 'Projeto excluído.' })
-      loadProjetos()
+      refreshProjects()
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' })
     }
-  }
-
-  const renderField = (label: string, key: keyof Projeto, type: string = 'text') => {
-    if (isEditing && editedProjeto) {
-      return (
-        <div className="space-y-1">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            {label}
-          </span>
-          <Input
-            type={type}
-            value={(editedProjeto as any)[key] || ''}
-            onChange={(e) =>
-              setEditedProjeto({
-                ...editedProjeto,
-                [key]:
-                  type === 'number' && e.target.value ? Number(e.target.value) : e.target.value,
-              })
-            }
-          />
-        </div>
-      )
-    }
-
-    let val = selectedProjeto?.[key] as any
-    if (key === 'data_entrada' && !isEditing) val = formatDate(val)
-
-    if (key === 'status' && !isEditing) {
-      return (
-        <div className="space-y-1">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            {label}
-          </span>
-          <div>
-            {val ? (
-              <Badge
-                variant={
-                  val === 'Concluído' || val === 'Completo' || val === 'Finalizado'
-                    ? 'default'
-                    : 'secondary'
-                }
-              >
-                {String(val)}
-              </Badge>
-            ) : (
-              <span className="text-slate-400">-</span>
-            )}
-          </div>
-        </div>
-      )
-    }
-
-    return (
-      <div className="space-y-1">
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-          {label}
-        </span>
-        <p className="text-slate-900 font-medium break-all">{val ? String(val) : '-'}</p>
-      </div>
-    )
   }
 
   return (
@@ -591,7 +391,7 @@ export default function Projetos() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                 <Input
                   type="text"
-                  placeholder="Buscar por codigo ou nome do projeto..."
+                  placeholder="Buscar por código, nome, cliente, cidade, status..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9 bg-white border-slate-200 shadow-sm focus:ring-primary/20 transition-all font-normal h-10"
@@ -674,12 +474,10 @@ export default function Projetos() {
           </div>
         ) : (
           <div className="animate-fade-in">
+            {/* SPEC-044: clique no card navega direto para /projeto/:id (página cheia) — Sheet lateral removido. */}
             <ProjectMobileCards
               viewMode={viewMode}
-              onClickProject={(id) => {
-                const proj = projetos.find((p) => p.id === id)
-                if (proj) setSelectedProjeto(proj)
-              }}
+              onClickProject={(id) => navigate(`/projeto/${id}`)}
               projects={
                 filteredProjetos.map((p) => ({
                   id: p.id,
@@ -702,70 +500,74 @@ export default function Projetos() {
           </div>
         )
       ) : (
+        // SPEC-145: Projeto/Responsável/Eng.-Arquiteto/Cidade quebram linha
+        // (sem truncar, sem nowrap) em vez de forçar a tabela a crescer;
+        // datas/status/valor ficam compactos e nowrap. O <main> do Layout
+        // não tem mais teto de largura (max-w-[1400px] removido), então a
+        // tabela ocupa o espaço disponível sem precisar de rolagem
+        // horizontal em resolução normal de monitor de operação.
         <Card className="shadow-sm border-slate-200 bg-white overflow-hidden">
           <CardContent className="p-0 overflow-x-auto">
-            <div className="rounded-md border-0 w-full">
-              <Table>
+            <div className="rounded-md border-0">
+              <Table className="table-auto w-full">
                 <TableHeader className="bg-slate-50/80 border-b border-slate-200">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-[90px] py-4 px-3 text-slate-600 font-semibold whitespace-nowrap">
+                    <TableHead className="w-[70px] px-2 py-3 text-slate-600 font-semibold text-xs">
                       Código
                     </TableHead>
                     {viewMode === 'completa' && (
-                      <TableHead className="py-4 px-3 text-slate-600 font-semibold whitespace-nowrap">
-                        Nível Estratégico
+                      <TableHead className="w-[56px] px-2 py-3 text-slate-600 font-semibold text-xs">
+                        Nível
                       </TableHead>
                     )}
-                    <TableHead className="py-4 px-3 text-slate-600 font-semibold min-w-[200px]">
+                    <TableHead className="px-2 py-3 text-slate-600 font-semibold text-xs min-w-[160px]">
                       Projeto
                     </TableHead>
 
                     {viewMode === 'completa' && (
                       <>
-                        <TableHead className="py-4 px-3 text-slate-600 font-semibold min-w-[160px]">
+                        <TableHead className="px-2 py-3 text-slate-600 font-semibold text-xs min-w-[140px]">
                           Responsável
                         </TableHead>
-                        <TableHead className="py-4 px-2 text-slate-600 font-semibold whitespace-nowrap">
-                          Data Entrada
+                        <TableHead className="px-2 py-3 text-slate-600 font-semibold text-xs whitespace-nowrap">
+                          Entrada
                         </TableHead>
                       </>
                     )}
 
-                    <TableHead className="py-4 px-3 text-slate-600 font-semibold whitespace-nowrap">
+                    <TableHead className="px-2 py-3 text-slate-600 font-semibold text-xs whitespace-nowrap">
                       Status
                     </TableHead>
 
                     {viewMode === 'completa' && (
-                      <TableHead className="py-4 px-2 text-slate-600 font-semibold whitespace-nowrap">
-                        Data Fechamento
+                      <TableHead className="px-2 py-3 text-slate-600 font-semibold text-xs whitespace-nowrap">
+                        Fechamento
                       </TableHead>
                     )}
 
                     {(viewMode === 'operacional' || viewMode === 'completa') && (
-                      <TableHead className="py-4 px-2 text-slate-600 font-semibold whitespace-nowrap">
+                      <TableHead className="px-2 py-3 text-slate-600 font-semibold text-xs whitespace-nowrap">
                         Valor Total
                       </TableHead>
                     )}
 
-                    <TableHead className="py-4 px-3 text-slate-600 font-semibold whitespace-nowrap min-w-[160px]">
-                      Engenheiro/Arquiteto
+                    <TableHead className="px-2 py-3 text-slate-600 font-semibold text-xs min-w-[140px]">
+                      Eng./Arquiteto
                     </TableHead>
 
                     {(viewMode === 'operacional' || viewMode === 'completa') && (
-                      <TableHead className="py-4 px-3 text-slate-600 font-semibold min-w-[130px]">
+                      <TableHead className="px-2 py-3 text-slate-600 font-semibold text-xs min-w-[110px]">
                         Cidade
                       </TableHead>
                     )}
 
                     {viewMode === 'completa' && (
-                      <TableHead className="py-4 px-2 text-slate-600 font-semibold whitespace-nowrap">
-                        Estado
+                      <TableHead className="w-[40px] px-2 py-3 text-slate-600 font-semibold text-xs">
+                        UF
                       </TableHead>
                     )}
 
-                    <TableHead className="w-[90px] py-4 px-3 text-right whitespace-nowrap">
-                      Ações
-                    </TableHead>
+                    <TableHead className="w-[88px] px-2 py-3 text-right text-xs">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -795,35 +597,37 @@ export default function Projetos() {
                         <TableRow
                           key={projeto.id}
                           className="cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
-                          onClick={() => setSelectedProjeto(projeto)}
-                          onDoubleClick={() => openProjetoParaEdicao(projeto)}
+                          onClick={() => navigate(`/projeto/${projeto.id}`)}
                         >
-                          <TableCell className="py-4 px-3 whitespace-nowrap font-medium text-slate-900">
+                          <TableCell
+                            className="px-2 py-3 font-medium text-slate-900 truncate"
+                            title={projeto.codigo || ''}
+                          >
                             {projeto.codigo}
                           </TableCell>
 
                           {viewMode === 'completa' && (
-                            <TableCell className="py-4 px-3 whitespace-nowrap text-slate-600">
+                            <TableCell className="px-2 py-3 text-slate-600 truncate">
                               {projeto.nivel_estrategico || '-'}
                             </TableCell>
                           )}
 
-                          <TableCell className="py-4 px-3 font-semibold text-slate-900 break-words min-w-[200px]">
+                          <TableCell className="px-2 py-3 font-semibold text-slate-900 whitespace-normal break-words min-w-[160px]">
                             {projeto.nome || 'Sem nome'}
                           </TableCell>
 
                           {viewMode === 'completa' && (
                             <>
-                              <TableCell className="py-4 px-3 text-slate-600 break-words min-w-[160px]">
+                              <TableCell className="px-2 py-3 text-slate-600 break-words min-w-[140px]">
                                 {projeto.responsavel?.nome || projeto.responsavel_nome || '-'}
                               </TableCell>
-                              <TableCell className="py-4 px-2 whitespace-nowrap text-slate-500">
+                              <TableCell className="px-2 py-3 text-slate-500 whitespace-nowrap text-xs">
                                 {formatDate(projeto.data_entrada)}
                               </TableCell>
                             </>
                           )}
 
-                          <TableCell className="py-4 px-3 whitespace-nowrap">
+                          <TableCell className="px-2 py-3 whitespace-nowrap">
                             {projeto.status ? (
                               <Badge
                                 variant={
@@ -833,7 +637,7 @@ export default function Projetos() {
                                     ? 'default'
                                     : 'secondary'
                                 }
-                                className="font-medium shadow-sm"
+                                className="font-medium shadow-sm text-[10px] px-1.5 py-0.5 whitespace-nowrap leading-tight"
                               >
                                 {projeto.status}
                               </Badge>
@@ -843,43 +647,44 @@ export default function Projetos() {
                           </TableCell>
 
                           {viewMode === 'completa' && (
-                            <TableCell className="py-4 px-2 whitespace-nowrap text-emerald-700 font-medium">
+                            <TableCell className="px-2 py-3 text-emerald-700 font-medium whitespace-nowrap text-xs">
                               {formatDate(getDataFechamento(projeto))}
                             </TableCell>
                           )}
 
                           {(viewMode === 'operacional' || viewMode === 'completa') && (
-                            <TableCell className="py-4 px-2 whitespace-nowrap">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm whitespace-nowrap">
+                            <TableCell className="px-2 py-3 whitespace-nowrap">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm whitespace-nowrap">
                                 {formatCurrency(valorTotal)}
                               </span>
                             </TableCell>
                           )}
 
-                          <TableCell className="py-4 px-3 text-slate-600 break-words min-w-[160px]">
+                          <TableCell className="px-2 py-3 text-slate-600 break-words min-w-[140px]">
                             {projeto.engenheiro?.nome || projeto.arquiteto?.nome || '-'}
                           </TableCell>
 
                           {(viewMode === 'operacional' || viewMode === 'completa') && (
-                            <TableCell className="py-4 px-3 text-slate-700 break-words min-w-[130px]">
+                            <TableCell className="px-2 py-3 text-slate-700 break-words min-w-[110px]">
                               {projeto.cidade || '-'}
                             </TableCell>
                           )}
 
                           {viewMode === 'completa' && (
-                            <TableCell className="py-4 px-2 whitespace-nowrap text-slate-600">
+                            <TableCell className="px-2 py-3 text-slate-600 truncate">
                               {projeto.estado || '-'}
                             </TableCell>
                           )}
 
                           <TableCell
-                            className="py-4 px-3 text-right whitespace-nowrap"
+                            className="px-2 py-3 text-right"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="flex justify-end gap-2">
+                            <div className="flex justify-end gap-1">
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-8 w-8"
                                 onClick={() => navigate(`/projeto/${projeto.id}`)}
                               >
                                 <Edit2 className="w-4 h-4 text-slate-600" />
@@ -889,7 +694,7 @@ export default function Projetos() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="text-destructive hover:bg-destructive/10"
+                                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
@@ -924,477 +729,6 @@ export default function Projetos() {
           </CardContent>
         </Card>
       )}
-
-      <Sheet
-        open={!!selectedProjeto}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedProjeto(null)
-            setIsEditing(false)
-          }
-        }}
-      >
-        <SheetContent
-          side="right"
-          className="w-full sm:w-[480px] md:w-[600px] lg:w-[45vw] sm:max-w-none flex flex-col p-6 shadow-2xl border-l-0"
-        >
-          <SheetHeader className="flex-none pb-4 border-b border-slate-100">
-            <SheetTitle className="text-xl text-slate-800">
-              {isEditing ? 'Editar Projeto e Parcelas' : 'Detalhes do Projeto'}
-            </SheetTitle>
-          </SheetHeader>
-
-          <div className="flex-1 overflow-y-auto py-4 pr-2 -mr-2 space-y-6">
-            {selectedProjeto && (
-              <>
-                {isEditing ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {renderField('Código', 'codigo', 'text')}
-                      {renderField('Nível Estratégico', 'nivel_estrategico')}
-                      {renderField('Projeto', 'nome')}
-
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                          Cliente
-                        </span>
-                        <p className="text-slate-900 font-medium break-all">
-                          {selectedProjeto.cliente?.nome || '-'}
-                        </p>
-                      </div>
-
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                          Responsável
-                        </span>
-                        <p className="text-slate-900 font-medium break-all">
-                          {selectedProjeto.responsavel?.nome ||
-                            selectedProjeto.responsavel_nome ||
-                            '-'}
-                        </p>
-                      </div>
-
-                      {renderField('Data de Entrada', 'data_entrada')}
-                      {renderField('Status', 'status')}
-
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                          Arquiteto
-                        </span>
-                        <p className="text-slate-900 font-medium break-all">
-                          {selectedProjeto.arquiteto?.nome || '-'}
-                        </p>
-                      </div>
-
-                      <div className="space-y-1">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                          Engenheiro
-                        </span>
-                        <p className="text-slate-900 font-medium break-all">
-                          {selectedProjeto.engenheiro?.nome || '-'}
-                        </p>
-                      </div>
-
-                      {renderField('Cidade', 'cidade')}
-                      {renderField('Estado', 'estado')}
-                    </div>
-
-                    <div className="pt-4 border-t border-slate-200 mt-6">
-                      <h4 className="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">
-                        Parcelas do Projeto
-                      </h4>
-                      {(selectedProjeto.projeto_parcelas || []).some(
-                        (p: any) => p.orcamento_id,
-                      ) && (
-                        <p className="text-xs text-slate-500 mb-3">
-                          Parcelas geradas por orçamento aprovado não aparecem aqui para edição —
-                          são protegidas e ficam visíveis no modo de visualização.
-                        </p>
-                      )}
-                      <div className="space-y-3">
-                        {editedPagamentos.map((p, idx) => (
-                          <div
-                            key={p.id}
-                            className="grid grid-cols-2 sm:grid-cols-6 items-end gap-3 bg-slate-50 p-3 rounded-md border border-slate-100"
-                          >
-                            <div className="col-span-1">
-                              <Label className="text-xs text-slate-500 mb-1 block">
-                                Nº Parcela
-                              </Label>
-                              <Input
-                                type="number"
-                                value={p.numero_parcela}
-                                onChange={(e) => {
-                                  const newPags = [...editedPagamentos]
-                                  newPags[idx].numero_parcela = e.target.value
-                                  setEditedPagamentos(newPags)
-                                }}
-                              />
-                            </div>
-                            <div className="col-span-1 sm:col-span-2">
-                              <Label className="text-xs text-slate-500 mb-1 block">Valor</Label>
-                              <Input
-                                type="number"
-                                value={p.valor}
-                                onChange={(e) => {
-                                  const newPags = [...editedPagamentos]
-                                  newPags[idx].valor = e.target.value
-                                  setEditedPagamentos(newPags)
-                                }}
-                                placeholder="0,00"
-                              />
-                            </div>
-                            <div className="col-span-1 sm:col-span-2">
-                              <Label className="text-xs text-slate-500 mb-1 block">
-                                Vencimento
-                              </Label>
-                              <Input
-                                type="date"
-                                value={p.data_vencimento}
-                                onChange={(e) => {
-                                  const newPags = [...editedPagamentos]
-                                  newPags[idx].data_vencimento = e.target.value
-                                  setEditedPagamentos(newPags)
-                                }}
-                              />
-                            </div>
-                            <div className="col-span-1 flex justify-end">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  const newPags = editedPagamentos.filter((_, i) => i !== idx)
-                                  setEditedPagamentos(newPags)
-                                }}
-                              >
-                                <X className="w-4 h-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setEditedPagamentos([
-                              ...editedPagamentos,
-                              {
-                                id: `new-${Date.now()}`,
-                                numero_parcela: editedPagamentos.length + 1,
-                                valor: '',
-                                data_vencimento: '',
-                                data_pagamento: '',
-                                valor_pago: '',
-                                status: 'pendente',
-                              },
-                            ])
-                          }}
-                        >
-                          <Plus className="w-4 h-4 mr-2" /> Nova Parcela
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-6">
-                    <div className="space-y-1">
-                      <h1 className="text-3xl font-bold tracking-tight text-slate-900 break-words">
-                        {selectedProjeto.cliente?.nome || 'Cliente não informado'}
-                      </h1>
-                      <h2 className="text-xl text-slate-600 font-medium break-words">
-                        {selectedProjeto.nome || 'Projeto sem nome'}
-                      </h2>
-                      <p className="text-sm text-slate-500 font-mono mt-1">
-                        Cód: {selectedProjeto.codigo}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 bg-slate-50/80 p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <div className="space-y-1.5">
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                          Status
-                        </span>
-                        <div>
-                          <Badge
-                            variant={
-                              ['Concluído', 'Completo', 'Finalizado'].includes(
-                                selectedProjeto.status as string,
-                              )
-                                ? 'default'
-                                : 'secondary'
-                            }
-                            className="shadow-sm font-medium"
-                          >
-                            {selectedProjeto.status || '-'}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                          Valor Total
-                        </span>
-                        <p className="text-slate-900 font-bold text-lg leading-none">
-                          {formatCurrency(getValorTotal(selectedProjeto))}
-                        </p>
-                      </div>
-
-                      {(viewMode === 'operacional' || viewMode === 'completa') && (
-                        <>
-                          <div className="space-y-1.5">
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                              Data Fechamento
-                            </span>
-                            <p className="text-slate-900 font-medium">
-                              {formatDate(getDataFechamento(selectedProjeto))}
-                            </p>
-                          </div>
-                          <div className="space-y-1.5">
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                              Engenheiro
-                            </span>
-                            <p
-                              className="text-slate-900 font-medium truncate"
-                              title={selectedProjeto.engenheiro?.nome || '-'}
-                            >
-                              {selectedProjeto.engenheiro?.nome || '-'}
-                            </p>
-                          </div>
-                          <div className="space-y-1.5">
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                              Arquiteto
-                            </span>
-                            <p
-                              className="text-slate-900 font-medium truncate"
-                              title={selectedProjeto.arquiteto?.nome || '-'}
-                            >
-                              {selectedProjeto.arquiteto?.nome || '-'}
-                            </p>
-                          </div>
-                        </>
-                      )}
-
-                      {viewMode === 'completa' && (
-                        <>
-                          <div className="space-y-1.5">
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                              Cidade / Estado
-                            </span>
-                            <p className="text-slate-900 font-medium">
-                              {[selectedProjeto.cidade, selectedProjeto.estado]
-                                .filter(Boolean)
-                                .join(' / ') || '-'}
-                            </p>
-                          </div>
-                          <div className="space-y-1.5">
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                              Data Entrada
-                            </span>
-                            <p className="text-slate-900 font-medium">
-                              {formatDate(selectedProjeto.data_entrada)}
-                            </p>
-                          </div>
-                          <div className="space-y-1.5">
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                              Nível Estratégico
-                            </span>
-                            <p className="text-slate-900 font-medium">
-                              {selectedProjeto.nivel_estrategico ? (
-                                <Badge variant="outline" className="bg-white shadow-sm">
-                                  {selectedProjeto.nivel_estrategico}
-                                </Badge>
-                              ) : (
-                                '-'
-                              )}
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {selectedProjeto.projeto_parcelas &&
-                      selectedProjeto.projeto_parcelas.length > 0 && (
-                        <div className="mt-2 pt-6 border-t border-slate-200">
-                          <h4 className="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">
-                            Parcelas do Projeto
-                          </h4>
-                          <div className="rounded-md border border-slate-200 overflow-hidden bg-white shadow-sm">
-                            <Table>
-                              <TableHeader className="bg-slate-50/80">
-                                <TableRow>
-                                  <TableHead className="w-[50px] py-2 text-xs font-semibold text-slate-600">
-                                    Nº
-                                  </TableHead>
-                                  <TableHead className="py-2 text-xs font-semibold text-slate-600">
-                                    Valor
-                                  </TableHead>
-                                  <TableHead className="py-2 text-xs font-semibold text-slate-600">
-                                    Vencimento
-                                  </TableHead>
-                                  <TableHead className="py-2 text-xs font-semibold text-slate-600">
-                                    Status
-                                  </TableHead>
-                                  <TableHead className="py-2 text-xs font-semibold text-slate-600">
-                                    Origem
-                                  </TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {[...selectedProjeto.projeto_parcelas]
-                                  .sort((a, b) => a.numero_parcela - b.numero_parcela)
-                                  .map((p: any) => (
-                                    <TableRow key={p.id} className="hover:bg-slate-50/50">
-                                      <TableCell className="py-2.5 text-sm font-medium">
-                                        {p.numero_parcela}
-                                      </TableCell>
-                                      <TableCell className="py-2.5 text-sm font-semibold text-emerald-700">
-                                        {formatCurrency(Number(p.valor))}
-                                      </TableCell>
-                                      <TableCell className="py-2.5 text-sm text-slate-600">
-                                        {formatDate(p.data_vencimento)}
-                                      </TableCell>
-                                      <TableCell className="py-2.5">
-                                        <Badge
-                                          variant={
-                                            p.status === 'paga'
-                                              ? 'default'
-                                              : p.status === 'atrasada'
-                                                ? 'destructive'
-                                                : 'secondary'
-                                          }
-                                          className="text-[10px] uppercase tracking-wider shadow-sm"
-                                        >
-                                          {p.status || 'pendente'}
-                                        </Badge>
-                                      </TableCell>
-                                      <TableCell className="py-2.5">
-                                        {p.orcamento_id ? (
-                                          <Badge
-                                            variant="outline"
-                                            className="text-[10px] uppercase tracking-wider bg-blue-50 text-blue-700 border-blue-200"
-                                          >
-                                            Orçamento aprovado
-                                          </Badge>
-                                        ) : (
-                                          <span className="text-xs text-slate-400">Manual</span>
-                                        )}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </div>
-                      )}
-
-                    {(() => {
-                      const related = selectedProjeto.cliente_id
-                        ? projetos.filter(
-                            (p) =>
-                              p.cliente_id === selectedProjeto.cliente_id &&
-                              p.id !== selectedProjeto.id,
-                          )
-                        : []
-
-                      return (
-                        <div className="mt-2 pt-6 border-t border-slate-200">
-                          <h3 className="font-bold text-lg mb-4 text-slate-800">
-                            Projetos Relacionados
-                          </h3>
-                          {related.length > 0 ? (
-                            <div className="flex flex-col gap-3">
-                              {related.map((rp) => (
-                                <Card
-                                  key={rp.id}
-                                  onClick={() => setSelectedProjeto(rp)}
-                                  className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all p-4 bg-white border-slate-200 group"
-                                >
-                                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                                    <div>
-                                      <h4 className="font-semibold text-slate-900 group-hover:text-primary transition-colors">
-                                        {rp.nome}
-                                      </h4>
-                                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                                        <Badge
-                                          variant="secondary"
-                                          className="text-[10px] uppercase tracking-wider bg-slate-100"
-                                        >
-                                          {rp.status || '-'}
-                                        </Badge>
-                                        {(viewMode === 'operacional' ||
-                                          viewMode === 'completa') && (
-                                          <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 whitespace-nowrap">
-                                            Fechamento: {formatDate(getDataFechamento(rp))}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded-md shrink-0 border border-slate-200">
-                                      {rp.codigo}
-                                    </span>
-                                  </div>
-                                </Card>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-slate-500 bg-slate-50 p-4 rounded-lg border border-slate-100 text-center font-medium">
-                              Nenhum outro projeto encontrado para este cliente.
-                            </p>
-                          )}
-                        </div>
-                      )
-                    })()}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          {selectedProjeto && (
-            <div className="flex-none pt-4 mt-2 border-t border-slate-200 bg-white">
-              <div className="flex items-center justify-between gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate(`/projeto/${selectedProjeto.id}`)}
-                  className="text-primary hover:text-primary hover:bg-primary/10"
-                >
-                  Ver Detalhes Completos
-                </Button>
-
-                <div className="flex items-center gap-2">
-                  {isEditing ? (
-                    <>
-                      <Button variant="outline" onClick={() => setIsEditing(false)}>
-                        Cancelar
-                      </Button>
-                      <Button onClick={handleSave} disabled={saving} className="shadow-sm">
-                        {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                        Salvar
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        onClick={() => {
-                          setSelectedProjeto(null)
-                          setIsEditing(false)
-                        }}
-                        variant="outline"
-                        className="shadow-sm"
-                      >
-                        Fechar
-                      </Button>
-                      <Button onClick={startEditing} className="shadow-sm">
-                        Editar
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
     </div>
   )
 }
