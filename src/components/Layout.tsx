@@ -92,7 +92,12 @@ export default function Layout() {
             <span className="hidden sm:inline">Central</span>
           </a>
         </header>
-        <main className="flex-1 p-4 md:p-8 lg:p-10 w-full">
+        {/* pr-16/md:pr-20/lg:pr-24 (2026-09-16): reserva espaço pro
+            SystemSwitcher (SPEC-120), fixo na borda direita — mesmo ajuste
+            já aplicado em Separação Parcial. Como este <main> é
+            compartilhado por todas as rotas do CRM (via <Outlet />), o
+            ajuste aqui cobre todas as telas de uma vez. */}
+        <main className="flex-1 p-4 md:p-8 lg:p-10 pr-16 md:pr-20 lg:pr-24 w-full">
           <Outlet />
         </main>
       </SidebarInset>
