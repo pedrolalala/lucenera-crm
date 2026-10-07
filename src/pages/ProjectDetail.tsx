@@ -685,7 +685,10 @@ export default function ProjectDetail() {
                                   value={o.id}
                                   key={o.id}
                                   onSelect={() => {
-                                    handleChange('responsavel_funcionario_id' as keyof Projeto, o.id)
+                                    handleChange(
+                                      'responsavel_funcionario_id' as keyof Projeto,
+                                      o.id,
+                                    )
                                     setSelectedResponsavelName(o.nome)
                                     setOpenResponsavel(false)
                                   }}
@@ -778,9 +781,7 @@ export default function ProjectDetail() {
               </div>
             </div>
             <div className="flex justify-between items-start py-2 border-b">
-              <span className="text-muted-foreground w-1/3 pt-2">
-                Arquiteto(s)
-              </span>
+              <span className="text-muted-foreground w-1/3 pt-2">Arquiteto(s)</span>
               <div className="w-2/3 flex justify-end">
                 {isEditing ? (
                   <div className="w-full max-w-[280px]">

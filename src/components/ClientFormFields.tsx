@@ -371,9 +371,7 @@ export function ClientFormFields({ form }: Props) {
             <FormLabel>
               CPF / CNPJ
               {loadingCnpj && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  Buscando...
-                </span>
+                <span className="ml-2 text-xs font-normal text-muted-foreground">Buscando...</span>
               )}
             </FormLabel>
             <FormControl>
@@ -536,9 +534,7 @@ export function ClientFormFields({ form }: Props) {
             <FormLabel>
               CEP
               {loadingCep && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  Buscando...
-                </span>
+                <span className="ml-2 text-xs font-normal text-muted-foreground">Buscando...</span>
               )}
             </FormLabel>
             <FormControl>
@@ -646,9 +642,7 @@ export function ClientFormFields({ form }: Props) {
             <FormLabel>
               CEP
               {loadingCep && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  Buscando...
-                </span>
+                <span className="ml-2 text-xs font-normal text-muted-foreground">Buscando...</span>
               )}
             </FormLabel>
             <FormControl>
@@ -689,9 +683,8 @@ export function ClientFormFields({ form }: Props) {
                 value={field.value || ''}
                 ref={(el) => {
                   field.ref(el)
-                  ;(
-                    numeroEntregaRef as React.MutableRefObject<HTMLInputElement | null>
-                  ).current = el
+                  ;(numeroEntregaRef as React.MutableRefObject<HTMLInputElement | null>).current =
+                    el
                 }}
               />
             </FormControl>
@@ -776,9 +769,7 @@ export function ClientFormFields({ form }: Props) {
             <FormLabel>
               CEP
               {loadingCep && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  Buscando...
-                </span>
+                <span className="ml-2 text-xs font-normal text-muted-foreground">Buscando...</span>
               )}
             </FormLabel>
             <FormControl>
@@ -819,9 +810,8 @@ export function ClientFormFields({ form }: Props) {
                 value={field.value || ''}
                 ref={(el) => {
                   field.ref(el)
-                  ;(
-                    numeroCobrancaRef as React.MutableRefObject<HTMLInputElement | null>
-                  ).current = el
+                  ;(numeroCobrancaRef as React.MutableRefObject<HTMLInputElement | null>).current =
+                    el
                 }}
               />
             </FormControl>

@@ -773,8 +773,9 @@ export default function Engenheiros() {
                           value={field.value || ''}
                           ref={(el) => {
                             field.ref(el)
-                            ;(numeroRef as React.MutableRefObject<HTMLInputElement | null>).current =
-                              el
+                            ;(
+                              numeroRef as React.MutableRefObject<HTMLInputElement | null>
+                            ).current = el
                           }}
                         />
                       </FormControl>
@@ -815,7 +816,12 @@ export default function Engenheiros() {
                     <FormItem>
                       <FormLabel>Estado (UF)</FormLabel>
                       <FormControl>
-                        <Input placeholder="SP" maxLength={2} {...field} value={field.value || ''} />
+                        <Input
+                          placeholder="SP"
+                          maxLength={2}
+                          {...field}
+                          value={field.value || ''}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -854,10 +860,9 @@ export default function Engenheiros() {
                   <div>
                     <h4 className="text-sm font-semibold">Pessoas da Empresa (opcional)</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Se este cadastro representa um escritório com mais de um engenheiro,
-                      adicione cada pessoa aqui (nome, data de nascimento, e-mail e CPF/CNPJ
-                      individual). O vínculo do projeto continua sempre com a empresa, não com a
-                      pessoa.
+                      Se este cadastro representa um escritório com mais de um engenheiro, adicione
+                      cada pessoa aqui (nome, data de nascimento, e-mail e CPF/CNPJ individual). O
+                      vínculo do projeto continua sempre com a empresa, não com a pessoa.
                     </p>
                   </div>
                   <Button

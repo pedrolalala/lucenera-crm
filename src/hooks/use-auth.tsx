@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 import { consumeCodeFromUrl } from '@/lib/cross-system-auth'
+import { getUsuarioRoleCached } from '@/lib/usuario-role-cache'
 
 interface AuthContextType {
   user: User | null
@@ -58,12 +59,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRole(null)
       return
     }
-    supabase
-      .from('usuarios')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => setRole(data?.role ?? null))
+    // SPEC-123: cache compartilhado com useSistemasPermitidos.ts — evita
+    // duplicar esta mesma query de rede a cada carregamento de página.
+    getUsuarioRoleCached(user.id).then(setRole)
   }, [user?.id])
 
   useEffect(() => {

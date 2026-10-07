@@ -19,8 +19,6 @@ import {
   Building2,
   User,
   Phone,
-  FileText,
-  Info,
   Plus,
   Edit2,
   Trash2,
@@ -87,64 +85,27 @@ const arquitetoSchema = z.object({
   cep: z.string().optional().nullable(),
   cpf_cnpj: z.string().optional().nullable(),
   rg: z.string().optional().nullable(),
+  data_nascimento: z.string().optional().nullable(),
   observacoes: z.string().optional().nullable(),
 })
 
 type ArquitetoFormValues = z.infer<typeof arquitetoSchema>
 
-function ArquitetoDetails({ arquiteto }: { arquiteto: Arquiteto }) {
-  const Section = ({ title, icon: Icon, children }: any) => (
-    <div>
-      <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mb-2">
-        <Icon className="h-4 w-4" /> {title}
-      </h4>
-      <div className="bg-muted/30 p-3 rounded-md space-y-2 text-sm">{children}</div>
-    </div>
-  )
-  const Field = ({ label, value }: { label: string; value: any }) => (
-    <p>
-      <span className="font-medium text-foreground">{label}:</span> {value || '-'}
-    </p>
-  )
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-      <div className="space-y-4">
-        <Section title="Dados da Empresa" icon={Building2}>
-          <Field label="Empresa" value={arquiteto.nome_empresa} />
-          <Field label="Nome do Arquiteto" value={arquiteto.nome} />
-        </Section>
-        <Section title="Contato" icon={Phone}>
-          <Field label="Celular" value={arquiteto.celular} />
-          <Field label="Telefone" value={arquiteto.telefone} />
-          <Field label="Email" value={arquiteto.email} />
-        </Section>
-      </div>
-      <div className="space-y-4">
-        <Section title="Localização" icon={MapPin}>
-          <Field label="Endereço" value={arquiteto.endereco} />
-          <Field label="Bairro" value={arquiteto.bairro} />
-          <Field
-            label="Cidade/UF"
-            value={`${arquiteto.cidade || '-'}${arquiteto.estado ? ` / ${arquiteto.estado}` : ''}`}
-          />
-          <Field label="CEP" value={arquiteto.cep} />
-        </Section>
-        <Section title="Documentação" icon={FileText}>
-          <Field label="CPF/CNPJ" value={arquiteto.cpf_cnpj} />
-          <Field label="RG" value={arquiteto.rg} />
-          <Field label="Data Nasc." value={arquiteto.data_nascimento} />
-        </Section>
-      </div>
-      {arquiteto.observacoes && (
-        <div className="md:col-span-2 mt-2">
-          <Section title="Observações" icon={Info}>
-            <div className="whitespace-pre-wrap">{arquiteto.observacoes}</div>
-          </Section>
-        </div>
-      )}
-    </div>
-  )
+const ARQUITETO_FORM_DEFAULTS: ArquitetoFormValues = {
+  nome: '',
+  nome_empresa: '',
+  email: '',
+  celular: '',
+  telefone: '',
+  cidade: '',
+  estado: '',
+  endereco: '',
+  bairro: '',
+  cep: '',
+  cpf_cnpj: '',
+  rg: '',
+  data_nascimento: '',
+  observacoes: '',
 }
 
 export default function Arquitetos() {
@@ -155,38 +116,39 @@ export default function Arquitetos() {
   const [searchCompany, setSearchCompany] = useState('')
   const [searchName, setSearchName] = useState('')
 
-  const [selectedArquiteto, setSelectedArquiteto] = useState<Arquiteto | null>(null)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [editingArquiteto, setEditingArquiteto] = useState<Arquiteto | null>(null)
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false)
   const [arquitetoToDelete, setArquitetoToDelete] = useState<Arquiteto | null>(null)
+  // SPEC-044 (ajuste pós-feedback): pessoas da empresa adicionadas já na
+  // criação do arquiteto — buffer local, só viram registros em `contatos`
+  // (com empresa_id apontando pra empresa recém-criada) no submit.
+  const [novasPessoas, setNovasPessoas] = useState<
+    { nome: string; data_nascimento: string; email: string; cpf_cnpj: string; endereco: string }[]
+  >([])
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-  const [cameFromView, setCameFromView] = useState(false)
   const [viewMode, setViewMode] = useViewMode('arquitetos', 'cards')
 
   const form = useForm<ArquitetoFormValues>({
     resolver: zodResolver(arquitetoSchema),
-    defaultValues: {
-      nome: '',
-      nome_empresa: '',
-      email: '',
-      celular: '',
-      telefone: '',
-      cidade: '',
-      estado: '',
-      endereco: '',
-      bairro: '',
-      cep: '',
-      cpf_cnpj: '',
-      rg: '',
-      observacoes: '',
-    },
+    defaultValues: ARQUITETO_FORM_DEFAULTS,
   })
 
   const fetchArquitetos = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase.from('contatos').select('*').eq('tipo', 'arquiteto')
+      // SPEC-044: registros com empresa_id preenchido são "pessoas" vinculadas
+      // a uma empresa de arquitetura (ver ContatoDetail.tsx) — não aparecem
+      // soltos nesta listagem, só dentro da página cheia da empresa.
+      // SPEC-123: teto de segurança — antes não tinha nenhum .limit(), a
+      // tela sempre buscava a tabela inteira. 1000 é bem acima do volume
+      // atual (~864), então não muda nenhum resultado hoje.
+      const { data, error } = await supabase
+        .from('contatos')
+        .select('*')
+        .eq('tipo', 'arquiteto')
+        .is('empresa_id', null)
+        .order('nome', { ascending: true })
+        .limit(1000)
       if (error) throw error
 
       const sorted = (data || []).sort((a, b) => {
@@ -221,6 +183,7 @@ export default function Arquitetos() {
     }
   }, [])
 
+  // SPEC-044: o deep-link ?view=Nome navega direto para a página cheia.
   useEffect(() => {
     const viewName = searchParams.get('view')
     if (viewName && arquitetos.length > 0) {
@@ -239,16 +202,15 @@ export default function Arquitetos() {
       }
 
       if (match) {
-        setSelectedArquiteto(match)
-        setCameFromView(true)
-      } else {
-        setSearchName(viewName)
+        navigate(`/contatos/arquitetos/${match.id}`, { replace: true })
+        return
       }
 
+      setSearchName(viewName)
       searchParams.delete('view')
       setSearchParams(searchParams, { replace: true })
     }
-  }, [searchParams, arquitetos, setSearchParams])
+  }, [searchParams, arquitetos, setSearchParams, navigate])
 
   const filteredArquitetos = useMemo(() => {
     return arquitetos.filter((a) => {
@@ -266,26 +228,59 @@ export default function Arquitetos() {
   }, [arquitetos, searchCity, searchState, searchCompany, searchName])
 
   const onSubmit = async (values: ArquitetoFormValues) => {
-    if (editingArquiteto?.id) {
-      const { error } = await supabase.from('contatos').update(values).eq('id', editingArquiteto.id)
+    // SPEC-044 (ajuste pós-feedback): pessoas adicionadas no formulário de
+    // criação são validadas e inseridas junto, vinculadas via empresa_id ao
+    // arquiteto recém-criado — depois navega direto pra página cheia dele.
+    if (novasPessoas.some((p) => !p.nome.trim())) {
+      toast({
+        title: 'Nome obrigatório',
+        description:
+          'Preencha o nome de todas as pessoas adicionadas, ou remova a linha em branco.',
+        variant: 'destructive',
+      })
+      return
+    }
 
-      if (error) {
-        toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' })
-      } else {
-        toast({ title: 'Arquiteto atualizado com sucesso' })
-        setIsEditModalOpen(false)
-        fetchArquitetos()
+    const { data, error } = await supabase
+      .from('contatos')
+      .insert([{ ...values, tipo: 'arquiteto' }])
+      .select()
+      .single()
+
+    if (error) {
+      toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' })
+      return
+    }
+
+    const pessoasValidas = novasPessoas.filter((p) => p.nome.trim())
+    if (pessoasValidas.length > 0 && data?.id) {
+      const { error: pessoasError } = await supabase.from('contatos').insert(
+        pessoasValidas.map((p) => ({
+          tipo: 'arquiteto',
+          empresa_id: data.id,
+          nome: p.nome.trim(),
+          data_nascimento: p.data_nascimento || null,
+          email: p.email || null,
+          cpf_cnpj: p.cpf_cnpj || null,
+          endereco: p.endereco || null,
+          ativo: true,
+        })),
+      )
+      if (pessoasError) {
+        toast({
+          title: 'Arquiteto criado, mas houve erro ao salvar as pessoas',
+          description: pessoasError.message,
+          variant: 'destructive',
+        })
       }
+    }
+
+    toast({ title: 'Arquiteto adicionado com sucesso' })
+    setIsNewModalOpen(false)
+    if (data?.id) {
+      navigate(`/contatos/arquitetos/${data.id}`)
     } else {
-      const { error } = await supabase.from('contatos').insert([{ ...values, tipo: 'arquiteto' }])
-
-      if (error) {
-        toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' })
-      } else {
-        toast({ title: 'Arquiteto adicionado com sucesso' })
-        setIsEditModalOpen(false)
-        fetchArquitetos()
-      }
+      fetchArquitetos()
     }
   }
 
@@ -304,61 +299,17 @@ export default function Arquitetos() {
   }
 
   const openNewModal = () => {
-    setEditingArquiteto(null)
-    form.reset({
-      nome: '',
-      nome_empresa: '',
-      email: '',
-      celular: '',
-      telefone: '',
-      cidade: '',
-      estado: '',
-      endereco: '',
-      bairro: '',
-      cep: '',
-      cpf_cnpj: '',
-      rg: '',
-      observacoes: '',
-    })
-    setIsEditModalOpen(true)
+    form.reset(ARQUITETO_FORM_DEFAULTS)
+    setNovasPessoas([])
+    setIsNewModalOpen(true)
   }
 
-  const openViewModal = (arquiteto: Arquiteto) => {
-    setSelectedArquiteto(arquiteto)
-    setCameFromView(false)
-  }
-
-  const handleCloseViewModal = (open: boolean) => {
-    if (!open) {
-      setSelectedArquiteto(null)
-      if (cameFromView) {
-        navigate(-1)
-      }
-    }
-  }
-
-  const openEditModal = (arquiteto: Arquiteto) => {
-    setEditingArquiteto(arquiteto)
-    form.reset({
-      nome: arquiteto.nome || '',
-      nome_empresa: arquiteto.nome_empresa || '',
-      email: arquiteto.email || '',
-      celular: arquiteto.celular || '',
-      telefone: arquiteto.telefone || '',
-      cidade: arquiteto.cidade || '',
-      estado: arquiteto.estado || '',
-      endereco: arquiteto.endereco || '',
-      bairro: arquiteto.bairro || '',
-      cep: arquiteto.cep || '',
-      cpf_cnpj: arquiteto.cpf_cnpj || '',
-      rg: arquiteto.rg || '',
-      observacoes: arquiteto.observacoes || '',
-    })
-    setIsEditModalOpen(true)
+  const viewArquiteto = (arquiteto: Arquiteto) => {
+    navigate(`/contatos/arquitetos/${arquiteto.id}`)
   }
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-foreground">Arquitetos</h2>
@@ -461,7 +412,7 @@ export default function Arquitetos() {
               <Card
                 key={arquiteto.id}
                 className="group cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-primary/50 flex flex-col animate-fade-in"
-                onClick={() => openViewModal(arquiteto)}
+                onClick={() => viewArquiteto(arquiteto)}
               >
                 <CardHeader className="pb-3 relative">
                   <div className="absolute top-4 right-4 flex opacity-0 group-hover:opacity-100 transition-opacity gap-1">
@@ -471,7 +422,7 @@ export default function Arquitetos() {
                       className="h-8 w-8 bg-background/80 hover:bg-background shadow-sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        openEditModal(arquiteto)
+                        viewArquiteto(arquiteto)
                       }}
                     >
                       <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -527,7 +478,7 @@ export default function Arquitetos() {
                     className="w-full shadow-sm"
                     onClick={(e) => {
                       e.stopPropagation()
-                      openViewModal(arquiteto)
+                      viewArquiteto(arquiteto)
                     }}
                   >
                     Ver Detalhes
@@ -554,8 +505,7 @@ export default function Arquitetos() {
                   <TableRow
                     key={arquiteto.id || idx}
                     className="hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => openViewModal(arquiteto)}
-                    onDoubleClick={() => openEditModal(arquiteto)}
+                    onClick={() => viewArquiteto(arquiteto)}
                   >
                     <TableCell className="font-medium text-foreground">
                       {arquiteto.nome || '-'}
@@ -585,7 +535,7 @@ export default function Arquitetos() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => openViewModal(arquiteto)}
+                        onClick={() => viewArquiteto(arquiteto)}
                         title="Ver Detalhes"
                       >
                         <Eye className="h-4 w-4 text-muted-foreground" />
@@ -593,7 +543,7 @@ export default function Arquitetos() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => openEditModal(arquiteto)}
+                        onClick={() => viewArquiteto(arquiteto)}
                         title="Editar"
                       >
                         <Edit2 className="h-4 w-4 text-muted-foreground" />
@@ -616,10 +566,11 @@ export default function Arquitetos() {
         )}
       </div>
 
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+      {/* Novo Arquiteto — SPEC-044: edição agora acontece na página cheia (/contatos/arquitetos/:id) */}
+      <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingArquiteto ? 'Editar Arquiteto' : 'Novo Arquiteto'}</DialogTitle>
+            <DialogTitle>Novo Arquiteto</DialogTitle>
             <DialogDescription>
               Preencha os dados do arquiteto ou empresa parceira.
             </DialogDescription>
@@ -714,6 +665,32 @@ export default function Arquitetos() {
                 />
                 <FormField
                   control={form.control}
+                  name="rg"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>RG</FormLabel>
+                      <FormControl>
+                        <Input placeholder="RG" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="data_nascimento"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data de Nascimento</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="cidade"
                   render={({ field }) => (
                     <FormItem>
@@ -778,34 +755,117 @@ export default function Arquitetos() {
                   )}
                 />
               </div>
+
+              <div className="pt-4 border-t mt-4">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div>
+                    <h4 className="text-sm font-semibold">Pessoas da Empresa (opcional)</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Se este cadastro representa um escritório com mais de um arquiteto, adicione
+                      cada pessoa aqui (nome, data de nascimento e e-mail individual). O vínculo do
+                      projeto continua sempre com a empresa, não com a pessoa.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() =>
+                      setNovasPessoas([
+                        ...novasPessoas,
+                        { nome: '', data_nascimento: '', email: '', cpf_cnpj: '', endereco: '' },
+                      ])
+                    }
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Pessoa
+                  </Button>
+                </div>
+
+                {novasPessoas.length > 0 && (
+                  <div className="space-y-2">
+                    {novasPessoas.map((p, idx) => (
+                      <div key={idx} className="border rounded-md p-3 bg-muted/30 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1">
+                            <Input
+                              placeholder="Nome *"
+                              value={p.nome}
+                              onChange={(e) => {
+                                const arr = [...novasPessoas]
+                                arr[idx] = { ...arr[idx], nome: e.target.value }
+                                setNovasPessoas(arr)
+                              }}
+                              className="h-9"
+                            />
+                            <Input
+                              type="date"
+                              value={p.data_nascimento}
+                              onChange={(e) => {
+                                const arr = [...novasPessoas]
+                                arr[idx] = { ...arr[idx], data_nascimento: e.target.value }
+                                setNovasPessoas(arr)
+                              }}
+                              className="h-9"
+                            />
+                            <Input
+                              type="email"
+                              placeholder="E-mail"
+                              value={p.email}
+                              onChange={(e) => {
+                                const arr = [...novasPessoas]
+                                arr[idx] = { ...arr[idx], email: e.target.value }
+                                setNovasPessoas(arr)
+                              }}
+                              className="h-9"
+                            />
+                            <Input
+                              placeholder="CPF"
+                              value={p.cpf_cnpj}
+                              onChange={(e) => {
+                                const arr = [...novasPessoas]
+                                arr[idx] = { ...arr[idx], cpf_cnpj: e.target.value }
+                                setNovasPessoas(arr)
+                              }}
+                              className="h-9"
+                            />
+                            <Input
+                              placeholder="Endereço"
+                              value={p.endereco}
+                              onChange={(e) => {
+                                const arr = [...novasPessoas]
+                                arr[idx] = { ...arr[idx], endereco: e.target.value }
+                                setNovasPessoas(arr)
+                              }}
+                              className="h-9 sm:col-span-2"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setNovasPessoas(novasPessoas.filter((_, i) => i !== idx))
+                            }
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 border-t mt-4">
-                <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsNewModalOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit">
-                  {editingArquiteto ? 'Salvar Alterações' : 'Criar Arquiteto'}
-                </Button>
+                <Button type="submit">Criar Arquiteto</Button>
               </div>
             </form>
           </Form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!selectedArquiteto && !isEditModalOpen} onOpenChange={handleCloseViewModal}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <User className="h-5 w-5 text-primary" />{' '}
-              {selectedArquiteto?.nome || 'Detalhes do Arquiteto'}
-            </DialogTitle>
-            <DialogDescription>Informações completas do arquiteto e empresa.</DialogDescription>
-          </DialogHeader>
-          {selectedArquiteto && <ArquitetoDetails arquiteto={selectedArquiteto} />}
-          <div className="flex justify-end pt-4 border-t mt-4">
-            <Button variant="outline" onClick={() => handleCloseViewModal(false)}>
-              Fechar
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
 

@@ -126,7 +126,10 @@ export function NewEmployeeModal({ open, onOpenChange, onSuccess }: Props) {
       onSuccess(data)
     } catch (err: any) {
       const isRlsError =
-        err?.code === '42501' || String(err?.message || '').toLowerCase().includes('row-level security')
+        err?.code === '42501' ||
+        String(err?.message || '')
+          .toLowerCase()
+          .includes('row-level security')
       toast({
         title: 'Erro ao cadastrar funcionário',
         description: isRlsError
@@ -237,7 +240,11 @@ export function NewEmployeeModal({ open, onOpenChange, onSuccess }: Props) {
                               !field.value && 'text-muted-foreground',
                             )}
                           >
-                            {field.value ? format(field.value, 'dd/MM/yyyy') : <span>Selecione</span>}
+                            {field.value ? (
+                              format(field.value, 'dd/MM/yyyy')
+                            ) : (
+                              <span>Selecione</span>
+                            )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>

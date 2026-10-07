@@ -169,9 +169,7 @@ export default function Clientes() {
     // CPF/CNPJ, e-mail, telefone, endereço, observações etc.), em qualquer
     // ordem, sem distinção de acento/maiúscula. Antes só casava nome/empresa
     // com a frase inteira.
-    const searchTerms = normalize(searchName.trim())
-      .split(/\s+/)
-      .filter(Boolean)
+    const searchTerms = normalize(searchName.trim()).split(/\s+/).filter(Boolean)
     const sCity = normalize(searchCity.trim())
 
     return clients.filter((c) => {

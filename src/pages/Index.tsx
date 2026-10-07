@@ -1,9 +1,12 @@
-import { ArrowRight, Users, Building2, HardHat, ListTodo, Plus } from 'lucide-react'
+import { ArrowRight, Users, Building2, HardHat, ListTodo, Plus, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics'
+import { DashboardCharts } from '@/components/dashboard/DashboardCharts'
+import useProjectStore from '@/stores/useProjectStore'
 
 export default function Index() {
   const navigate = useNavigate()
@@ -16,6 +19,7 @@ export default function Index() {
   })
 
   const [recentProjects, setRecentProjects] = useState<any[]>([])
+  const { projects: projetos, loading: loadingProjetos } = useProjectStore()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,24 +47,45 @@ export default function Index() {
 
     fetchData()
 
+    // SPEC-043: a lista completa de `projetos` já vem de `useProjectStore`
+    // (fetch único compartilhado pelo app, com seu próprio realtime
+    // debounced) — este componente não busca mais essa lista por conta
+    // própria. Aqui só refazemos a RPC de estatísticas + os 5 projetos
+    // recentes, e com debounce para não empilhar chamadas quando várias
+    // linhas mudam em sequência.
+    let timeout: ReturnType<typeof setTimeout> | null = null
+    const debouncedFetchData = () => {
+      if (timeout) clearTimeout(timeout)
+      timeout = setTimeout(fetchData, 1500)
+    }
+
     const channel = supabase
       .channel('dashboard_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projetos' }, fetchData)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'projetos' },
+        debouncedFetchData,
+      )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'projeto_parcelas' },
-        fetchData,
+        debouncedFetchData,
       )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'contatos' }, fetchData)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'contatos' },
+        debouncedFetchData,
+      )
       .subscribe()
 
     return () => {
+      if (timeout) clearTimeout(timeout)
       supabase.removeChannel(channel)
     }
   }, [])
 
   return (
-    <div className="space-y-8 animate-fade-in-up max-w-[1400px] mx-auto">
+    <div className="space-y-8 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
@@ -116,6 +141,17 @@ export default function Index() {
           </CardContent>
         </Card>
       </div>
+
+      {loadingProjetos ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <>
+          <DashboardMetrics projetos={projetos} />
+          <DashboardCharts projetos={projetos} />
+        </>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4 shadow-subtle">

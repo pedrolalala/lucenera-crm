@@ -59,7 +59,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { toast } from '@/hooks/use-toast'
 import { NewContactModal, ContactType } from '@/components/NewContactModal'
 import { NewEmployeeModal } from '@/components/NewEmployeeModal'
-import { ArchitectSplitPicker, redistribuirPercentuais, type ArquitetoSplit } from '@/components/ArchitectSplitPicker'
+import {
+  ArchitectSplitPicker,
+  redistribuirPercentuais,
+  type ArquitetoSplit,
+} from '@/components/ArchitectSplitPicker'
 import { replaceProjetoArquitetos } from '@/services/projetos'
 
 const NEW_STATUS_OPTIONS = [

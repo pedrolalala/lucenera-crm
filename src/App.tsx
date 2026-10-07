@@ -1,28 +1,38 @@
-import { useEffect } from 'react'
+import { useEffect, Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ProjectStoreProvider } from '@/stores/useProjectStore'
 import { AuthProvider, useAuth } from '@/hooks/use-auth'
-import AuthPage from '@/pages/Auth'
-
-import Index from './pages/Index'
-import Projetos from './pages/Projetos'
-import ProjectNew from './pages/ProjectNew'
-import ProjectDetail from './pages/ProjectDetail'
-import UpdatePassword from './pages/UpdatePassword'
-import Clientes from './pages/contatos/Clientes'
-import Arquitetos from './pages/contatos/Arquitetos'
-import Engenheiros from './pages/contatos/Engenheiros'
-import Eletricistas from './pages/contatos/Eletricistas'
-import Fornecedores from './pages/contatos/Fornecedores'
-import ContatoDetail from './pages/contatos/ContatoDetail'
-import Usuarios from './pages/Configuracoes/Usuarios'
-import Orcamentos from './pages/Orcamentos'
-import Configuracoes from './pages/Configuracoes/Index'
-import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
+
+// SPEC-123: code-splitting por rota (mesmo padrão já em produção no RH,
+// dashboard-rh-lucenera-5fe9c/src/App.tsx) — antes todas as páginas eram
+// importadas de forma estática aqui, então o JS de toda tela do CRM
+// entrava no bundle inicial mesmo que o usuário só visitasse uma.
+const AuthPage = lazy(() => import('@/pages/Auth'))
+const Index = lazy(() => import('./pages/Index'))
+const Projetos = lazy(() => import('./pages/Projetos'))
+const ProjectNew = lazy(() => import('./pages/ProjectNew'))
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'))
+const UpdatePassword = lazy(() => import('./pages/UpdatePassword'))
+const Clientes = lazy(() => import('./pages/contatos/Clientes'))
+const Arquitetos = lazy(() => import('./pages/contatos/Arquitetos'))
+const Engenheiros = lazy(() => import('./pages/contatos/Engenheiros'))
+const Eletricistas = lazy(() => import('./pages/contatos/Eletricistas'))
+const Fornecedores = lazy(() => import('./pages/contatos/Fornecedores'))
+const ContatoDetail = lazy(() => import('./pages/contatos/ContatoDetail'))
+const Usuarios = lazy(() => import('./pages/Configuracoes/Usuarios'))
+const Orcamentos = lazy(() => import('./pages/Orcamentos'))
+const Configuracoes = lazy(() => import('./pages/Configuracoes/Index'))
+const NotFound = lazy(() => import('./pages/NotFound'))
+
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="animate-pulse text-muted-foreground">Carregando sistema...</div>
+  </div>
+)
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, hasAccess, loading } = useAuth()
@@ -88,32 +98,34 @@ const App = () => {
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <Routes>
-              <Route
-                element={
-                  <ProtectedRoute>
-                    <Layout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route path="/" element={<Index />} />
-                <Route path="/dashboard" element={<Index />} />
-                <Route path="/projetos" element={<Projetos />} />
-                <Route path="/novo" element={<ProjectNew />} />
-                <Route path="/projeto/:id" element={<ProjectDetail />} />
-                <Route path="/contatos/clientes" element={<Clientes />} />
-                <Route path="/contatos/arquitetos" element={<Arquitetos />} />
-                <Route path="/contatos/engenheiros" element={<Engenheiros />} />
-                <Route path="/contatos/eletricistas" element={<Eletricistas />} />
-                <Route path="/contatos/fornecedores" element={<Fornecedores />} />
-                <Route path="/contatos/:tipoPlural/:id" element={<ContatoDetail />} />
-                <Route path="/orcamentos" element={<Orcamentos />} />
-                <Route path="/configuracoes" element={<Configuracoes />} />
-                <Route path="/configuracoes/usuarios" element={<Usuarios />} />
-              </Route>
-              <Route path="/atualizar-senha" element={<UpdatePassword />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <Layout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="/" element={<Index />} />
+                  <Route path="/dashboard" element={<Index />} />
+                  <Route path="/projetos" element={<Projetos />} />
+                  <Route path="/novo" element={<ProjectNew />} />
+                  <Route path="/projeto/:id" element={<ProjectDetail />} />
+                  <Route path="/contatos/clientes" element={<Clientes />} />
+                  <Route path="/contatos/arquitetos" element={<Arquitetos />} />
+                  <Route path="/contatos/engenheiros" element={<Engenheiros />} />
+                  <Route path="/contatos/eletricistas" element={<Eletricistas />} />
+                  <Route path="/contatos/fornecedores" element={<Fornecedores />} />
+                  <Route path="/contatos/:tipoPlural/:id" element={<ContatoDetail />} />
+                  <Route path="/orcamentos" element={<Orcamentos />} />
+                  <Route path="/configuracoes" element={<Configuracoes />} />
+                  <Route path="/configuracoes/usuarios" element={<Usuarios />} />
+                </Route>
+                <Route path="/atualizar-senha" element={<UpdatePassword />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </TooltipProvider>
         </ProjectStoreProvider>
       </BrowserRouter>

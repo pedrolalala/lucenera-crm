@@ -662,9 +662,9 @@ export default function ContatoDetail() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-xs text-muted-foreground -mt-2">
-              Pessoas vinculadas a esta empresa não aparecem na listagem de {TITLES[tipo]}s nem
-              nos campos de seleção de {TITLES[tipo].toLowerCase()} do projeto — o vínculo do
-              projeto continua sempre com a empresa, para não fragmentar a comissão.
+              Pessoas vinculadas a esta empresa não aparecem na listagem de {TITLES[tipo]}s nem nos
+              campos de seleção de {TITLES[tipo].toLowerCase()} do projeto — o vínculo do projeto
+              continua sempre com a empresa, para não fragmentar a comissão.
             </p>
 
             {loadingPessoas ? (

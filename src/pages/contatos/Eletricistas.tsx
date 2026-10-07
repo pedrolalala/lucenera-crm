@@ -18,6 +18,8 @@ import {
   Search,
   Loader2,
   Eye,
+  Edit2,
+  Trash2,
   LayoutGrid,
   List,
   Mail,
@@ -41,6 +43,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Database } from '@/lib/supabase/types'
 
@@ -51,11 +63,9 @@ export default function Eletricistas() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [open, setOpen] = useState(false)
-  const [viewingEletricista, setViewingEletricista] = useState<ContatoRow | null>(null)
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [eletricistaToDelete, setEletricistaToDelete] = useState<ContatoRow | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-  const [cameFromView, setCameFromView] = useState(false)
   const [viewMode, setViewMode] = useViewMode('eletricistas', 'cards')
 
   const [formData, setFormData] = useState({
@@ -84,8 +94,24 @@ export default function Eletricistas() {
 
   useEffect(() => {
     fetchEletricistas()
+
+    const channel = supabase
+      .channel('contatos_eletricistas')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'contatos', filter: 'tipo=eq.eletricista' },
+        () => {
+          fetchEletricistas()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
+  // SPEC-044: o deep-link ?view=Nome navega direto para a página cheia.
   useEffect(() => {
     const viewName = searchParams.get('view')
     if (viewName && eletricistas.length > 0) {
@@ -96,17 +122,15 @@ export default function Eletricistas() {
       }
 
       if (match) {
-        setViewingEletricista(match)
-        setIsViewModalOpen(true)
-        setCameFromView(true)
-      } else {
-        setSearchTerm(viewName)
+        navigate(`/contatos/eletricistas/${match.id}`, { replace: true })
+        return
       }
 
+      setSearchTerm(viewName)
       searchParams.delete('view')
       setSearchParams(searchParams, { replace: true })
     }
-  }, [searchParams, eletricistas, setSearchParams])
+  }, [searchParams, eletricistas, setSearchParams, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -126,21 +150,21 @@ export default function Eletricistas() {
     }
   }
 
-  const openViewModal = (el: ContatoRow) => {
-    setViewingEletricista(el)
-    setIsViewModalOpen(true)
-    setCameFromView(false)
+  const handleDelete = async () => {
+    if (eletricistaToDelete && eletricistaToDelete.id) {
+      const { error } = await supabase.from('contatos').delete().eq('id', eletricistaToDelete.id)
+      if (error) {
+        toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' })
+      } else {
+        toast({ title: 'Eletricista excluído com sucesso' })
+        fetchEletricistas()
+      }
+      setEletricistaToDelete(null)
+    }
   }
 
-  const handleCloseViewModal = (open: boolean) => {
-    if (!open) {
-      setIsViewModalOpen(false)
-      if (cameFromView) {
-        navigate(-1)
-      }
-    } else {
-      setIsViewModalOpen(true)
-    }
+  const viewEletricista = (el: ContatoRow) => {
+    navigate(`/contatos/eletricistas/${el.id}`)
   }
 
   const filtered = eletricistas.filter((e) =>
@@ -291,9 +315,33 @@ export default function Eletricistas() {
                 <Card
                   key={el.id}
                   className="group cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-primary/50 flex flex-col animate-fade-in"
-                  onClick={() => openViewModal(el)}
+                  onClick={() => viewEletricista(el)}
                 >
                   <CardHeader className="pb-3 relative">
+                    <div className="absolute top-4 right-4 flex opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 bg-background/80 hover:bg-background shadow-sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          viewEletricista(el)
+                        }}
+                      >
+                        <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 bg-background/80 hover:bg-background shadow-sm hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEletricistaToDelete(el)
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                     <div className="pr-16">
                       <CardTitle className="text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                         {el.nome}
@@ -328,7 +376,7 @@ export default function Eletricistas() {
                       className="w-full shadow-sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        openViewModal(el)
+                        viewEletricista(el)
                       }}
                     >
                       Ver Detalhes
@@ -355,7 +403,7 @@ export default function Eletricistas() {
                     <TableRow
                       key={el.id}
                       className="hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => openViewModal(el)}
+                      onClick={() => viewEletricista(el)}
                     >
                       <TableCell className="font-medium">{el.nome}</TableCell>
                       <TableCell>{el.telefone || el.celular || '-'}</TableCell>
@@ -365,10 +413,27 @@ export default function Eletricistas() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => openViewModal(el)}
+                          onClick={() => viewEletricista(el)}
                           title="Ver Detalhes"
                         >
                           <Eye className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => viewEletricista(el)}
+                          title="Editar"
+                        >
+                          <Edit2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEletricistaToDelete(el)}
+                          title="Excluir"
+                          className="hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -380,52 +445,29 @@ export default function Eletricistas() {
         </CardContent>
       </Card>
 
-      <Dialog open={isViewModalOpen} onOpenChange={handleCloseViewModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Detalhes do Eletricista</DialogTitle>
-          </DialogHeader>
-          {viewingEletricista && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 py-4">
-              <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">Nome</h4>
-                <p className="text-foreground">{viewingEletricista.nome || '-'}</p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">Telefone</h4>
-                <p className="text-foreground">
-                  {viewingEletricista.telefone || viewingEletricista.celular || '-'}
-                </p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">E-mail</h4>
-                <p className="text-foreground">{viewingEletricista.email || '-'}</p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-muted-foreground">Cidade/UF</h4>
-                <p className="text-foreground">
-                  {viewingEletricista.cidade
-                    ? `${viewingEletricista.cidade}/${viewingEletricista.estado || '-'}`
-                    : '-'}
-                </p>
-              </div>
-              {viewingEletricista.observacoes && (
-                <div className="sm:col-span-2">
-                  <h4 className="font-semibold text-sm text-muted-foreground">Observações</h4>
-                  <p className="text-foreground whitespace-pre-wrap">
-                    {viewingEletricista.observacoes}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-          <div className="flex justify-end pt-4 border-t mt-4">
-            <Button variant="outline" onClick={() => handleCloseViewModal(false)}>
-              Fechar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog
+        open={!!eletricistaToDelete}
+        onOpenChange={(open) => !open && setEletricistaToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Eletricista</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir "{eletricistaToDelete?.nome}"? Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDelete}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

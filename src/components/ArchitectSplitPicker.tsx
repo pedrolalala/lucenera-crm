@@ -121,7 +121,11 @@ export function ArchitectSplitPicker({
         </PopoverTrigger>
         <PopoverContent className="w-[300px] p-0" align="start">
           <Command shouldFilter={false}>
-            <CommandInput placeholder="Buscar arquiteto..." value={search} onValueChange={setSearch} />
+            <CommandInput
+              placeholder="Buscar arquiteto..."
+              value={search}
+              onValueChange={setSearch}
+            />
             <CommandList>
               <CommandEmpty>Nenhum arquiteto encontrado.</CommandEmpty>
               <CommandGroup>
@@ -196,7 +200,12 @@ export function ArchitectSplitPicker({
             </div>
           ))}
           {value.length > 1 && (
-            <p className={cn('text-xs font-medium', somaOk ? 'text-emerald-600' : 'text-destructive')}>
+            <p
+              className={cn(
+                'text-xs font-medium',
+                somaOk ? 'text-emerald-600' : 'text-destructive',
+              )}
+            >
               Soma dos percentuais: {soma.toFixed(2)}%{!somaOk && ' — precisa ser exatamente 100%'}
             </p>
           )}

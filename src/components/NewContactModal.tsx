@@ -127,7 +127,11 @@ const TITLES: Record<string, string> = {
   eletricista: 'Novo Eletricista',
 }
 
-function ProfessionalFormFields({ form }: { form: ReturnType<typeof useForm<ProfessionalFormValues>> }) {
+function ProfessionalFormFields({
+  form,
+}: {
+  form: ReturnType<typeof useForm<ProfessionalFormValues>>
+}) {
   const { buscar: buscarCep, loading: loadingCep } = useCepLookup()
   const { buscar: buscarCnpj, loading: loadingCnpj } = useCnpjLookup()
   const numeroRef = useRef<HTMLInputElement>(null)
@@ -256,9 +260,7 @@ function ProfessionalFormFields({ form }: { form: ReturnType<typeof useForm<Prof
             <FormLabel>
               CPF / CNPJ
               {loadingCnpj && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  Buscando...
-                </span>
+                <span className="ml-2 text-xs font-normal text-muted-foreground">Buscando...</span>
               )}
             </FormLabel>
             <FormControl>
@@ -298,9 +300,7 @@ function ProfessionalFormFields({ form }: { form: ReturnType<typeof useForm<Prof
             <FormLabel>
               CEP
               {loadingCep && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  Buscando...
-                </span>
+                <span className="ml-2 text-xs font-normal text-muted-foreground">Buscando...</span>
               )}
             </FormLabel>
             <FormControl>
