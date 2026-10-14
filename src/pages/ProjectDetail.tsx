@@ -127,7 +127,7 @@ export default function ProjectDetail() {
     const redirectTo = `/budgets/new?projeto_id=${encodeURIComponent(projetoId)}`
     try {
       await redirectWithCode(
-        'https://gestaofinanceiralucenera.goskip.app',
+        'https://financeiro-lucenera.pages.dev',
         redirectTo,
         'orcamentos',
         {
@@ -136,7 +136,7 @@ export default function ProjectDetail() {
       )
     } catch {
       window.open(
-        `https://gestaofinanceiralucenera.goskip.app${redirectTo}`,
+        `https://financeiro-lucenera.pages.dev${redirectTo}`,
         '_blank',
         'noopener,noreferrer',
       )
