@@ -55,7 +55,7 @@ export async function getProjetos() {
         cliente:cliente_id(nome),
         arquiteto:arquiteto_id(nome),
         responsavel:responsavel_id(nome),
-        engenheiro:responsavel_obra_id(nome),
+        engenheiro:engenheiro_id(nome),
         projeto_arquitetos(percentual, arquiteto:arquiteto_id(id, nome)),
         responsavel_funcionario:responsavel_funcionario_id(id, nome),
         projeto_parcelas(*)
@@ -146,7 +146,7 @@ export async function getProjeto(id: string) {
       cliente:cliente_id(nome),
       arquiteto:arquiteto_id(nome),
       responsavel:responsavel_id(nome),
-      engenheiro:responsavel_obra_id(nome),
+      engenheiro:engenheiro_id(nome),
       eletricista:eletricista_id(nome),
       projeto_arquitetos(percentual, arquiteto:arquiteto_id(id, nome)),
       responsavel_funcionario:responsavel_funcionario_id(id, nome),

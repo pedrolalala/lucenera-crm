@@ -296,6 +296,7 @@ export default function ProjectDetail() {
         link_sharepoint?: string | null
         responsavel_funcionario_id?: string | null
         eletricista_id?: string | null
+        engenheiro_id?: string | null
       } = {
         codigo: editForm.codigo,
         nome: editForm.nome,
@@ -305,7 +306,9 @@ export default function ProjectDetail() {
         cidade: editForm.cidade,
         estado: editForm.estado,
         cliente_id: editForm.cliente_id,
-        responsavel_obra_id: editForm.responsavel_obra_id,
+        // SPEC-202 D: engenheiro é contato (engenheiro_id); responsavel_obra_id
+        // tem FK para usuarios (sync SharePoint) e não é mais tocado aqui.
+        engenheiro_id: (editForm as any).engenheiro_id || null,
         // SPEC-202: eletricista vinculado ao projeto.
         eletricista_id: (editForm as any).eletricista_id || null,
         // SPEC-077: Responsável agora vem de funcionarios — responsavel_nome
@@ -821,9 +824,9 @@ export default function ProjectDetail() {
                 {isEditing ? (
                   <ContactSearchCombobox
                     tipo="engenheiro"
-                    value={editForm.responsavel_obra_id || null}
+                    value={(editForm as any).engenheiro_id || null}
                     selectedName={projeto.engenheiro?.nome}
-                    onChange={(id) => handleChange('responsavel_obra_id', id)}
+                    onChange={(id) => handleChange('engenheiro_id' as keyof Projeto, id)}
                   />
                 ) : (
                   <span className="font-medium flex items-center gap-2 text-right">

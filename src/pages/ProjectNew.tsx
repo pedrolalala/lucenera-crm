@@ -252,8 +252,9 @@ export default function ProjectNew() {
         responsavel_funcionario_id: v.responsavel_funcionario_id,
         status: v.status,
         cliente_id: v.cliente_id !== 'null' ? v.cliente_id : null,
-        responsavel_obra_id:
-          v.responsavel_obra_id && v.responsavel_obra_id !== 'null' ? v.responsavel_obra_id : null,
+        // SPEC-202 D: o campo do formulário é contato engenheiro — vai para
+        // engenheiro_id logo abaixo; responsavel_obra_id (FK usuarios) fica nulo.
+        responsavel_obra_id: null,
         cidade: v.cidade,
         estado: v.estado,
         data_entrada: v.data_entrada.toISOString(),
@@ -279,10 +280,12 @@ export default function ProjectNew() {
 
       const novoProjetoId = result?.data?.id
       if (novoProjetoId) {
-        if (eletricistaId) {
+        const engenheiroId =
+          v.responsavel_obra_id && v.responsavel_obra_id !== 'null' ? v.responsavel_obra_id : null
+        if (eletricistaId || engenheiroId) {
           const { error: eletErr } = await supabase
             .from('projetos')
-            .update({ eletricista_id: eletricistaId } as any)
+            .update({ eletricista_id: eletricistaId, engenheiro_id: engenheiroId } as any)
             .eq('id', novoProjetoId)
           if (eletErr) console.warn('Eletricista do projeto:', eletErr)
         }
