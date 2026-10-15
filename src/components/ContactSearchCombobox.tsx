@@ -14,11 +14,12 @@ import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 interface ContactSearchComboboxProps {
-  tipo: 'cliente' | 'engenheiro'
+  tipo: 'cliente' | 'engenheiro' | 'eletricista'
   value: string | null
   selectedName?: string | null
   onChange: (id: string | null, nome: string | null) => void
   placeholder?: string
+  className?: string
 }
 
 /**
@@ -33,6 +34,7 @@ export function ContactSearchCombobox({
   selectedName,
   onChange,
   placeholder = 'Selecione',
+  className,
 }: ContactSearchComboboxProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -55,7 +57,7 @@ export function ContactSearchCombobox({
     return () => clearTimeout(timeout)
   }, [search, tipo, open])
 
-  const label = tipo === 'cliente' ? 'cliente' : 'engenheiro'
+  const label = tipo
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -68,6 +70,7 @@ export function ContactSearchCombobox({
           className={cn(
             'w-full max-w-[280px] justify-between h-8 font-normal',
             !value && 'text-muted-foreground',
+            className,
           )}
         >
           <span className="truncate">{value ? nomeAtual || 'Selecionado' : placeholder}</span>

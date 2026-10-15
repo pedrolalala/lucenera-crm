@@ -61,6 +61,7 @@ import {
   Check,
   ChevronsUpDown,
   Plus,
+  Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ArchitectSplitPicker, type ArquitetoSplit } from '@/components/ArchitectSplitPicker'
@@ -294,6 +295,7 @@ export default function ProjectDetail() {
       const payload: Database['public']['Tables']['projetos']['Update'] & {
         link_sharepoint?: string | null
         responsavel_funcionario_id?: string | null
+        eletricista_id?: string | null
       } = {
         codigo: editForm.codigo,
         nome: editForm.nome,
@@ -304,6 +306,8 @@ export default function ProjectDetail() {
         estado: editForm.estado,
         cliente_id: editForm.cliente_id,
         responsavel_obra_id: editForm.responsavel_obra_id,
+        // SPEC-202: eletricista vinculado ao projeto.
+        eletricista_id: (editForm as any).eletricista_id || null,
         // SPEC-077: Responsável agora vem de funcionarios — responsavel_nome
         // continua sendo gravado junto (nome do funcionário escolhido) pra
         // não quebrar o trigger que deriva a equipe/comissão a partir dele.
@@ -811,7 +815,7 @@ export default function ProjectDetail() {
                 )}
               </div>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-b-transparent">
+            <div className="flex justify-between items-center py-2 border-b">
               <span className="text-muted-foreground w-1/3">Engenheiro Responsável</span>
               <div className="w-2/3 flex justify-end">
                 {isEditing ? (
@@ -834,6 +838,24 @@ export default function ProjectDetail() {
                     ) : (
                       'Não definido'
                     )}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b border-b-transparent">
+              <span className="text-muted-foreground w-1/3">Eletricista</span>
+              <div className="w-2/3 flex justify-end">
+                {isEditing ? (
+                  <ContactSearchCombobox
+                    tipo="eletricista"
+                    value={(editForm as any).eletricista_id || null}
+                    selectedName={projeto.eletricista?.nome}
+                    onChange={(id) => handleChange('eletricista_id' as keyof Projeto, id)}
+                  />
+                ) : (
+                  <span className="font-medium flex items-center gap-2 text-right">
+                    <Zap className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    {projeto.eletricista?.nome || 'Não definido'}
                   </span>
                 )}
               </div>

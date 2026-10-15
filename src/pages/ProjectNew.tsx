@@ -65,6 +65,7 @@ import {
   type ArquitetoSplit,
 } from '@/components/ArchitectSplitPicker'
 import { replaceProjetoArquitetos } from '@/services/projetos'
+import { ContactSearchCombobox } from '@/components/ContactSearchCombobox'
 
 const NEW_STATUS_OPTIONS = [
   'Estudo Inicial',
@@ -124,6 +125,8 @@ export default function ProjectNew() {
   const { contacts, refreshContacts, refreshProjects } = useProjectStore()
 
   const [modalType, setModalType] = useState<ContactType | null>(null)
+  // SPEC-202: eletricista fica fora do schema — gravado depois do salvar-projeto.
+  const [eletricistaId, setEletricistaId] = useState<string | null>(null)
   const [employeeModalOpen, setEmployeeModalOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [openCliente, setOpenCliente] = useState(false)
@@ -276,6 +279,13 @@ export default function ProjectNew() {
 
       const novoProjetoId = result?.data?.id
       if (novoProjetoId) {
+        if (eletricistaId) {
+          const { error: eletErr } = await supabase
+            .from('projetos')
+            .update({ eletricista_id: eletricistaId } as any)
+            .eq('id', novoProjetoId)
+          if (eletErr) console.warn('Eletricista do projeto:', eletErr)
+        }
         try {
           await replaceProjetoArquitetos(
             novoProjetoId,
@@ -839,6 +849,17 @@ export default function ProjectNew() {
                     </FormItem>
                   )}
                 />
+                {/* SPEC-202: eletricista vinculado ao projeto. */}
+                <div className="flex flex-col gap-2 pt-2.5">
+                  <span className="text-sm font-medium leading-none">Eletricista</span>
+                  <ContactSearchCombobox
+                    tipo="eletricista"
+                    value={eletricistaId}
+                    onChange={(id) => setEletricistaId(id)}
+                    placeholder="Buscar eletricista..."
+                    className="h-11 max-w-none"
+                  />
+                </div>
               </div>
 
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-6">

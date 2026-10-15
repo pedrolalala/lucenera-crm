@@ -15,6 +15,8 @@ export type Projeto = Database['public']['Tables']['projetos']['Row'] & {
   arquiteto?: { nome: string } | null
   responsavel?: { nome: string } | null
   engenheiro?: { nome: string } | null
+  // SPEC-202: eletricista do projeto (contato tipo eletricista)
+  eletricista?: { nome: string } | null
   // SPEC-077: divisão de lucro entre múltiplos arquitetos (substitui o
   // arquiteto_id singular como fonte de verdade — esse campo continua
   // sincronizado pela RPC replace_projeto_arquitetos só por compatibilidade
@@ -145,6 +147,7 @@ export async function getProjeto(id: string) {
       arquiteto:arquiteto_id(nome),
       responsavel:responsavel_id(nome),
       engenheiro:responsavel_obra_id(nome),
+      eletricista:eletricista_id(nome),
       projeto_arquitetos(percentual, arquiteto:arquiteto_id(id, nome)),
       responsavel_funcionario:responsavel_funcionario_id(id, nome),
       projeto_parcelas(*),
