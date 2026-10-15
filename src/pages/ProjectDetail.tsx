@@ -14,7 +14,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import useProjectStore from '@/stores/useProjectStore'
 import { redirectWithCode } from '@/lib/cross-system-auth'
 import {
   Select,
@@ -66,12 +65,12 @@ import {
 import { cn } from '@/lib/utils'
 import { ArchitectSplitPicker, type ArquitetoSplit } from '@/components/ArchitectSplitPicker'
 import { NewEmployeeModal } from '@/components/NewEmployeeModal'
+import { ContactSearchCombobox } from '@/components/ContactSearchCombobox'
 
 export default function ProjectDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { contacts } = useProjectStore()
 
   const [projeto, setProjeto] = useState<Projeto | null>(null)
   const [loading, setLoading] = useState(true)
@@ -394,9 +393,6 @@ export default function ProjectDetail() {
       </Badge>
     )
   }
-
-  const clientes = contacts.filter((c) => c.tipo === 'cliente')
-  const engenheiros = contacts.filter((c) => c.tipo === 'engenheiro')
 
   const valorTotal =
     projeto.projeto_parcelas?.reduce((acc, p) => {
@@ -747,22 +743,12 @@ export default function ProjectDetail() {
               <span className="text-muted-foreground w-1/3">Cliente</span>
               <div className="w-2/3 flex justify-end">
                 {isEditing ? (
-                  <Select
-                    value={editForm.cliente_id || 'null'}
-                    onValueChange={(v) => handleChange('cliente_id', v === 'null' ? null : v)}
-                  >
-                    <SelectTrigger className="h-8 max-w-[200px]">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="null">Nenhum</SelectItem>
-                      {clientes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ContactSearchCombobox
+                    tipo="cliente"
+                    value={editForm.cliente_id || null}
+                    selectedName={projeto.cliente?.nome}
+                    onChange={(id) => handleChange('cliente_id', id)}
+                  />
                 ) : (
                   <span className="font-medium flex items-center gap-2 text-right">
                     <UserCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -829,24 +815,12 @@ export default function ProjectDetail() {
               <span className="text-muted-foreground w-1/3">Engenheiro Responsável</span>
               <div className="w-2/3 flex justify-end">
                 {isEditing ? (
-                  <Select
-                    value={editForm.responsavel_obra_id || 'null'}
-                    onValueChange={(v) =>
-                      handleChange('responsavel_obra_id', v === 'null' ? null : v)
-                    }
-                  >
-                    <SelectTrigger className="h-8 max-w-[200px]">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="null">Nenhum</SelectItem>
-                      {engenheiros.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ContactSearchCombobox
+                    tipo="engenheiro"
+                    value={editForm.responsavel_obra_id || null}
+                    selectedName={projeto.engenheiro?.nome}
+                    onChange={(id) => handleChange('responsavel_obra_id', id)}
+                  />
                 ) : (
                   <span className="font-medium flex items-center gap-2 text-right">
                     <HardHat className="h-4 w-4 text-muted-foreground flex-shrink-0" />
