@@ -93,7 +93,7 @@ const formSchema = z.object({
   // funcionário real, obrigatório (mesma regra do cliente_id acima).
   responsavel_funcionario_id: z
     .string()
-    .refine((v) => v !== 'null' && v.trim().length > 0, 'Selecione um responsável'),
+    .refine((v) => v !== 'null' && v.trim().length > 0, 'Selecione a equipe responsável'),
   // Múltiplos arquitetos com percentual de divisão de lucro — opcional
   // (nem todo projeto tem arquiteto vinculado), mas quando preenchido a
   // soma dos percentuais precisa fechar exatamente 100%.
@@ -138,7 +138,12 @@ export default function ProjectNew() {
   const [searchEngenheiro, setSearchEngenheiro] = useState('')
 
   const [dbClientes, setDbClientes] = useState<{ id: string; nome: string }[]>([])
-  const [dbFuncionarios, setDbFuncionarios] = useState<{ id: string; nome: string }[]>([])
+  // SPEC-202 E: Responsável = equipe (equipes_projetos); o campo do form
+  // guarda o id da equipe e o líder vai para responsavel_funcionario_id.
+  const [dbFuncionarios, setDbFuncionarios] = useState<
+    { id: string; nome: string; lider: string | null }[]
+  >([])
+  const [liderSelecionado, setLiderSelecionado] = useState<string | null>(null)
   const [dbEngenheiros, setDbEngenheiros] = useState<{ id: string; nome: string }[]>([])
 
   const [selectedClienteName, setSelectedClienteName] = useState('')
@@ -160,10 +165,16 @@ export default function ProjectNew() {
     // SPEC-077: Responsável agora vem do cadastro de Funcionários (ativos),
     // não mais do histórico de texto livre de projetos anteriores.
     const fetchFuncionarios = async () => {
-      let q = supabase.from('funcionarios').select('id, nome').eq('status', 'Ativo').order('nome')
-      if (searchResponsavel) q = q.ilike('nome', `%${searchResponsavel}%`)
-      const { data } = await q.limit(100)
-      if (data) setDbFuncionarios(data)
+      let q = supabase
+        .from('equipes_projetos')
+        .select('id, equipes, lider_funcionario_id')
+        .order('equipes')
+      if (searchResponsavel) q = q.ilike('equipes', `%${searchResponsavel}%`)
+      const { data } = await q
+      if (data)
+        setDbFuncionarios(
+          data.map((e: any) => ({ id: e.id, nome: e.equipes, lider: e.lider_funcionario_id })),
+        )
     }
     const timeout = setTimeout(fetchFuncionarios, 300)
     return () => clearTimeout(timeout)
@@ -249,7 +260,9 @@ export default function ProjectNew() {
         // trigger no banco pra derivar a equipe/comissão do projeto.
         responsavel_nome: selectedResponsavelName || null,
         responsavel_id: null,
-        responsavel_funcionario_id: v.responsavel_funcionario_id,
+        // SPEC-202 E: v.responsavel_funcionario_id guarda a equipe; o nome
+        // dela em responsavel_nome faz o trigger preencher equipe_id.
+        responsavel_funcionario_id: liderSelecionado,
         status: v.status,
         cliente_id: v.cliente_id !== 'null' ? v.cliente_id : null,
         // SPEC-202 D: o campo do formulário é contato engenheiro — vai para
@@ -497,7 +510,7 @@ export default function ProjectNew() {
                               <span className="truncate">
                                 {field.value && field.value !== 'null'
                                   ? selectedResponsavelName || 'Selecionado'
-                                  : 'Selecione'}
+                                  : 'Selecione a equipe'}
                               </span>
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
@@ -506,12 +519,12 @@ export default function ProjectNew() {
                         <PopoverContent className="w-[300px] p-0" align="start">
                           <Command shouldFilter={false}>
                             <CommandInput
-                              placeholder="Buscar funcionário..."
+                              placeholder="Buscar equipe..."
                               value={searchResponsavel}
                               onValueChange={setSearchResponsavel}
                             />
                             <CommandList>
-                              <CommandEmpty>Nenhum funcionário encontrado.</CommandEmpty>
+                              <CommandEmpty>Nenhuma equipe encontrada.</CommandEmpty>
                               <CommandGroup>
                                 {dbFuncionarios.map((o) => (
                                   <CommandItem
@@ -519,6 +532,7 @@ export default function ProjectNew() {
                                     key={o.id}
                                     onSelect={() => {
                                       form.setValue('responsavel_funcionario_id', o.id)
+                                      setLiderSelecionado(o.lider)
                                       setSelectedResponsavelName(o.nome)
                                       setOpenResponsavel(false)
                                     }}
@@ -533,33 +547,10 @@ export default function ProjectNew() {
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
-                              <CommandSeparator />
-                              <CommandGroup>
-                                <CommandItem
-                                  onSelect={() => {
-                                    setOpenResponsavel(false)
-                                    setEmployeeModalOpen(true)
-                                  }}
-                                  className="text-primary font-medium cursor-pointer"
-                                >
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  Novo Funcionário
-                                </CommandItem>
-                              </CommandGroup>
                             </CommandList>
                           </Command>
                         </PopoverContent>
                       </Popover>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="shrink-0 h-11 w-11"
-                        onClick={() => setEmployeeModalOpen(true)}
-                        title="Adicionar Novo Funcionário"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
                     </div>
                     <FormMessage />
                   </FormItem>

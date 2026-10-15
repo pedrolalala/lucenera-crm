@@ -91,7 +91,10 @@ export default function ProjectDetail() {
   const [selectedResponsavelName, setSelectedResponsavelName] = useState('')
   const [openResponsavel, setOpenResponsavel] = useState(false)
   const [searchResponsavel, setSearchResponsavel] = useState('')
-  const [dbFuncionarios, setDbFuncionarios] = useState<{ id: string; nome: string }[]>([])
+  // SPEC-202 E: Responsável = equipe (equipes_projetos), não funcionário.
+  const [dbFuncionarios, setDbFuncionarios] = useState<
+    { id: string; nome: string; lider: string | null }[]
+  >([])
   const [employeeModalOpen, setEmployeeModalOpen] = useState(false)
 
   const projetoArquitetosParaPicker = (data: Projeto): ArquitetoSplit[] => {
@@ -114,10 +117,16 @@ export default function ProjectDetail() {
 
   useEffect(() => {
     const fetchFuncionarios = async () => {
-      let q = supabase.from('funcionarios').select('id, nome').eq('status', 'Ativo').order('nome')
-      if (searchResponsavel) q = q.ilike('nome', `%${searchResponsavel}%`)
-      const { data } = await q.limit(100)
-      if (data) setDbFuncionarios(data)
+      let q = supabase
+        .from('equipes_projetos')
+        .select('id, equipes, lider_funcionario_id')
+        .order('equipes')
+      if (searchResponsavel) q = q.ilike('equipes', `%${searchResponsavel}%`)
+      const { data } = await q
+      if (data)
+        setDbFuncionarios(
+          data.map((e: any) => ({ id: e.id, nome: e.equipes, lider: e.lider_funcionario_id })),
+        )
     }
     const timeout = setTimeout(fetchFuncionarios, 300)
     return () => clearTimeout(timeout)
@@ -153,7 +162,7 @@ export default function ProjectDetail() {
         // editor manual — saveProjetoParcelas também bloqueia no banco.
         setEditParcelas((data.projeto_parcelas || []).filter((p) => !p.orcamento_id))
         setEditArquitetos(projetoArquitetosParaPicker(data))
-        setSelectedResponsavelName(data.responsavel_funcionario?.nome || '')
+        setSelectedResponsavelName(data.responsavel_nome || '')
       })
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -184,7 +193,7 @@ export default function ProjectDetail() {
       setEditForm(projeto)
       setEditParcelas((projeto.projeto_parcelas || []).filter((p) => !p.orcamento_id))
       setEditArquitetos(projetoArquitetosParaPicker(projeto))
-      setSelectedResponsavelName(projeto.responsavel_funcionario?.nome || '')
+      setSelectedResponsavelName(projeto.responsavel_nome || '')
     }
     setIsEditing(!isEditing)
   }
@@ -266,10 +275,10 @@ export default function ProjectDetail() {
     // SPEC-077: Responsável é obrigatório. Arquiteto(s) fica opcional — nem
     // todo projeto tem arquiteto vinculado — mas quando preenchido a soma
     // dos percentuais precisa fechar 100%.
-    if (!editForm.responsavel_funcionario_id) {
+    if (!editForm.equipe_id) {
       toast({
         title: 'Responsável obrigatório',
-        description: 'Selecione um responsável para o projeto.',
+        description: 'Selecione a equipe responsável pelo projeto.',
         variant: 'destructive',
       })
       return
@@ -314,6 +323,10 @@ export default function ProjectDetail() {
         // SPEC-077: Responsável agora vem de funcionarios — responsavel_nome
         // continua sendo gravado junto (nome do funcionário escolhido) pra
         // não quebrar o trigger que deriva a equipe/comissão a partir dele.
+        // SPEC-202 E: responsável = equipe. responsavel_nome recebe o nome da
+        // equipe (o trigger fn_sync_equipe_por_responsavel casa pelo nome) e
+        // responsavel_funcionario_id o líder (Vendedor no Orçamento).
+        equipe_id: editForm.equipe_id,
         responsavel_funcionario_id: editForm.responsavel_funcionario_id,
         responsavel_nome: selectedResponsavelName || null,
         link_sharepoint: (editForm as any).link_sharepoint || null,
@@ -337,7 +350,7 @@ export default function ProjectDetail() {
       setEditForm(updated)
       setEditParcelas(updated.projeto_parcelas || [])
       setEditArquitetos(projetoArquitetosParaPicker(updated))
-      setSelectedResponsavelName(updated.responsavel_funcionario?.nome || '')
+      setSelectedResponsavelName(updated.responsavel_nome || '')
       setIsEditing(false)
       toast({ title: 'Projeto atualizado com sucesso' })
     } catch (error: any) {
@@ -662,13 +675,13 @@ export default function ProjectDetail() {
                           aria-expanded={openResponsavel}
                           className={cn(
                             'flex-1 justify-between h-8 font-normal truncate',
-                            !editForm.responsavel_funcionario_id && 'text-muted-foreground',
+                            !editForm.equipe_id && 'text-muted-foreground',
                           )}
                         >
                           <span className="truncate">
-                            {editForm.responsavel_funcionario_id
+                            {editForm.equipe_id
                               ? selectedResponsavelName || 'Selecionado'
-                              : 'Selecione'}
+                              : 'Selecione a equipe'}
                           </span>
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -676,21 +689,22 @@ export default function ProjectDetail() {
                       <PopoverContent className="w-[280px] p-0" align="end">
                         <Command shouldFilter={false}>
                           <CommandInput
-                            placeholder="Buscar funcionário..."
+                            placeholder="Buscar equipe..."
                             value={searchResponsavel}
                             onValueChange={setSearchResponsavel}
                           />
                           <CommandList>
-                            <CommandEmpty>Nenhum funcionário encontrado.</CommandEmpty>
+                            <CommandEmpty>Nenhuma equipe encontrada.</CommandEmpty>
                             <CommandGroup>
                               {dbFuncionarios.map((o) => (
                                 <CommandItem
                                   value={o.id}
                                   key={o.id}
                                   onSelect={() => {
+                                    handleChange('equipe_id' as keyof Projeto, o.id)
                                     handleChange(
                                       'responsavel_funcionario_id' as keyof Projeto,
-                                      o.id,
+                                      o.lider,
                                     )
                                     setSelectedResponsavelName(o.nome)
                                     setOpenResponsavel(false)
@@ -699,7 +713,7 @@ export default function ProjectDetail() {
                                   <Check
                                     className={cn(
                                       'mr-2 h-4 w-4',
-                                      o.id === editForm.responsavel_funcionario_id
+                                      o.id === editForm.equipe_id
                                         ? 'opacity-100'
                                         : 'opacity-0',
                                     )}
@@ -708,40 +722,15 @@ export default function ProjectDetail() {
                                 </CommandItem>
                               ))}
                             </CommandGroup>
-                            <CommandSeparator />
-                            <CommandGroup>
-                              <CommandItem
-                                onSelect={() => {
-                                  setOpenResponsavel(false)
-                                  setEmployeeModalOpen(true)
-                                }}
-                                className="text-primary font-medium cursor-pointer"
-                              >
-                                <Plus className="mr-2 h-4 w-4" />
-                                Novo Funcionário
-                              </CommandItem>
-                            </CommandGroup>
                           </CommandList>
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="shrink-0 h-8 w-8"
-                      onClick={() => setEmployeeModalOpen(true)}
-                      title="Adicionar Novo Funcionário"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
                   </div>
                 ) : (
                   <span className="font-medium flex items-center gap-2 text-right">
                     <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    {projeto.responsavel_funcionario?.nome ||
-                      projeto.responsavel_nome ||
-                      'Não definido'}
+                    {projeto.responsavel_nome || 'Não definido'}
                   </span>
                 )}
               </div>
