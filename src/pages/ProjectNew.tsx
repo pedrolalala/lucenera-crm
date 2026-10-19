@@ -293,6 +293,16 @@ export default function ProjectNew() {
 
       const novoProjetoId = result?.data?.id
       if (novoProjetoId) {
+        // SPEC-206: salvar-projeto grava com service role (sem usuário); registra quem criou na Movimentação.
+        try {
+          await (supabase as any).rpc('auditoria_registrar_acao', {
+            p_tipo: 'criou',
+            p_entidade: 'projetos',
+            p_registro_id: novoProjetoId,
+          })
+        } catch {
+          // registro de uso é secundário
+        }
         const engenheiroId =
           v.responsavel_obra_id && v.responsavel_obra_id !== 'null' ? v.responsavel_obra_id : null
         if (eletricistaId || engenheiroId) {
