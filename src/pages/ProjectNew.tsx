@@ -80,7 +80,6 @@ const NEW_STATUS_OPTIONS = [
 ]
 
 const formSchema = z.object({
-  codigo: z.string().regex(/^\d{2}\.\d{3}$/, 'Formato inválido. Use o padrão XX.XXX (ex: 26.083)'),
   nome: z.string().min(2, 'Obrigatório'),
   nivel_estrategico: z.enum(['1', '2', '3', '4']),
   status: z.string().min(1, 'Obrigatório'),
@@ -194,7 +193,6 @@ export default function ProjectNew() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      codigo: '',
       nome: '',
       nivel_estrategico: '3',
       cliente_id: 'null',
@@ -207,37 +205,6 @@ export default function ProjectNew() {
       data_entrada: new Date(),
     },
   })
-
-  useEffect(() => {
-    const fetchLatestCode = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('projetos')
-          .select('codigo')
-          .order('created_at', { ascending: false })
-          .limit(1)
-
-        if (!error && data && data.length > 0) {
-          const lastCode = data[0].codigo
-          if (lastCode && lastCode.includes('.')) {
-            const parts = lastCode.split('.')
-            if (parts.length === 2) {
-              const prefix = parts[0]
-              const suffix = parseInt(parts[1], 10)
-              if (!isNaN(suffix)) {
-                const nextSuffix = String(suffix + 1).padStart(3, '0')
-                form.setValue('codigo', `${prefix}.${nextSuffix}`)
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Erro ao buscar último código:', err)
-      }
-    }
-
-    fetchLatestCode()
-  }, [form])
 
   const getCities = () => {
     return Array.from(new Set(contacts.map((c) => c.cidade).filter(Boolean))) as string[]
@@ -252,7 +219,6 @@ export default function ProjectNew() {
     setLoading(true)
     try {
       const payload = {
-        codigo: v.codigo,
         nome: v.nome,
         nivel_estrategico: v.nivel_estrategico,
         // SPEC-077: responsavel_nome continua sendo enviado (agora a partir
@@ -391,36 +357,14 @@ export default function ProjectNew() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pt-8">
-              <FormField
-                control={form.control}
-                name="codigo"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-1">
-                    <FormLabel className="text-base">
-                      Código <span className="text-destructive">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ex: 26.083"
-                        className="h-11 text-base"
-                        {...field}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/[^\d.]/g, '')
-                          field.onChange(val)
-                        }}
-                        onBlur={(e) => {
-                          const onlyNumbers = e.target.value.replace(/\D/g, '')
-                          if (onlyNumbers.length >= 3) {
-                            field.onChange(`${onlyNumbers.slice(0, 2)}.${onlyNumbers.slice(2)}`)
-                          }
-                          field.onBlur()
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* SPEC-228: o código oficial é gerado pelo fluxo do SharePoint (que também cria o
+                  grupo no Teams); o projeto nasce com código provisório PROV-NNNN. */}
+              <div className="md:col-span-1 space-y-2">
+                <p className="text-base font-medium">Código</p>
+                <p className="flex h-11 items-center rounded-md border border-dashed px-3 text-sm text-muted-foreground">
+                  Gerado pelo SharePoint em alguns minutos
+                </p>
+              </div>
 
               <FormField
                 control={form.control}

@@ -307,7 +307,8 @@ export default function ProjectDetail() {
         eletricista_id?: string | null
         engenheiro_id?: string | null
       } = {
-        codigo: editForm.codigo,
+        // SPEC-228: código não é gravado daqui — se a tela ficou aberta enquanto o
+        // SharePoint trocou PROV-NNNN pelo oficial, regravaria o provisório.
         nome: editForm.nome,
         status: editForm.status,
         nivel_estrategico: editForm.nivel_estrategico,
@@ -448,21 +449,20 @@ export default function ProjectDetail() {
               {isEditing ? (
                 <div className="flex items-center gap-1">
                   <span className="text-muted-foreground font-medium">#</span>
+                  {/* SPEC-228: código só leitura — o oficial vem do fluxo do SharePoint. */}
                   <Input
                     value={editForm.codigo || ''}
-                    onChange={(e) => handleChange('codigo', e.target.value.replace(/[^\d.]/g, ''))}
-                    onBlur={(e) => {
-                      const onlyNumbers = e.target.value.replace(/\D/g, '')
-                      if (onlyNumbers.length >= 3) {
-                        handleChange('codigo', `${onlyNumbers.slice(0, 2)}.${onlyNumbers.slice(2)}`)
-                      }
-                    }}
+                    readOnly
+                    disabled
+                    title="O código é gerado pelo SharePoint"
                     className="h-8 w-24 text-sm"
                   />
                 </div>
               ) : (
                 <Badge variant="secondary" className="text-sm">
-                  #{projeto.codigo}
+                  {projeto.codigo?.startsWith('PROV-')
+                    ? 'Aguardando código do SharePoint'
+                    : `#${projeto.codigo}`}
                 </Badge>
               )}
             </div>

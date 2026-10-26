@@ -601,9 +601,17 @@ export default function Projetos() {
                         >
                           <TableCell
                             className="px-2 py-3 font-medium text-slate-900 truncate"
-                            title={projeto.codigo || ''}
+                            title={
+                              projeto.codigo?.startsWith('PROV-')
+                                ? 'Aguardando código do SharePoint (SPEC-228)'
+                                : projeto.codigo || ''
+                            }
                           >
-                            {projeto.codigo}
+                            {projeto.codigo?.startsWith('PROV-') ? (
+                              <span className="text-amber-600">Aguardando código</span>
+                            ) : (
+                              projeto.codigo
+                            )}
                           </TableCell>
 
                           {viewMode === 'completa' && (
