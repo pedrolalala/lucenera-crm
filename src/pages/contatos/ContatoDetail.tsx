@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/supabase/types'
@@ -38,6 +38,8 @@ interface FieldConfig {
   type?: FieldType
   span?: 1 | 2
   required?: boolean
+  // SPEC-261: título de seção exibido acima do campo (separa os blocos de endereço do cliente).
+  section?: string
   options?: { value: string; label: string }[]
 }
 
@@ -119,25 +121,28 @@ const FIELD_CONFIGS: Record<TipoContato, FieldConfig[]> = {
     // SPEC-064: perfil Ribeirão/São Paulo, só visualização.
     { key: 'perfil', label: 'Perfil', type: 'select', options: PERFIL_OPTIONS },
     { key: 'data_nascimento', label: 'Data de Nascimento', type: 'date' },
-    { key: 'cidade', label: 'Cidade' },
+    { key: 'cidade', label: 'Cidade', section: 'Endereço principal (faturamento)' },
     { key: 'estado', label: 'Estado (UF)' },
     { key: 'cep', label: 'CEP' },
     { key: 'numero', label: 'Número' },
     { key: 'bairro', label: 'Bairro' },
     { key: 'endereco', label: 'Endereço', span: 2 },
+    { key: 'complemento', label: 'Complemento', span: 2 },
     // SPEC-052: endereços de entrega e cobrança, distintos do principal.
-    { key: 'cep_entrega', label: 'CEP (Entrega)' },
+    { key: 'cep_entrega', label: 'CEP (Entrega)', section: 'Endereço de entrega' },
     { key: 'numero_entrega', label: 'Número (Entrega)' },
     { key: 'bairro_entrega', label: 'Bairro (Entrega)' },
     { key: 'cidade_entrega', label: 'Cidade (Entrega)' },
     { key: 'estado_entrega', label: 'Estado (Entrega)' },
     { key: 'endereco_entrega', label: 'Endereço de Entrega', span: 2 },
-    { key: 'cep_cobranca', label: 'CEP (Cobrança)' },
+    { key: 'complemento_entrega', label: 'Complemento (Entrega)', span: 2 },
+    { key: 'cep_cobranca', label: 'CEP (Cobrança)', section: 'Endereço de cobrança' },
     { key: 'numero_cobranca', label: 'Número (Cobrança)' },
     { key: 'bairro_cobranca', label: 'Bairro (Cobrança)' },
     { key: 'cidade_cobranca', label: 'Cidade (Cobrança)' },
     { key: 'estado_cobranca', label: 'Estado (Cobrança)' },
     { key: 'endereco_cobranca', label: 'Endereço de Cobrança', span: 2 },
+    { key: 'complemento_cobranca', label: 'Complemento (Cobrança)', span: 2 },
     { key: 'observacoes', label: 'Observações', type: 'textarea', span: 2 },
     { key: 'ativo', label: 'Status', type: 'boolean' },
   ],
@@ -636,16 +641,20 @@ export default function ContatoDetail() {
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
             {fields.map((f) => (
-              <div
-                key={String(f.key)}
-                className={f.span === 2 ? 'sm:col-span-2 space-y-1.5' : 'space-y-1.5'}
-              >
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  {f.label}
-                  {f.required && <span className="text-destructive"> *</span>}
-                </span>
-                {isEditing ? renderFieldEdit(f) : <div>{renderFieldView(f)}</div>}
-              </div>
+              <Fragment key={String(f.key)}>
+                {f.section && (
+                  <h3 className="sm:col-span-2 border-t pt-4 text-sm font-semibold text-primary">
+                    {f.section}
+                  </h3>
+                )}
+                <div className={f.span === 2 ? 'sm:col-span-2 space-y-1.5' : 'space-y-1.5'}>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {f.label}
+                    {f.required && <span className="text-destructive"> *</span>}
+                  </span>
+                  {isEditing ? renderFieldEdit(f) : <div>{renderFieldView(f)}</div>}
+                </div>
+              </Fragment>
             ))}
           </div>
         </CardContent>

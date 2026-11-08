@@ -36,14 +36,15 @@ export const clientSchema = z.object({
     .transform((v) => (v === '' ? null : v))
     .nullable()
     .optional(),
-  // SPEC-061 (2026-08-05): e-mail passa a ser obrigatório no formulário —
-  // decisão do usuário. A coluna `contatos.email` no banco continua
-  // nullable (não quebra dados legados/importações sem e-mail).
+  // SPEC-261 (08/11/2026): e-mail do cliente volta a ser opcional (pedido da Central: ao criar a
+  // pasta do projeto só chega o nome do cliente). Vinha obrigatório desde a SPEC-061. Se preenchido,
+  // continua validado.
   email: z
     .string()
     .trim()
-    .min(1, 'E-mail é obrigatório')
-    .refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Email inválido'),
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .refine((v) => v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Email inválido'),
   email_financeiro: z
     .string()
     .trim()
@@ -305,7 +306,7 @@ export function ClientFormFields({ form }: Props) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              E-mail <span className="text-destructive">*</span>
+              E-mail
             </FormLabel>
             <FormControl>
               <Input
