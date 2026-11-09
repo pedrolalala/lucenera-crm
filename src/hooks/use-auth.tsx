@@ -8,6 +8,8 @@ interface AuthContextType {
   user: User | null
   session: Session | null
   hasAccess: boolean | null
+  // SPEC-266: tem só o módulo 'fornecedores' do CRM (vê apenas a aba Fornecedores)
+  somenteFornecedores: boolean
   role: string | null
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
@@ -29,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [hasAccess, setHasAccess] = useState<boolean | null>(null)
+  const [somenteFornecedores, setSomenteFornecedores] = useState(false)
   const [role, setRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -38,16 +41,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!user?.id) {
       setHasAccess(null)
+      setSomenteFornecedores(false)
       return
     }
-    supabase
-      .rpc('hub_pode_executar', {
+    const checar = (modulo: string | null) =>
+      supabase.rpc('hub_pode_executar', {
         p_usuario_id: user.id,
         p_system_slug: 'crm',
-        p_modulo_chave: null,
+        p_modulo_chave: modulo,
         p_acao: null,
       })
-      .then(({ data }) => setHasAccess(Boolean(data)))
+    // SPEC-266: permissão do sistema inteiro (modulo null) OU só do módulo 'fornecedores'
+    Promise.all([checar(null), checar('fornecedores')]).then(([completo, forn]) => {
+      const temCompleto = Boolean(completo.data)
+      const temFornecedores = Boolean(forn.data)
+      setHasAccess(temCompleto || temFornecedores)
+      setSomenteFornecedores(!temCompleto && temFornecedores)
+    })
   }, [user?.id])
 
   // Role base (admin/gerente/operador/...) — usado pra gates simples de UI
@@ -136,6 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         session,
         hasAccess,
+        somenteFornecedores,
         role,
         signUp,
         signIn,

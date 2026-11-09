@@ -1,4 +1,5 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Outlet, Link, Navigate, useLocation } from 'react-router-dom'
+import { useAuth } from '@/hooks/use-auth'
 import {
   LayoutDashboard,
   FolderKanban,
@@ -29,7 +30,9 @@ import { SystemSwitcher } from '@/components/SystemSwitcher'
 export default function Layout() {
   const location = useLocation()
 
-  const navItems = [
+  const { somenteFornecedores } = useAuth()
+
+  const todosItens = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Projetos', href: '/projetos', icon: FolderKanban },
     { name: 'Clientes', href: '/contatos/clientes', icon: UserCircle },
@@ -39,6 +42,13 @@ export default function Layout() {
     { name: 'Fornecedores', href: '/contatos/fornecedores', icon: Truck },
     { name: 'Configurações', href: '/configuracoes', icon: Settings },
   ]
+  // SPEC-266: quem só tem o módulo Fornecedores vê apenas essa aba e cai nela em qualquer outra rota
+  const navItems = somenteFornecedores
+    ? todosItens.filter((i) => i.href === '/contatos/fornecedores')
+    : todosItens
+  if (somenteFornecedores && !location.pathname.startsWith('/contatos/fornecedores')) {
+    return <Navigate to="/contatos/fornecedores" replace />
+  }
 
   return (
     <SidebarProvider>
