@@ -114,9 +114,7 @@ const formSchema = z.object({
   responsavel_obra_id: z.string().optional(),
   cidade: z.string().min(2, 'Obrigatório'),
   estado: z.string().length(2, 'Inválido'),
-  data_entrada: z.date({
-    required_error: 'A data de entrada é obrigatória.',
-  }),
+  data_entrada: z.date({ error: 'A data de entrada é obrigatória.' }),
 })
 
 export default function ProjectNew() {
@@ -541,8 +539,12 @@ export default function ProjectNew() {
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
+                          required
                           selected={field.value}
-                          onSelect={field.onChange}
+                          onSelect={(d) => {
+                            // Clicar no dia já marcado (hoje já vem marcado) desmarcava a data e dava "Invalid input".
+                            if (d) field.onChange(d)
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
