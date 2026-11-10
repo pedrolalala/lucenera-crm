@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { fetchAllPages } from '@/lib/fetchAllPages'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   Plus,
@@ -139,12 +140,16 @@ export default function Clientes() {
 
   const fetchClients = async () => {
     if (clients.length === 0) setLoading(true)
-    const { data, error } = await supabase
-      .from('contatos')
-      .select('*')
-      .eq('tipo', 'cliente')
-      .order('created_at', { ascending: false })
-      .limit(10000)
+    // Paginado: a API corta em 1000 linhas e ja ha mais de 2.900 clientes.
+    const { data, error } = await fetchAllPages<any>((from, to) =>
+      supabase
+        .from('contatos')
+        .select('*')
+        .eq('tipo', 'cliente')
+        .order('created_at', { ascending: false })
+        .order('id')
+        .range(from, to),
+    )
 
     if (error) {
       toast({

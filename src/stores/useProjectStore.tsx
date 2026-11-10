@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { fetchAllPages } from '@/lib/fetchAllPages'
 import { getProjetos, Projeto } from '@/services/projetos'
 import { useAuth } from '@/hooks/use-auth'
 import type { Database } from '@/lib/supabase/types'
@@ -48,7 +49,9 @@ export const ProjectStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const refreshContacts = useCallback(async () => {
     try {
-      const { data } = await supabase.from('contatos').select('*').order('nome').limit(5000)
+      const { data } = await fetchAllPages<any>((from, to) =>
+        supabase.from('contatos').select('*').order('nome').order('id').range(from, to),
+      )
       if (data) setContacts(data)
     } catch (e) {
       console.error('Erro ao carregar contatos:', e)
