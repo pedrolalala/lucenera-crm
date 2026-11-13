@@ -10,6 +10,8 @@ interface AuthContextType {
   hasAccess: boolean | null
   // SPEC-266: tem só o módulo 'fornecedores' do CRM (vê apenas a aba Fornecedores)
   somenteFornecedores: boolean
+  // SPEC-292: abas liberadas quando NÃO tem o CRM inteiro (null = todas). Ex.: ['fornecedores','clientes']
+  modulosPermitidos: string[] | null
   role: string | null
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
@@ -32,6 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null)
   const [hasAccess, setHasAccess] = useState<boolean | null>(null)
   const [somenteFornecedores, setSomenteFornecedores] = useState(false)
+  const [modulosPermitidos, setModulosPermitidos] = useState<string[] | null>(null)
   const [role, setRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -42,6 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user?.id) {
       setHasAccess(null)
       setSomenteFornecedores(false)
+      setModulosPermitidos(null)
       return
     }
     const checar = (modulo: string | null) =>
@@ -52,11 +56,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         p_acao: null,
       })
     // SPEC-266: permissão do sistema inteiro (modulo null) OU só do módulo 'fornecedores'
-    Promise.all([checar(null), checar('fornecedores')]).then(([completo, forn]) => {
+    Promise.all([checar(null), checar('fornecedores'), checar('clientes')]).then(([completo, forn, cli]) => {
       const temCompleto = Boolean(completo.data)
-      const temFornecedores = Boolean(forn.data)
-      setHasAccess(temCompleto || temFornecedores)
-      setSomenteFornecedores(!temCompleto && temFornecedores)
+      const mods = [forn.data ? 'fornecedores' : null, cli.data ? 'clientes' : null].filter(Boolean) as string[]
+      setHasAccess(temCompleto || mods.length > 0)
+      setSomenteFornecedores(!temCompleto && mods.length === 1 && mods[0] === 'fornecedores')
+      setModulosPermitidos(temCompleto ? null : mods)
     })
   }, [user?.id])
 
@@ -147,6 +152,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         hasAccess,
         somenteFornecedores,
+        modulosPermitidos,
         role,
         signUp,
         signIn,

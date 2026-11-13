@@ -30,7 +30,7 @@ import { SystemSwitcher } from '@/components/SystemSwitcher'
 export default function Layout() {
   const location = useLocation()
 
-  const { somenteFornecedores } = useAuth()
+  const { modulosPermitidos } = useAuth()
 
   const todosItens = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -42,12 +42,12 @@ export default function Layout() {
     { name: 'Fornecedores', href: '/contatos/fornecedores', icon: Truck },
     { name: 'Configurações', href: '/configuracoes', icon: Settings },
   ]
-  // SPEC-266: quem só tem o módulo Fornecedores vê apenas essa aba e cai nela em qualquer outra rota
-  const navItems = somenteFornecedores
-    ? todosItens.filter((i) => i.href === '/contatos/fornecedores')
-    : todosItens
-  if (somenteFornecedores && !location.pathname.startsWith('/contatos/fornecedores')) {
-    return <Navigate to="/contatos/fornecedores" replace />
+  // SPEC-266/292: quem não tem o CRM inteiro vê só as abas dos módulos liberados (Fornecedores e/ou Clientes)
+  const rotaDoModulo: Record<string, string> = { fornecedores: '/contatos/fornecedores', clientes: '/contatos/clientes' }
+  const rotasPermitidas = modulosPermitidos ? modulosPermitidos.map((m) => rotaDoModulo[m]).filter(Boolean) : null
+  const navItems = rotasPermitidas ? todosItens.filter((i) => rotasPermitidas.includes(i.href)) : todosItens
+  if (rotasPermitidas && rotasPermitidas.length > 0 && !rotasPermitidas.some((r) => location.pathname.startsWith(r))) {
+    return <Navigate to={rotasPermitidas[0]} replace />
   }
 
   return (
